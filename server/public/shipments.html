@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>TotalBot - 배송 관리</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f6f7;
+      color: #333;
+    }
+
+    /* Sidebar Styles */
+    .sidebar-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      z-index: 999;
+    }
+
+    .sidebar-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: -280px;
+      width: 280px;
+      height: 100%;
+      background: #1a1a2e;
+      transition: left 0.3s ease;
+      z-index: 1000;
+      overflow-y: auto;
+    }
+
+    .sidebar.active {
+      left: 0;
+    }
+
+    .sidebar-header {
+      padding: 24px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .sidebar-header h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-header p {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .sidebar-menu {
+      padding: 16px 0;
+    }
+
+    .sidebar-menu-title {
+      padding: 12px 20px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .sidebar-menu-item {
+      display: flex;
+      align-items: center;
+      padding: 14px 20px;
+      color: #ccc;
+      text-decoration: none;
+      font-size: 14px;
+      transition: all 0.2s;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+    }
+
+    .sidebar-menu-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: white;
+    }
+
+    .sidebar-menu-item.active {
+      background: rgba(102, 126, 234, 0.2);
+      color: #667eea;
+      border-left-color: #667eea;
+    }
+
+    .sidebar-menu-item .menu-icon {
+      width: 24px;
+      margin-right: 12px;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    .sidebar-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+      margin: 12px 20px;
+    }
+
+    /* Hamburger Button */
+    .hamburger-btn {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: 40px;
+      height: 40px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+
+    .hamburger-btn:hover {
+      background: #f0f0f0;
+    }
+
+    .hamburger-btn span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: #333;
+      margin: 2px 0;
+      border-radius: 1px;
+    }
+
+    .header {
+      background: white;
+      border-bottom: 1px solid #e5e8eb;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* Cards */
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title .icon {
+      font-size: 22px;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .stat-card .stat-icon {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+
+    .stat-card .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .stat-card .stat-label {
+      font-size: 13px;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    .stat-card.primary { border-left: 4px solid #667eea; }
+    .stat-card.info { border-left: 4px solid #3b82f6; }
+    .stat-card.warning { border-left: 4px solid #f59e0b; }
+    .stat-card.success { border-left: 4px solid #10b981; }
+    .stat-card.danger { border-left: 4px solid #ef4444; }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    /* Shipment Cards */
+    .shipment-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 20px;
+    }
+
+    .shipment-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .shipment-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+
+    .shipment-card-header {
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .shipment-card-header h3 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .shipment-card-header .center-badge {
+      background: rgba(255,255,255,0.2);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .shipment-card-body {
+      padding: 20px;
+    }
+
+    .shipment-info {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .shipment-info-item {
+      font-size: 13px;
+    }
+
+    .shipment-info-item .label {
+      color: #888;
+      margin-bottom: 2px;
+    }
+
+    .shipment-info-item .value {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .shipment-progress {
+      margin-bottom: 16px;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .progress-bar-bg {
+      background: #e5e7eb;
+      border-radius: 4px;
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.3s;
+    }
+
+    .shipment-card-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .shipment-card-actions .btn {
+      flex: 1;
+      justify-content: center;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+
+    /* Badge */
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-pending { background: #fef3c7; color: #92400e; }
+    .badge-shipped { background: #dbeafe; color: #1e40af; }
+    .badge-delivered { background: #d1fae5; color: #065f46; }
+    .badge-cancelled { background: #fee2e2; color: #991b1b; }
+
+    /* Table */
+    .table-container {
+      overflow-x: auto;
+    }
+
+    .shipment-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .shipment-table th {
+      background: #f9fafb;
+      padding: 14px 12px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid #e5e8eb;
+      white-space: nowrap;
+    }
+
+    .shipment-table td {
+      padding: 14px 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .shipment-table tr:hover {
+      background: #f9fafb;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #e5e8eb;
+      padding-bottom: 4px;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      background: transparent;
+      border: none;
+      font-size: 14px;
+      font-weight: 500;
+      color: #666;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab:hover {
+      color: #333;
+    }
+
+    .tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+
+    .toast {
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      animation: slideIn 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .toast.success { background: #10b981; color: white; }
+    .toast.error { background: #ef4444; color: white; }
+    .toast.warning { background: #f59e0b; color: white; }
+    .toast.info { background: #3b82f6; color: white; }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #888;
+    }
+
+    .empty-state .icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    .empty-state h3 {
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    /* Timeline */
+    .timeline {
+      position: relative;
+      padding-left: 30px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #e5e7eb;
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -24px;
+      top: 4px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #667eea;
+      border: 2px solid white;
+      box-shadow: 0 0 0 2px #667eea;
+    }
+
+    .timeline-item.completed::before {
+      background: #10b981;
+      box-shadow: 0 0 0 2px #10b981;
+    }
+
+    .timeline-item.pending::before {
+      background: #e5e7eb;
+      box-shadow: 0 0 0 2px #e5e7eb;
+    }
+
+    .timeline-time {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+
+    .timeline-content {
+      font-size: 14px;
+      color: #333;
+    }
+
+    @media (max-width: 768px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .shipment-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2>TotalBot</h2>
+      <p>쿠팡 자동화 플랫폼</p>
+    </div>
+
+    <div class="sidebar-menu">
+      <div class="sidebar-menu-title">상품 관리</div>
+      <a class="sidebar-menu-item" href="products.html">
+        <span class="menu-icon">📦</span>
+        수집 상품
+      </a>
+      <a class="sidebar-menu-item" href="uploaded.html">
+        <span class="menu-icon">🚀</span>
+        업로드 완료
+      </a>
+      <a class="sidebar-menu-item" href="quotations.html">
+        <span class="menu-icon">📋</span>
+        견적서 관리
+      </a>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-menu-title">발주 관리</div>
+      <a class="sidebar-menu-item" href="orders.html">
+        <span class="menu-icon">🛒</span>
+        자동 발주
+      </a>
+      <a class="sidebar-menu-item" href="order-list.html">
+        <span class="menu-icon">📑</span>
+        발주 리스트
+      </a>
+      <a class="sidebar-menu-item active" href="shipments.html">
+        <span class="menu-icon">🚚</span>
+        배송 관리
+      </a>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-menu-title">분석/설정</div>
+      <a class="sidebar-menu-item" href="settlement.html">
+        <span class="menu-icon">💰</span>
+        정산
+      </a>
+      <a class="sidebar-menu-item" href="settings.html">
+        <span class="menu-icon">⚙️</span>
+        설정
+      </a>
+    </div>
+  </nav>
+
+  <div class="header">
+    <div class="header-left">
+      <button class="hamburger-btn" onclick="toggleSidebar()" title="메뉴">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <h1>배송 관리</h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="refreshShipments()">
+        <span>🔄</span> 새로고침
+      </button>
+      <button class="btn btn-success" onclick="uploadShipment()">
+        <span>📤</span> 쉽먼트 업로드
+      </button>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card primary">
+        <div class="stat-icon">📦</div>
+        <div class="stat-value" id="totalShipments">0</div>
+        <div class="stat-label">전체 쉽먼트</div>
+      </div>
+      <div class="stat-card info">
+        <div class="stat-icon">📝</div>
+        <div class="stat-value" id="pendingShipments">0</div>
+        <div class="stat-label">대기 중</div>
+      </div>
+      <div class="stat-card warning">
+        <div class="stat-icon">🚛</div>
+        <div class="stat-value" id="inTransitShipments">0</div>
+        <div class="stat-label">배송 중</div>
+      </div>
+      <div class="stat-card success">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value" id="deliveredShipments">0</div>
+        <div class="stat-label">입고 완료</div>
+      </div>
+      <div class="stat-card danger">
+        <div class="stat-icon">❌</div>
+        <div class="stat-value" id="cancelledShipments">0</div>
+        <div class="stat-label">취소</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" onclick="switchView('cards')">카드 뷰</button>
+        <button class="tab" onclick="switchView('table')">테이블 뷰</button>
+      </div>
+
+      <!-- Card View -->
+      <div id="cardView">
+        <div class="shipment-grid" id="shipmentGrid">
+          <!-- 쉽먼트 카드들이 여기에 렌더링됩니다 -->
+        </div>
+      </div>
+
+      <!-- Table View -->
+      <div id="tableView" style="display: none;">
+        <div class="table-container">
+          <table class="shipment-table">
+            <thead>
+              <tr>
+                <th>쉽먼트 번호</th>
+                <th>물류센터</th>
+                <th>입고예정일</th>
+                <th>상품 수</th>
+                <th>총 수량</th>
+                <th>송장번호</th>
+                <th>상태</th>
+                <th>생성일</th>
+                <th>작업</th>
+              </tr>
+            </thead>
+            <tbody id="shipmentTableBody">
+              <!-- 테이블 데이터 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" id="emptyState" style="display: none;">
+        <div class="icon">🚚</div>
+        <h3>쉽먼트 데이터가 없습니다</h3>
+        <p>자동 발주를 실행하면 쉽먼트가 생성됩니다.</p>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">📊</span>
+          최근 활동
+        </div>
+      </div>
+
+      <div class="timeline" id="activityTimeline">
+        <div class="timeline-item completed">
+          <div class="timeline-time">오늘 14:30</div>
+          <div class="timeline-content">GMK1 센터 쉽먼트 입고 완료 (SH-20251127-001)</div>
+        </div>
+        <div class="timeline-item completed">
+          <div class="timeline-time">오늘 10:15</div>
+          <div class="timeline-content">GMK2 센터 쉽먼트 발송 (SH-20251127-002)</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-time">어제 16:45</div>
+          <div class="timeline-content">쉽먼트 일괄 양식 3건 생성</div>
+        </div>
+        <div class="timeline-item pending">
+          <div class="timeline-time">어제 09:00</div>
+          <div class="timeline-content">GMK3 센터 쉽먼트 생성 대기</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shipment Detail Modal -->
+  <div id="shipmentModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="margin: 0;" id="modalTitle">쉽먼트 상세</h3>
+        <button onclick="closeModal()" style="background: none; border: none; font-size: 24px; cursor: pointer;">×</button>
+      </div>
+      <div id="modalContent">
+        <!-- 상세 내용 -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 버전 확인
+    console.log('🔄 TotalBot 배송 관리 v2025-11-27');
+
+    // 상태 변수
+    let allShipments = [];
+    let currentView = 'cards';
+
+    // 사이드바 토글
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      sidebar.classList.toggle('active');
+      overlay.classList.toggle('active');
+    }
+
+    // Toast 알림
+    function showToast(message, type = 'info', duration = 4000) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    // 쉽먼트 데이터 로드
+    async function loadShipments() {
+      try {
+        const response = await fetch('/api/shipments');
+        if (response.ok) {
+          allShipments = await response.json();
+        } else {
+          allShipments = generateMockShipments();
+        }
+      } catch (e) {
+        console.log('서버 연결 실패, 목업 데이터 사용');
+        allShipments = generateMockShipments();
+      }
+
+      updateStats();
+      renderShipments();
+    }
+
+    // 통계 업데이트
+    function updateStats() {
+      const total = allShipments.length;
+      const pending = allShipments.filter(s => s.status === 'pending').length;
+      const inTransit = allShipments.filter(s => s.status === 'shipped' || s.status === 'in_transit').length;
+      const delivered = allShipments.filter(s => s.status === 'delivered').length;
+      const cancelled = allShipments.filter(s => s.status === 'cancelled').length;
+
+      document.getElementById('totalShipments').textContent = total;
+      document.getElementById('pendingShipments').textContent = pending;
+      document.getElementById('inTransitShipments').textContent = inTransit;
+      document.getElementById('deliveredShipments').textContent = delivered;
+      document.getElementById('cancelledShipments').textContent = cancelled;
+    }
+
+    // 뷰 전환
+    function switchView(view) {
+      currentView = view;
+
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      event.target.classList.add('active');
+
+      if (view === 'cards') {
+        document.getElementById('cardView').style.display = 'block';
+        document.getElementById('tableView').style.display = 'none';
+      } else {
+        document.getElementById('cardView').style.display = 'none';
+        document.getElementById('tableView').style.display = 'block';
+      }
+
+      renderShipments();
+    }
+
+    // 쉽먼트 렌더링
+    function renderShipments() {
+      const emptyState = document.getElementById('emptyState');
+
+      if (allShipments.length === 0) {
+        emptyState.style.display = 'block';
+        document.getElementById('cardView').style.display = 'none';
+        document.getElementById('tableView').style.display = 'none';
+        return;
+      }
+
+      emptyState.style.display = 'none';
+
+      if (currentView === 'cards') {
+        renderCardView();
+      } else {
+        renderTableView();
+      }
+    }
+
+    // 카드 뷰 렌더링
+    function renderCardView() {
+      const grid = document.getElementById('shipmentGrid');
+
+      grid.innerHTML = allShipments.map(shipment => `
+        <div class="shipment-card">
+          <div class="shipment-card-header">
+            <h3>${shipment.shipmentNumber}</h3>
+            <span class="center-badge">${shipment.center}</span>
+          </div>
+          <div class="shipment-card-body">
+            <div class="shipment-info">
+              <div class="shipment-info-item">
+                <div class="label">입고예정일</div>
+                <div class="value">${formatDate(shipment.expectedDate)}</div>
+              </div>
+              <div class="shipment-info-item">
+                <div class="label">상품 수</div>
+                <div class="value">${shipment.productCount}개</div>
+              </div>
+              <div class="shipment-info-item">
+                <div class="label">총 수량</div>
+                <div class="value">${shipment.totalQuantity}개</div>
+              </div>
+              <div class="shipment-info-item">
+                <div class="label">송장번호</div>
+                <div class="value">${shipment.invoiceNumber || '-'}</div>
+              </div>
+            </div>
+
+            <div class="shipment-progress">
+              <div class="progress-label">
+                <span>진행률</span>
+                <span>${shipment.progress}%</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: ${shipment.progress}%"></div>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+              ${getStatusBadge(shipment.status)}
+            </div>
+
+            <div class="shipment-card-actions">
+              <button class="btn btn-secondary" onclick="viewShipment('${shipment.id}')">상세</button>
+              <button class="btn btn-primary" onclick="downloadShipment('${shipment.id}')">다운로드</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 테이블 뷰 렌더링
+    function renderTableView() {
+      const tbody = document.getElementById('shipmentTableBody');
+
+      tbody.innerHTML = allShipments.map(shipment => `
+        <tr>
+          <td><strong>${shipment.shipmentNumber}</strong></td>
+          <td>${shipment.center}</td>
+          <td>${formatDate(shipment.expectedDate)}</td>
+          <td>${shipment.productCount}</td>
+          <td>${shipment.totalQuantity}</td>
+          <td><code>${shipment.invoiceNumber || '-'}</code></td>
+          <td>${getStatusBadge(shipment.status)}</td>
+          <td>${formatDate(shipment.createdAt)}</td>
+          <td>
+            <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;" onclick="viewShipment('${shipment.id}')">상세</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // 상태 뱃지
+    function getStatusBadge(status) {
+      const badges = {
+        'pending': '<span class="badge badge-pending">대기 중</span>',
+        'shipped': '<span class="badge badge-shipped">배송 중</span>',
+        'in_transit': '<span class="badge badge-shipped">이동 중</span>',
+        'delivered': '<span class="badge badge-delivered">입고 완료</span>',
+        'cancelled': '<span class="badge badge-cancelled">취소</span>'
+      };
+      return badges[status] || `<span class="badge">${status}</span>`;
+    }
+
+    // 날짜 포맷
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      const d = String(dateStr);
+      if (d.length === 8) {
+        return `${d.substring(0, 4)}-${d.substring(4, 6)}-${d.substring(6, 8)}`;
+      }
+      if (d.includes('T')) {
+        return d.split('T')[0];
+      }
+      return d;
+    }
+
+    // 쉽먼트 상세 보기
+    function viewShipment(id) {
+      const shipment = allShipments.find(s => s.id === id);
+      if (!shipment) return;
+
+      document.getElementById('modalTitle').textContent = `쉽먼트 상세 - ${shipment.shipmentNumber}`;
+
+      document.getElementById('modalContent').innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px;">
+          <div>
+            <div style="color: #888; font-size: 12px;">쉽먼트 번호</div>
+            <div style="font-weight: 600;">${shipment.shipmentNumber}</div>
+          </div>
+          <div>
+            <div style="color: #888; font-size: 12px;">물류센터</div>
+            <div style="font-weight: 600;">${shipment.center}</div>
+          </div>
+          <div>
+            <div style="color: #888; font-size: 12px;">입고예정일</div>
+            <div style="font-weight: 600;">${formatDate(shipment.expectedDate)}</div>
+          </div>
+          <div>
+            <div style="color: #888; font-size: 12px;">상태</div>
+            <div>${getStatusBadge(shipment.status)}</div>
+          </div>
+          <div>
+            <div style="color: #888; font-size: 12px;">상품 수</div>
+            <div style="font-weight: 600;">${shipment.productCount}개</div>
+          </div>
+          <div>
+            <div style="color: #888; font-size: 12px;">총 수량</div>
+            <div style="font-weight: 600;">${shipment.totalQuantity}개</div>
+          </div>
+          <div>
+            <div style="color: #888; font-size: 12px;">송장번호</div>
+            <div style="font-weight: 600;">${shipment.invoiceNumber || '-'}</div>
+          </div>
+          <div>
+            <div style="color: #888; font-size: 12px;">생성일</div>
+            <div style="font-weight: 600;">${formatDate(shipment.createdAt)}</div>
+          </div>
+        </div>
+
+        <h4 style="margin-bottom: 12px;">포함 상품</h4>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead>
+            <tr style="background: #f9fafb;">
+              <th style="padding: 8px; text-align: left; border-bottom: 1px solid #e5e8eb;">발주번호</th>
+              <th style="padding: 8px; text-align: left; border-bottom: 1px solid #e5e8eb;">바코드</th>
+              <th style="padding: 8px; text-align: left; border-bottom: 1px solid #e5e8eb;">상품명</th>
+              <th style="padding: 8px; text-align: right; border-bottom: 1px solid #e5e8eb;">수량</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(shipment.items || []).map(item => `
+              <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">${item.poNumber}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;"><code>${item.barcode}</code></td>
+                <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">${item.productName}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #f0f0f0; text-align: right;">${item.quantity}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+
+      document.getElementById('shipmentModal').style.display = 'flex';
+    }
+
+    // 모달 닫기
+    function closeModal() {
+      document.getElementById('shipmentModal').style.display = 'none';
+    }
+
+    // 쉽먼트 다운로드
+    function downloadShipment(id) {
+      const shipment = allShipments.find(s => s.id === id);
+      if (!shipment) return;
+
+      showToast(`${shipment.shipmentNumber} 다운로드 준비 중...`, 'info');
+
+      // TODO: 실제 다운로드 로직
+      setTimeout(() => {
+        showToast('다운로드가 완료되었습니다.', 'success');
+      }, 1000);
+    }
+
+    // 쉽먼트 업로드
+    function uploadShipment() {
+      showToast('쉽먼트 업로드 기능은 준비 중입니다.', 'info');
+    }
+
+    // 새로고침
+    async function refreshShipments() {
+      showToast('새로고침 중...', 'info');
+      await loadShipments();
+      showToast('새로고침 완료', 'success');
+    }
+
+    // 목업 데이터 생성
+    function generateMockShipments() {
+      const centers = ['GMK1', 'GMK2', 'GMK3', 'GMK4', 'GMK5'];
+      const statuses = ['pending', 'shipped', 'in_transit', 'delivered', 'cancelled'];
+      const shipments = [];
+
+      for (let i = 1; i <= 12; i++) {
+        const baseDate = new Date();
+        baseDate.setDate(baseDate.getDate() + Math.floor(Math.random() * 14) - 7);
+
+        const productCount = Math.floor(Math.random() * 10) + 1;
+        const items = [];
+
+        for (let j = 0; j < productCount; j++) {
+          items.push({
+            poNumber: `PO-2025${String(i * 10 + j).padStart(6, '0')}`,
+            barcode: `R${100000 + i * 10 + j}`,
+            productName: `테스트 상품 ${j + 1}`,
+            quantity: Math.floor(Math.random() * 20) + 1
+          });
+        }
+
+        const status = statuses[Math.floor(Math.random() * statuses.length)];
+        const progress = status === 'delivered' ? 100 :
+                        status === 'in_transit' ? 75 :
+                        status === 'shipped' ? 50 :
+                        status === 'pending' ? 25 : 0;
+
+        shipments.push({
+          id: `shipment_${i}`,
+          shipmentNumber: `SH-${baseDate.toISOString().split('T')[0].replace(/-/g, '')}-${String(i).padStart(3, '0')}`,
+          center: centers[Math.floor(Math.random() * centers.length)],
+          expectedDate: baseDate.toISOString().split('T')[0].replace(/-/g, ''),
+          productCount: productCount,
+          totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
+          invoiceNumber: Math.random() > 0.3 ? String(Math.floor(Math.random() * 900000000000) + 100000000000) : null,
+          status: status,
+          progress: progress,
+          items: items,
+          createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString()
+        });
+      }
+
+      return shipments;
+    }
+
+    // 초기화
+    document.addEventListener('DOMContentLoaded', () => {
+      loadShipments();
+    });
+
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeModal();
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar.classList.contains('active')) {
+          toggleSidebar();
+        }
+      }
+    });
+  </script>
+</body>
+</html>

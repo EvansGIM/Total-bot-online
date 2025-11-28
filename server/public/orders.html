@@ -1,0 +1,2703 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>TotalBot - 자동 발주</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f6f7;
+      color: #333;
+    }
+
+    /* Sidebar Styles */
+    .sidebar-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      z-index: 999;
+    }
+
+    .sidebar-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: -280px;
+      width: 280px;
+      height: 100%;
+      background: #1a1a2e;
+      transition: left 0.3s ease;
+      z-index: 1000;
+      overflow-y: auto;
+    }
+
+    .sidebar.active {
+      left: 0;
+    }
+
+    .sidebar-header {
+      padding: 24px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .sidebar-header h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-header p {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .sidebar-menu {
+      padding: 16px 0;
+    }
+
+    .sidebar-menu-title {
+      padding: 12px 20px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .sidebar-menu-item {
+      display: flex;
+      align-items: center;
+      padding: 14px 20px;
+      color: #ccc;
+      text-decoration: none;
+      font-size: 14px;
+      transition: all 0.2s;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+    }
+
+    .sidebar-menu-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: white;
+    }
+
+    .sidebar-menu-item.active {
+      background: rgba(102, 126, 234, 0.2);
+      color: #667eea;
+      border-left-color: #667eea;
+    }
+
+    .sidebar-menu-item .menu-icon {
+      width: 24px;
+      margin-right: 12px;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    .sidebar-menu-item .menu-badge {
+      margin-left: auto;
+      background: #667eea;
+      color: white;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .sidebar-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+      margin: 12px 20px;
+    }
+
+    /* Hamburger Button */
+    .hamburger-btn {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: 40px;
+      height: 40px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+
+    .hamburger-btn:hover {
+      background: #f0f0f0;
+    }
+
+    .hamburger-btn span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: #333;
+      margin: 2px 0;
+      border-radius: 1px;
+      transition: all 0.3s;
+    }
+
+    .header {
+      background: white;
+      border-bottom: 1px solid #e5e8eb;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* Cards */
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title .icon {
+      font-size: 22px;
+    }
+
+    /* Form Elements */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 6px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: #667eea;
+      outline: none;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn-large {
+      padding: 16px 32px;
+      font-size: 16px;
+    }
+
+    /* Progress */
+    .progress-section {
+      margin-top: 20px;
+    }
+
+    .progress-bar-container {
+      background: #e5e7eb;
+      border-radius: 8px;
+      height: 12px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .progress-bar {
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      height: 100%;
+      border-radius: 8px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+
+    .progress-text {
+      font-size: 13px;
+      color: #666;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Log */
+    .log-container {
+      background: #1a1a2e;
+      border-radius: 8px;
+      padding: 16px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 12px;
+    }
+
+    .log-entry {
+      padding: 4px 0;
+      color: #aaa;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .log-entry.success { color: #10b981; }
+    .log-entry.error { color: #ef4444; }
+    .log-entry.warning { color: #f59e0b; }
+    .log-entry.info { color: #3b82f6; }
+
+    .log-time {
+      color: #666;
+      margin-right: 8px;
+    }
+
+    /* 처리 진행 모달 */
+    .process-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 10005;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+
+    .process-modal {
+      background: white;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 700px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .process-modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .process-modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1f2937;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .process-modal-title .spinner {
+      width: 20px;
+      height: 20px;
+      border: 3px solid #e5e7eb;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .process-modal-body {
+      padding: 24px;
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 모달 내 단계 표시 */
+    .modal-steps {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding: 0 10px;
+    }
+
+    .modal-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      position: relative;
+    }
+
+    .modal-step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      width: 100%;
+      height: 2px;
+      background: #e5e7eb;
+      z-index: 0;
+    }
+
+    .modal-step.completed:not(:last-child)::after {
+      background: #10b981;
+    }
+
+    .modal-step-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #e5e7eb;
+      color: #9ca3af;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 600;
+      position: relative;
+      z-index: 1;
+      transition: all 0.3s;
+    }
+
+    .modal-step.active .modal-step-icon {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .modal-step.completed .modal-step-icon {
+      background: #10b981;
+      color: white;
+    }
+
+    .modal-step-label {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #9ca3af;
+      text-align: center;
+    }
+
+    .modal-step.active .modal-step-label,
+    .modal-step.completed .modal-step-label {
+      color: #374151;
+      font-weight: 600;
+    }
+
+    /* 모달 내 프로그레스 바 */
+    .modal-progress {
+      margin-bottom: 20px;
+    }
+
+    .modal-progress-bar-bg {
+      background: #e5e7eb;
+      border-radius: 10px;
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .modal-progress-bar {
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      height: 100%;
+      border-radius: 10px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+
+    .modal-progress-text {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .modal-progress-status {
+      font-weight: 500;
+    }
+
+    /* 모달 내 로그 */
+    .modal-log-container {
+      background: #0f172a;
+      border-radius: 12px;
+      flex: 1;
+      min-height: 250px;
+      max-height: 350px;
+      overflow-y: auto;
+      font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+      font-size: 12px;
+      padding: 16px;
+    }
+
+    .modal-log-entry {
+      padding: 6px 0;
+      color: #94a3b8;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      line-height: 1.5;
+    }
+
+    .modal-log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .modal-log-entry.success { color: #34d399; }
+    .modal-log-entry.error { color: #f87171; }
+    .modal-log-entry.warning { color: #fbbf24; }
+    .modal-log-entry.info { color: #60a5fa; }
+
+    .modal-log-time {
+      color: #64748b;
+      margin-right: 8px;
+    }
+
+    .process-modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .process-modal-footer .btn {
+      min-width: 100px;
+    }
+
+    /* Steps */
+    .steps {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 60px;
+      right: 60px;
+      height: 2px;
+      background: #e5e7eb;
+    }
+
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-number {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #e5e7eb;
+      color: #666;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      margin-bottom: 8px;
+      transition: all 0.3s;
+    }
+
+    .step.active .step-number {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .step.completed .step-number {
+      background: #10b981;
+      color: white;
+    }
+
+    .step-label {
+      font-size: 12px;
+      color: #666;
+      text-align: center;
+    }
+
+    .step.active .step-label,
+    .step.completed .step-label {
+      color: #333;
+      font-weight: 600;
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+
+    .toast {
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      animation: slideIn 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .toast.success { background: #10b981; color: white; }
+    .toast.error { background: #ef4444; color: white; }
+    .toast.warning { background: #f59e0b; color: white; }
+    .toast.info { background: #3b82f6; color: white; }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Checkbox */
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .checkbox-group label {
+      margin-bottom: 0;
+      cursor: pointer;
+    }
+
+    /* Folder input */
+    .folder-input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .folder-input-group input {
+      flex: 1;
+    }
+
+    /* Help text */
+    .help-text {
+      font-size: 12px;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    /* Filter list */
+    .filter-list {
+      background: #f9fafb;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .filter-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: white;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .filter-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .filter-item select, .filter-item input {
+      flex: 1;
+      padding: 6px 10px;
+      font-size: 13px;
+    }
+
+    .filter-item .btn-remove {
+      padding: 4px 8px;
+      font-size: 12px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .filter-item .btn-remove:hover {
+      background: #dc2626;
+    }
+
+    /* Order list table */
+    .order-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .order-table th {
+      background: #f9fafb;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid #e5e8eb;
+    }
+
+    .order-table td {
+      padding: 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .order-table tr:hover {
+      background: #f9fafb;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-pending { background: #fef3c7; color: #92400e; }
+    .badge-confirmed { background: #d1fae5; color: #065f46; }
+    .badge-rejected { background: #fee2e2; color: #991b1b; }
+
+    /* Info box */
+    .info-box {
+      background: #fff8e1;
+      border: 1px dashed #ffd8a8;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: #6c757d;
+    }
+
+    .info-box.blue {
+      background: #e3f2fd;
+      border-color: #90caf9;
+    }
+  </style>
+  <!-- SheetJS for Excel parsing -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2>TotalBot</h2>
+      <p>쿠팡 자동화 플랫폼</p>
+    </div>
+
+    <div class="sidebar-menu">
+      <div class="sidebar-menu-title">상품 관리</div>
+      <a class="sidebar-menu-item" href="products.html">
+        <span class="menu-icon">📦</span>
+        수집 상품
+      </a>
+      <a class="sidebar-menu-item" href="uploaded.html">
+        <span class="menu-icon">🚀</span>
+        업로드 완료
+      </a>
+      <a class="sidebar-menu-item" href="quotations.html">
+        <span class="menu-icon">📋</span>
+        견적서 관리
+      </a>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-menu-title">발주 관리</div>
+      <a class="sidebar-menu-item active" href="orders.html">
+        <span class="menu-icon">🛒</span>
+        자동 발주
+        <span class="menu-badge">NEW</span>
+      </a>
+      <a class="sidebar-menu-item" href="order-list.html">
+        <span class="menu-icon">📑</span>
+        발주 리스트
+      </a>
+      <a class="sidebar-menu-item" href="shipments.html">
+        <span class="menu-icon">🚚</span>
+        배송 관리
+      </a>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-menu-title">분석/설정</div>
+      <a class="sidebar-menu-item" href="settlement.html">
+        <span class="menu-icon">💰</span>
+        정산
+      </a>
+      <a class="sidebar-menu-item" href="settings.html">
+        <span class="menu-icon">⚙️</span>
+        설정
+      </a>
+    </div>
+  </nav>
+
+  <div class="header">
+    <div class="header-left">
+      <button class="hamburger-btn" onclick="toggleSidebar()" title="메뉴">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <h1>자동 발주</h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="refreshStatus()">
+        <span>🔄</span> 새로고침
+      </button>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Processing Steps (숨김 - 모달에서 표시) -->
+    <div class="card" style="display: none;">
+      <div class="steps">
+        <div class="step" id="step1"><div class="step-number">1</div><div class="step-label">파싱</div></div>
+        <div class="step" id="step2"><div class="step-number">2</div><div class="step-label">엑셀 생성</div></div>
+        <div class="step" id="step3"><div class="step-number">3</div><div class="step-label">발주 업로드</div></div>
+        <div class="step" id="step4"><div class="step-number">4</div><div class="step-label">쉽먼트 업로드</div></div>
+        <div class="step" id="step5"><div class="step-number">5</div><div class="step-label">문서 저장</div></div>
+      </div>
+      <div class="progress-section">
+        <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+        <div class="progress-text"><span id="progressStatus">대기중</span><span id="progressPercent">0%</span></div>
+      </div>
+    </div>
+
+    <!-- Folder Selection -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">📂</span>
+          발주서 소스
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>폴더 경로</label>
+        <div class="folder-input-group">
+          <input type="text" id="folderPath" placeholder="발주 파일들이 있는 폴더를 선택하세요. 선택하지 않으면 자동으로 다운로드합니다." readonly>
+          <button class="btn btn-secondary" onclick="selectFolder()">폴더 선택</button>
+          <button class="btn btn-secondary" onclick="clearFolder()">초기화</button>
+          <!-- 숨겨진 파일 입력 (폴더 선택용) -->
+          <input type="file" id="folderInput" webkitdirectory multiple style="display: none;" onchange="handleFolderSelect(event)">
+        </div>
+        <div class="info-box" id="folderHint">
+          💡 폴더를 선택하지 않으면 쿠팡에서 조건에 맞는 미확정 발주서를 자동으로 다운로드합니다.
+        </div>
+        <div id="selectedFilesInfo" style="display: none; margin-top: 8px; padding: 12px; background: #e8f5e9; border-radius: 8px; font-size: 13px;">
+          <strong>선택된 파일:</strong> <span id="selectedFileCount">0</span>개
+          <div id="selectedFileList" style="max-height: 100px; overflow-y: auto; margin-top: 8px; font-size: 12px; color: #666;"></div>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="btn btn-primary btn-large" onclick="startAutoProcess()" id="startBtn">
+          <span>▶️</span> 일괄 처리 (자동 다운로드)
+        </button>
+        <button class="btn btn-danger btn-large" onclick="stopProcess()" id="stopBtn" disabled>
+          <span>⏹️</span> 중지
+        </button>
+      </div>
+    </div>
+
+    <!-- Settings Card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">⚙️</span>
+          발주 조건 설정
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>개별 목표 마진금 (원)</label>
+          <input type="number" id="individualMargin" value="1000" min="0">
+          <div class="help-text">상품당 최소 마진</div>
+        </div>
+        <div class="form-group">
+          <label>쉽먼트 목표 마진금 (원)</label>
+          <input type="number" id="shipmentMargin" value="5000" min="0">
+          <div class="help-text">쉽먼트당 최소 마진</div>
+        </div>
+        <div class="form-group">
+          <label>기준 입고 예정일 (D+)</label>
+          <input type="number" id="baseDateOffset" value="3" min="1" max="30">
+          <div class="help-text">오늘 기준 D+N일 이후 발주만 처리</div>
+        </div>
+      </div>
+
+      <div class="form-row-2" style="margin-top: 16px;">
+        <div class="form-group">
+          <div class="checkbox-group">
+            <input type="checkbox" id="processAll">
+            <label for="processAll">모든 발주 처리 (마진 조건 무시)</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="checkbox-group">
+            <input type="checkbox" id="processStock">
+            <label for="processStock">보유 재고만 처리</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center Filter Section -->
+      <div class="form-group" style="margin-top: 20px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+          <label style="margin-bottom: 0;">센터별 필터링</label>
+          <button class="btn btn-success" onclick="addFilter()" style="padding: 4px 12px; font-size: 12px;">+ 추가</button>
+        </div>
+        <div class="filter-list" id="filterList">
+          <div style="color: #888; text-align: center; padding: 20px;">
+            필터를 추가하면 특정 센터/입고일 조합만 처리합니다.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Excluded Barcodes -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">🚫</span>
+          제외 바코드 관리
+        </div>
+        <button class="btn btn-secondary" onclick="openExcludeBarcodeModal()">관리</button>
+      </div>
+      <p style="font-size: 13px; color: #666;">
+        제외된 바코드: <strong id="excludedCount">0</strong>개
+      </p>
+    </div>
+
+    <!-- Log Card (숨김 - 모달에서 표시) -->
+    <div class="card" style="display: none;">
+      <div class="log-container" id="logContainer">
+        <div class="log-entry info">
+          <span class="log-time">[시스템]</span>
+          자동 발주 시스템이 준비되었습니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Exclude Barcode Modal -->
+  <div id="excludeBarcodeModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="margin: 0;">🚫 제외 바코드 관리</h3>
+        <button onclick="closeExcludeBarcodeModal()" style="background: none; border: none; font-size: 24px; cursor: pointer;">×</button>
+      </div>
+      <div class="form-group">
+        <label>바코드 추가 (R로 시작)</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="newBarcodeInput" placeholder="R123456789">
+          <button class="btn btn-primary" onclick="addExcludedBarcode()">추가</button>
+        </div>
+      </div>
+      <div style="margin-top: 16px;">
+        <label style="font-size: 13px; font-weight: 600; color: #555;">제외된 바코드 목록</label>
+        <div id="excludedBarcodeList" style="background: #f9fafb; border-radius: 8px; padding: 12px; margin-top: 8px; max-height: 300px; overflow-y: auto;">
+          <div style="color: #888; text-align: center;">제외된 바코드가 없습니다.</div>
+        </div>
+      </div>
+      <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 12px;">
+        <button class="btn btn-secondary" onclick="closeExcludeBarcodeModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 처리 진행 모달 -->
+  <div id="processModal" class="process-modal-overlay">
+    <div class="process-modal">
+      <div class="process-modal-header">
+        <div class="process-modal-title">
+          <div class="spinner" id="processSpinner"></div>
+          <span id="processModalTitle">일괄 처리 진행중</span>
+        </div>
+      </div>
+      <div class="process-modal-body">
+        <!-- 단계 표시 -->
+        <div class="modal-steps">
+          <div class="modal-step" id="modalStep1">
+            <div class="modal-step-icon">1</div>
+            <div class="modal-step-label">파싱</div>
+          </div>
+          <div class="modal-step" id="modalStep2">
+            <div class="modal-step-icon">2</div>
+            <div class="modal-step-label">엑셀 생성</div>
+          </div>
+          <div class="modal-step" id="modalStep3">
+            <div class="modal-step-icon">3</div>
+            <div class="modal-step-label">발주 업로드</div>
+          </div>
+          <div class="modal-step" id="modalStep4">
+            <div class="modal-step-icon">4</div>
+            <div class="modal-step-label">쉽먼트</div>
+          </div>
+          <div class="modal-step" id="modalStep5">
+            <div class="modal-step-icon">5</div>
+            <div class="modal-step-label">문서 저장</div>
+          </div>
+        </div>
+
+        <!-- 프로그레스 바 -->
+        <div class="modal-progress">
+          <div class="modal-progress-bar-bg">
+            <div class="modal-progress-bar" id="modalProgressBar"></div>
+          </div>
+          <div class="modal-progress-text">
+            <span class="modal-progress-status" id="modalProgressStatus">대기중</span>
+            <span id="modalProgressPercent">0%</span>
+          </div>
+        </div>
+
+        <!-- 로그 -->
+        <div class="modal-log-container" id="modalLogContainer">
+          <div class="modal-log-entry info">
+            <span class="modal-log-time">[시스템]</span>
+            처리를 시작합니다...
+          </div>
+        </div>
+      </div>
+      <div class="process-modal-footer">
+        <button class="btn btn-danger" id="modalStopBtn" onclick="stopProcess()">중지</button>
+        <button class="btn btn-primary" id="modalCloseBtn" onclick="closeProcessModal()" disabled>완료</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 발주 확정 실패 모달 -->
+  <div id="orderConfirmFailModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10003; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; max-width: 550px; width: 90%; max-height: 80vh; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+      <div style="background: #dc3545; color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin: 0; font-size: 18px;">❌ 발주 확정 업로드 실패</h2>
+        <button onclick="closeOrderConfirmFailModal()" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 1;">×</button>
+      </div>
+      <div style="padding: 25px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <div style="font-size: 48px; margin-bottom: 15px;">⚠️</div>
+          <p style="font-size: 14px; color: #333; font-weight: 600;">쿠팡에서 데이터 검증 실패가 발생했습니다.</p>
+        </div>
+
+        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 15px; margin-bottom: 20px; max-height: 200px; overflow-y: auto;">
+          <p style="margin: 0; font-size: 13px; color: #856404; white-space: pre-wrap;" id="orderConfirmFailMessage">
+            오류 메시지가 여기에 표시됩니다.
+          </p>
+        </div>
+
+        <div style="background: #e3f2fd; border: 1px solid #2196f3; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+          <p style="margin: 0; font-size: 13px; color: #1565c0;">
+            💡 <strong>해결 방법:</strong><br>
+            1. 위 오류 메시지에서 실패한 행(row)을 확인하세요.<br>
+            2. 해당 주문의 데이터(수량, 가격 등)를 확인하고 수정하세요.<br>
+            3. 다시 발주 처리를 시도하세요.
+          </p>
+        </div>
+
+        <div style="display: flex; gap: 12px;">
+          <button onclick="closeOrderConfirmFailModal()" style="flex: 1; padding: 14px; background: #6c757d; color: white; border: none; border-radius: 8px; font-size: 15px; cursor: pointer;">
+            확인
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 버전 확인
+    console.log('🔄 TotalBot 자동 발주 v2025-11-27-ext (Python totalbot 기반 + Extension 연동)');
+
+    // 상태 변수
+    let isProcessing = false;
+    let excludedBarcodes = new Set();
+    let centerFilters = [];
+    let extensionConnected = false;
+    let coupangTabId = null;
+
+    // =====================================================
+    // Chrome Extension 연동 함수들
+    // =====================================================
+
+    /**
+     * Extension ID (manifest.json에서 확인 필요)
+     * 개발 중에는 chrome://extensions에서 확인
+     */
+    const EXTENSION_ID = null; // null이면 자동 감지 시도
+
+    /**
+     * Extension 연결 확인
+     */
+    async function checkExtensionConnection() {
+      try {
+        // content-localhost.js를 통한 메시지 전달 확인
+        const response = await sendMessageToExtension({ action: 'ping' });
+        if (response && response.pong) {
+          extensionConnected = true;
+          addLog('✅ Chrome Extension 연결됨', 'success');
+          return true;
+        }
+      } catch (e) {
+        console.log('Extension 연결 확인 실패:', e);
+      }
+      extensionConnected = false;
+      addLog('⚠️ Chrome Extension이 연결되지 않았습니다.', 'warning');
+      return false;
+    }
+
+    /**
+     * Extension에 메시지 전송
+     */
+    async function sendMessageToExtension(message) {
+      return new Promise((resolve, reject) => {
+        // window.postMessage를 통해 content script와 통신
+        const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+        const handler = (event) => {
+          if (event.data && event.data.type === 'TOTALBOT_RESPONSE' && event.data.messageId === messageId) {
+            window.removeEventListener('message', handler);
+            resolve(event.data.response);
+          }
+        };
+
+        window.addEventListener('message', handler);
+
+        window.postMessage({
+          type: 'TOTALBOT_REQUEST',
+          messageId: messageId,
+          message: message
+        }, '*');
+
+        // 타임아웃
+        setTimeout(() => {
+          window.removeEventListener('message', handler);
+          reject(new Error('Extension 응답 타임아웃'));
+        }, 30000);
+      });
+    }
+
+    /**
+     * 쿠팡 탭 열기 또는 찾기
+     */
+    async function openCoupangTab() {
+      addLog('쿠팡 발주 페이지 열기 시도 중...', 'info');
+
+      try {
+        const response = await sendMessageToExtension({
+          action: 'openCoupangOrderPage'
+        });
+
+        if (response && response.success) {
+          coupangTabId = response.tabId;
+          addLog('쿠팡 발주 페이지 열림', 'success');
+          return true;
+        }
+      } catch (e) {
+        console.error('쿠팡 탭 열기 실패:', e);
+      }
+
+      // 대안: 새 창으로 직접 열기
+      window.open('https://supplier.coupang.com/scm/purchase/order/list', '_blank');
+      addLog('새 탭에서 쿠팡 발주 페이지를 열었습니다. 로그인 후 다시 시도해주세요.', 'warning');
+      return false;
+    }
+
+    /**
+     * 쿠팡에서 발주서 다운로드 요청
+     */
+    async function downloadOrdersFromCoupang(settings) {
+      addLog('쿠팡에서 발주서 다운로드 요청 중...', 'info');
+
+      try {
+        const response = await sendMessageToExtension({
+          action: 'downloadOrders',
+          settings: settings
+        });
+
+        if (response && response.success) {
+          addLog(`✅ ${response.selectedCount}개 발주서 다운로드 요청 완료`, 'success');
+          return response;
+        } else {
+          throw new Error(response?.error || '발주서 다운로드 실패');
+        }
+      } catch (e) {
+        addLog('❌ 발주서 다운로드 실패: ' + e.message, 'error');
+        throw e;
+      }
+    }
+
+    /**
+     * 발주서 목록 조회
+     */
+    async function fetchOrderList(settings) {
+      addLog('발주서 목록 조회 중...', 'info');
+
+      try {
+        const response = await sendMessageToExtension({
+          action: 'getOrderList',
+          settings: settings
+        });
+
+        if (response && response.success) {
+          addLog(`✅ 발주서 ${response.total}건 조회됨`, 'success');
+          return response.orders;
+        } else {
+          throw new Error(response?.error || '목록 조회 실패');
+        }
+      } catch (e) {
+        addLog('❌ 목록 조회 실패: ' + e.message, 'error');
+        return [];
+      }
+    }
+
+    // =====================================================
+    // 서버 API 연동 함수들
+    // =====================================================
+
+    /**
+     * 서버에 재고 데이터 요청
+     */
+    async function fetchStockData() {
+      try {
+        const response = await fetch('/api/stock');
+        if (response.ok) {
+          return await response.json();
+        }
+        return null;
+      } catch (e) {
+        console.error('재고 데이터 요청 실패:', e);
+        return null;
+      }
+    }
+
+    /**
+     * 마진 계산 (Python totalbot의 process_orders_with_margin_logic 참고)
+     */
+    function calculateMargin(order, stockData, settings) {
+      const barcode = order.barcode || order.productBarcode;
+      const purchasePrice = parseFloat(order.purchasePrice) || 0;
+      const supplyPrice = parseFloat(order.supplyPrice) || 0;
+      const quantity = parseInt(order.quantity) || 1;
+
+      // 개별 마진 계산
+      const individualMargin = supplyPrice - purchasePrice;
+
+      // 마진 조건 확인
+      if (settings.processAll) {
+        return { pass: true, margin: individualMargin, reason: '모든 발주 처리' };
+      }
+
+      if (individualMargin < settings.individualMargin) {
+        return { pass: false, margin: individualMargin, reason: `개별 마진 부족 (${individualMargin}원 < ${settings.individualMargin}원)` };
+      }
+
+      // 재고 확인 (processStock 옵션)
+      if (settings.processStock && stockData) {
+        const stock = stockData[barcode];
+        if (!stock || stock.quantity < quantity) {
+          return { pass: false, margin: individualMargin, reason: '재고 부족' };
+        }
+      }
+
+      // 제외 바코드 확인
+      if (settings.excludedBarcodes && settings.excludedBarcodes.includes(barcode)) {
+        return { pass: false, margin: individualMargin, reason: '제외 바코드' };
+      }
+
+      return { pass: true, margin: individualMargin, reason: '조건 충족' };
+    }
+
+    // 사이드바 토글
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      sidebar.classList.toggle('active');
+      overlay.classList.toggle('active');
+    }
+
+    // ESC 키로 사이드바 닫기
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar.classList.contains('active')) {
+          toggleSidebar();
+        }
+      }
+    });
+
+    // Toast 알림
+    function showToast(message, type = 'info', duration = 4000) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    // 로그 추가 (기존 + 모달)
+    function addLog(message, type = 'info') {
+      const time = new Date().toLocaleTimeString('ko-KR');
+
+      // 기존 로그 컨테이너
+      const container = document.getElementById('logContainer');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
+      container.appendChild(entry);
+      container.scrollTop = container.scrollHeight;
+
+      // 모달 로그 컨테이너
+      const modalContainer = document.getElementById('modalLogContainer');
+      if (modalContainer) {
+        const modalEntry = document.createElement('div');
+        modalEntry.className = `modal-log-entry ${type}`;
+        modalEntry.innerHTML = `<span class="modal-log-time">[${time}]</span> ${message}`;
+        modalContainer.appendChild(modalEntry);
+        modalContainer.scrollTop = modalContainer.scrollHeight;
+      }
+    }
+
+    // 로그 지우기
+    function clearLog() {
+      const container = document.getElementById('logContainer');
+      container.innerHTML = `
+        <div class="log-entry info">
+          <span class="log-time">[시스템]</span>
+          로그가 초기화되었습니다.
+        </div>
+      `;
+    }
+
+    // 모달 로그 초기화
+    function clearModalLog() {
+      const modalContainer = document.getElementById('modalLogContainer');
+      if (modalContainer) {
+        modalContainer.innerHTML = `
+          <div class="modal-log-entry info">
+            <span class="modal-log-time">[시스템]</span>
+            처리를 시작합니다...
+          </div>
+        `;
+      }
+    }
+
+    // 진행률 업데이트 (기존 + 모달)
+    function updateProgress(percent, status) {
+      // 기존
+      document.getElementById('progressBar').style.width = percent + '%';
+      document.getElementById('progressPercent').textContent = percent + '%';
+      document.getElementById('progressStatus').textContent = status;
+
+      // 모달
+      const modalBar = document.getElementById('modalProgressBar');
+      if (modalBar) {
+        modalBar.style.width = percent + '%';
+        document.getElementById('modalProgressPercent').textContent = percent + '%';
+        document.getElementById('modalProgressStatus').textContent = status;
+      }
+    }
+
+    // 단계 업데이트 (기존 + 모달)
+    function setStep(stepNumber) {
+      // 기존 step indicator
+      for (let i = 1; i <= 5; i++) {
+        const step = document.getElementById(`step${i}`);
+        if (!step) continue;
+        step.classList.remove('active', 'completed');
+
+        if (i < stepNumber) {
+          step.classList.add('completed');
+        } else if (i === stepNumber) {
+          step.classList.add('active');
+        }
+      }
+
+      // 모달 step indicator
+      for (let i = 1; i <= 5; i++) {
+        const modalStep = document.getElementById(`modalStep${i}`);
+        if (!modalStep) continue;
+        modalStep.classList.remove('active', 'completed');
+
+        if (i < stepNumber) {
+          modalStep.classList.add('completed');
+        } else if (i === stepNumber) {
+          modalStep.classList.add('active');
+        }
+      }
+    }
+
+    // 처리 모달 열기
+    function openProcessModal() {
+      clearModalLog();
+      document.getElementById('processModal').style.display = 'flex';
+      document.getElementById('processSpinner').style.display = 'block';
+      document.getElementById('processModalTitle').textContent = '일괄 처리 진행중';
+      document.getElementById('modalStopBtn').disabled = false;
+      document.getElementById('modalCloseBtn').disabled = true;
+
+      // 단계 초기화
+      for (let i = 1; i <= 5; i++) {
+        const modalStep = document.getElementById(`modalStep${i}`);
+        if (modalStep) {
+          modalStep.classList.remove('active', 'completed');
+        }
+      }
+
+      // 진행률 초기화
+      document.getElementById('modalProgressBar').style.width = '0%';
+      document.getElementById('modalProgressPercent').textContent = '0%';
+      document.getElementById('modalProgressStatus').textContent = '대기중';
+    }
+
+    // 처리 모달 닫기
+    function closeProcessModal() {
+      document.getElementById('processModal').style.display = 'none';
+    }
+
+    // 처리 완료 시 모달 상태 업데이트
+    function completeProcessModal(success = true) {
+      document.getElementById('processSpinner').style.display = 'none';
+      document.getElementById('processModalTitle').textContent = success ? '✅ 처리 완료' : '⚠️ 처리 중단';
+      document.getElementById('modalStopBtn').disabled = true;
+      document.getElementById('modalCloseBtn').disabled = false;
+    }
+
+    // 상태 새로고침
+    async function refreshStatus() {
+      addLog('상태 확인 중...', 'info');
+      showToast('상태가 업데이트되었습니다.', 'success');
+    }
+
+    // 선택된 파일들을 저장할 변수
+    let selectedFiles = [];
+
+    // 폴더 선택 (파일 입력 트리거)
+    function selectFolder() {
+      document.getElementById('folderInput').click();
+    }
+
+    // 폴더 선택 처리
+    function handleFolderSelect(event) {
+      const files = Array.from(event.target.files);
+
+      if (files.length === 0) {
+        showToast('파일이 선택되지 않았습니다.', 'warning');
+        return;
+      }
+
+      // Excel 파일만 필터링 (.xlsx, .xls)
+      const excelFiles = files.filter(file => {
+        const ext = file.name.toLowerCase();
+        return ext.endsWith('.xlsx') || ext.endsWith('.xls');
+      });
+
+      if (excelFiles.length === 0) {
+        showToast('Excel 파일(.xlsx, .xls)이 없습니다.', 'warning');
+        return;
+      }
+
+      selectedFiles = excelFiles;
+
+      // 폴더 경로 표시 (첫 번째 파일의 경로에서 추출)
+      const firstFile = files[0];
+      const folderPath = firstFile.webkitRelativePath.split('/')[0];
+      document.getElementById('folderPath').value = folderPath;
+
+      // 힌트 업데이트
+      document.getElementById('folderHint').innerHTML = `✅ <strong>${folderPath}</strong> 폴더가 선택되었습니다.`;
+      document.getElementById('folderHint').style.background = '#e8f5e9';
+      document.getElementById('folderHint').style.borderColor = '#81c784';
+
+      // 선택된 파일 정보 표시
+      document.getElementById('selectedFilesInfo').style.display = 'block';
+      document.getElementById('selectedFileCount').textContent = excelFiles.length;
+      document.getElementById('selectedFileList').innerHTML = excelFiles
+        .slice(0, 10)
+        .map(f => `<div>📄 ${f.name}</div>`)
+        .join('') + (excelFiles.length > 10 ? `<div>... 외 ${excelFiles.length - 10}개</div>` : '');
+
+      addLog(`폴더 선택: ${folderPath} (Excel 파일 ${excelFiles.length}개)`, 'success');
+      showToast(`${excelFiles.length}개의 Excel 파일이 선택되었습니다.`, 'success');
+    }
+
+    // 폴더 초기화
+    function clearFolder() {
+      document.getElementById('folderPath').value = '';
+      document.getElementById('folderInput').value = '';
+      document.getElementById('folderHint').innerHTML = '💡 폴더를 선택하지 않으면 쿠팡에서 조건에 맞는 미확정 발주서를 자동으로 다운로드합니다.';
+      document.getElementById('folderHint').style.background = '#fff8e1';
+      document.getElementById('folderHint').style.borderColor = '#ffd8a8';
+      document.getElementById('selectedFilesInfo').style.display = 'none';
+      selectedFiles = [];
+      addLog('폴더 선택이 초기화되었습니다.', 'info');
+    }
+
+    // 선택된 파일에서 발주 데이터 파싱
+    async function parseSelectedFiles() {
+      if (selectedFiles.length === 0) {
+        return [];
+      }
+
+      addLog(`${selectedFiles.length}개 파일 파싱 시작...`, 'info');
+      const orders = [];
+
+      for (const file of selectedFiles) {
+        try {
+          const data = await readExcelFile(file);
+          if (data && data.length > 0) {
+            orders.push(...data);
+            addLog(`✅ ${file.name}: ${data.length}개 항목`, 'success');
+          }
+        } catch (e) {
+          addLog(`❌ ${file.name} 파싱 실패: ${e.message}`, 'error');
+        }
+      }
+
+      addLog(`파싱 완료: 총 ${orders.length}개 항목`, 'success');
+      return orders;
+    }
+
+    // Excel 파일 읽기 (SheetJS 사용 시)
+    async function readExcelFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          try {
+            // SheetJS가 없으면 기본 파싱 시도
+            if (typeof XLSX === 'undefined') {
+              // 간단한 목업 데이터 반환
+              resolve([{
+                poNumber: file.name.replace(/\.[^.]+$/, ''),
+                status: '미확정',
+                center: 'GMK1',
+                productName: '파일에서 로드됨',
+                quantity: 1,
+                purchasePrice: 10000,
+                supplyPrice: 15000
+              }]);
+              return;
+            }
+
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+            // 발주서 구조 파싱 (Python totalbot 참고)
+            const orders = parseOrderSheet(jsonData, file.name);
+            resolve(orders);
+          } catch (err) {
+            reject(err);
+          }
+        };
+
+        reader.onerror = () => reject(new Error('파일 읽기 실패'));
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    // 발주서 시트 파싱 (Python totalbot order_processor.py와 동일한 로직)
+    // 쿠팡 발주서 구조:
+    // - Row 10, Col C (인덱스 9, 2): 발주번호
+    // - Row 13, Col C (인덱스 12, 2): 물류센터
+    // - Row 13, Col F (인덱스 12, 5): 입고예정일
+    // - Row 14, Col C: 회송담당자, Col G: 연락처
+    // - Row 15, Col C: 회송지주소
+    // - 헤더: "상품명"이 있는 행 (Col C)
+    // - 데이터: 상품 행과 바코드 행이 번갈아 나옴
+    //   - 상품 행: Col B = SKU, Col C = 상품명, Col G = 수량, Col J = 매입가, Col K = 공급가
+    //   - 바코드 행: Col C에 "R"로 시작하는 바코드
+    function parseOrderSheet(data, filename) {
+      const orders = [];
+
+      console.log('📋 발주서 파싱 시작:', filename);
+      console.log('📋 총 행 수:', data.length);
+
+      // 날짜 포맷 헬퍼 함수
+      function formatDate(val) {
+        if (!val) return '';
+        if (typeof val === 'number') {
+          // Excel 날짜 숫자 형식
+          const excelEpoch = new Date(1899, 11, 30);
+          const resultDate = new Date(excelEpoch.getTime() + val * 86400000);
+          return resultDate.toISOString().split('T')[0].replace(/-/g, '');
+        }
+        // 문자열 형식
+        const s = String(val).replace(/[-./]/g, '');
+        const digits = s.replace(/\D/g, '');
+        return digits.slice(0, 8);
+      }
+
+      // 1. 고정 위치에서 메타 정보 추출 (Python totalbot 방식과 동일)
+      // 발주번호: Row 10, Col C (인덱스: 9, 2)
+      let poNumber = data[9] && data[9][2] ? String(data[9][2]).trim() : '';
+
+      // 물류센터: Row 13, Col C (인덱스: 12, 2)
+      let center = data[12] && data[12][2] ? String(data[12][2]).trim() : '';
+
+      // 입고예정일: Row 13, Col F (인덱스: 12, 5)
+      let expectedDate = data[12] && data[12][5] ? formatDate(data[12][5]) : '';
+
+      // 회송담당자: Row 14, Col C (인덱스: 13, 2)
+      let returnManager = data[13] && data[13][2] ? String(data[13][2]).trim() : '';
+
+      // 회송담당자 연락처: Row 14, Col G (인덱스: 13, 6)
+      let returnTel = data[13] && data[13][6] ? String(data[13][6]).trim() : '';
+
+      // 회송지주소: Row 15, Col C (인덱스: 14, 2)
+      let returnAddr = data[14] && data[14][2] ? String(data[14][2]).trim() : '';
+
+      console.log('📋 발주번호:', poNumber);
+      console.log('📋 물류센터:', center);
+      console.log('📋 입고예정일:', expectedDate);
+
+      // 2. 라벨 기반 폴백 검색 (고정 위치에서 못 찾은 경우)
+      if (!poNumber || !center || !expectedDate) {
+        console.log('📋 고정 위치에서 데이터를 찾지 못함, 라벨 기반 검색 시도...');
+        for (let i = 0; i < Math.min(20, data.length); i++) {
+          const row = data[i];
+          if (!row) continue;
+
+          for (let j = 0; j < row.length; j++) {
+            const cell = String(row[j] || '');
+            if (!poNumber && cell.includes('발주번호') && row[j + 1]) {
+              poNumber = String(row[j + 1]).trim();
+            }
+            if (!center && (cell.includes('물류센터') || cell.includes('FC')) && row[j + 1]) {
+              center = String(row[j + 1]).trim();
+            }
+            if (!expectedDate && (cell.includes('입고예정') || cell.includes('입고일')) && row[j + 1]) {
+              expectedDate = formatDate(row[j + 1]);
+            }
+          }
+        }
+      }
+
+      // 필수 데이터 검증
+      if (!poNumber || !center || !expectedDate) {
+        console.log('⚠️ 필수 메타 정보 부족:', { poNumber, center, expectedDate });
+        return [];
+      }
+
+      // 입고예정일 8자리 검증
+      if (expectedDate.length !== 8) {
+        console.log('⚠️ 입고예정일 형식 오류:', expectedDate);
+        return [];
+      }
+
+      // 3. 헤더 행 찾기 - Python과 동일하게 Col C (인덱스 2)에서 "상품명" 검색
+      let headerRow = -1;
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        if (!row) continue;
+        const cellC = row[2]; // Col C
+        if (typeof cellC === 'string' && cellC.includes('상품명')) {
+          headerRow = i;
+          break;
+        }
+      }
+
+      console.log('📋 헤더 행:', headerRow !== -1 ? headerRow + 1 : 'not found');
+
+      if (headerRow === -1) {
+        console.log('⚠️ 헤더 행을 찾지 못함');
+        return [];
+      }
+
+      // 4. 데이터 행 파싱 - Python order_processor.py와 동일한 로직
+      // 상품 행과 바코드 행이 번갈아 나옴
+      // - 상품 행: Col B(1)=SKU, Col C(2)=상품명, Col G(6)=수량, Col J(9)=매입가, Col K(10)=공급가, Col L(11)=VAT, Col M(12)=총액
+      // - 바코드 행: Col C(2)에 "R"로 시작하는 바코드, Col Q(16)=관리여부(Y), Col R(17)=날짜
+      let lastOrderIdx = null;
+
+      for (let i = headerRow + 1; i < data.length; i++) {
+        const row = data[i];
+        if (!row) continue;
+
+        const cellC = row[2]; // Col C (상품명 or 바코드)
+        const cellCStr = cellC ? String(cellC).trim() : '';
+
+        // 합계 행 체크 - 합계가 나오면 종료
+        if (cellCStr.includes('합계') || cellCStr.includes('총')) {
+          break;
+        }
+
+        // 바코드 행 체크 - "R"로 시작하는 숫자 패턴 (예: R12345678)
+        if (/^R\d+$/.test(cellCStr)) {
+          // 이전 상품에 바코드 추가
+          if (lastOrderIdx !== null && orders[lastOrderIdx]) {
+            orders[lastOrderIdx].barcode = cellCStr;
+
+            // 유통기한 추출 (Col Q(16)=Y일 때 Col R(17) 값)
+            const expFlag = row[16] ? String(row[16]).trim().toUpperCase() : '';
+            const expDate = row[17];
+            if (expFlag === 'Y' && expDate) {
+              orders[lastOrderIdx].expirationDate = formatDate(expDate);
+            }
+          }
+          continue; // 바코드 행 처리 완료, 다음 행으로
+        }
+
+        // SKU 체크 (Col B = 인덱스 1)
+        const sku = row[1];
+        if (sku === null || sku === undefined || String(sku).trim() === '') {
+          continue; // SKU가 없으면 스킵
+        }
+
+        const skuStr = String(sku).trim();
+        const productName = cellCStr;
+
+        // 이상 데이터 필터링 - 메타데이터 행 제외
+        const invalidKeywords = ['메시지 카테고리', '카테고리 코드', '유형', '필수', '선택', 'SKU ID', '운송장', '차량번호'];
+        if (invalidKeywords.some(keyword =>
+          skuStr.includes(keyword) || productName.includes(keyword))) {
+          console.log(`⚠️ 메타데이터 행 스킵: SKU="${skuStr}", 상품명="${productName}"`);
+          continue;
+        }
+        const quantity = parseInt(row[6]) || 0;  // Col G
+        const purchasePrice = parseFloat(String(row[9] || '0').replace(/,/g, '')) || 0;  // Col J
+        const supplyPrice = parseFloat(String(row[10] || '0').replace(/,/g, '')) || 0;   // Col K
+        const vat = parseFloat(String(row[11] || '0').replace(/,/g, '')) || 0;           // Col L
+        const totalAmount = parseFloat(String(row[12] || '0').replace(/,/g, '')) || 0;   // Col M
+
+        // 제조일자 추출 (Col Q(16)=Y일 때 Col R(17) 값)
+        const mfgFlag = row[16] ? String(row[16]).trim().toUpperCase() : '';
+        const mfgDate = row[17];
+        const manufactureDate = (mfgFlag === 'Y' && mfgDate) ? formatDate(mfgDate) : '';
+
+        orders.push({
+          poNumber: poNumber,
+          status: '미확정',
+          center: center,
+          expectedDate: expectedDate,
+          productCode: skuStr,
+          productName: productName,
+          barcode: '',  // 다음 행(바코드 행)에서 채워짐
+          quantity: quantity,
+          confirmedQuantity: quantity,
+          purchasePrice: purchasePrice,
+          supplyPrice: supplyPrice,
+          vat: vat,
+          totalAmount: totalAmount,
+          manufacturingDate: manufactureDate,  // 서버 API 필드명과 일치
+          expirationDate: '',  // 바코드 행에서 채워짐
+          returnManager: returnManager,
+          returnManagerPhone: returnTel,  // 서버 API 필드명과 일치
+          returnAddress: returnAddr  // 서버 API 필드명과 일치
+        });
+
+        lastOrderIdx = orders.length - 1;
+      }
+
+      console.log(`📋 파싱 완료: ${orders.length}개 상품`);
+      if (orders.length > 0) {
+        console.log('📋 첫 번째 상품:', JSON.stringify(orders[0], null, 2));
+      }
+
+      return orders;
+    }
+
+    // 일괄 처리 시작
+    async function startAutoProcess() {
+      if (isProcessing) return;
+
+      const startBtn = document.getElementById('startBtn');
+      const stopBtn = document.getElementById('stopBtn');
+
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      isProcessing = true;
+
+      // 처리 모달 열기
+      openProcessModal();
+
+      try {
+        const settings = getSettings();
+        const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+        addLog('일괄 처리를 시작합니다...', 'info');
+        addLog(`설정: 개별마진 ${settings.individualMargin}원, 쉽먼트마진 ${settings.shipmentMargin}원, D+${settings.baseDateOffset}`, 'info');
+
+        // Extension 연결 확인
+        const connected = await checkExtensionConnection();
+
+        // Step 1: 발주서 준비
+        setStep(1);
+        updateProgress(10, '발주서 소스 준비 중...');
+        addLog('발주서 소스 준비 중...', 'info');
+
+        const folderPath = document.getElementById('folderPath').value;
+        let orders = [];
+
+        if (folderPath && selectedFiles.length > 0) {
+          // 폴더가 선택된 경우 - 파일에서 데이터 파싱
+          addLog(`선택된 폴더에서 ${selectedFiles.length}개 파일 처리 중...`, 'info');
+
+          try {
+            orders = await parseSelectedFiles();
+
+            if (orders.length === 0) {
+              addLog('파싱된 발주 데이터가 없습니다.', 'warning');
+              throw new Error('발주 데이터를 찾을 수 없습니다');
+            }
+
+            addLog(`✅ ${orders.length}개 발주 항목 로드 완료`, 'success');
+          } catch (e) {
+            addLog('파일 파싱 오류: ' + e.message, 'error');
+            throw e;
+          }
+        } else if (!folderPath) {
+          addLog('폴더 미선택 - 쿠팡에서 발주서를 조회합니다.', 'info');
+
+          if (connected) {
+            // Extension을 통해 쿠팡 발주 목록 조회
+            try {
+              orders = await fetchOrderList(settings);
+
+              if (orders.length === 0) {
+                // 쿠팡 페이지 열기 안내
+                addLog('발주서가 없거나 쿠팡 로그인이 필요합니다.', 'warning');
+                const openTab = confirm('쿠팡 발주 페이지를 열까요? 로그인 후 다시 시도해주세요.');
+                if (openTab) {
+                  await openCoupangTab();
+                }
+                throw new Error('발주서 조회 실패');
+              }
+            } catch (e) {
+              addLog('Extension 연결 오류: ' + e.message, 'warning');
+              addLog('시뮬레이션 모드로 진행합니다.', 'info');
+              await simulateStep(2000);
+              orders = generateMockOrders();
+            }
+          } else {
+            addLog('Extension 미연결 - 시뮬레이션 모드로 진행합니다.', 'warning');
+            await simulateStep(2000);
+            orders = generateMockOrders();
+          }
+        }
+
+        updateProgress(20, '발주서 조회 완료');
+
+        // 미확정 필터링 (Step 1의 일부)
+        updateProgress(30, '미확정 발주서 필터링 중...');
+        addLog('미확정 발주서를 필터링합니다...', 'info');
+
+        // 미확정 상태 필터링
+        const unconfirmedOrders = orders.filter(order => {
+          const status = order.status || order.orderStatus || '';
+          return status.includes('미확정') || status.includes('거래처확인요청');
+        });
+
+        addLog(`미확정 발주서 ${unconfirmedOrders.length}건 발견`, 'success');
+        updateProgress(40, '필터링 완료');
+
+        // Step 2: 엑셀 생성 (마진 계산 포함)
+        setStep(2);
+        updateProgress(40, '마진 계산 중...');
+        addLog('마진 계산을 시작합니다...', 'info');
+
+        // 재고 데이터 로드
+        let stockData = null;
+        if (settings.processStock) {
+          addLog('재고 데이터 로드 중...', 'info');
+          stockData = await fetchStockData();
+          if (stockData) {
+            addLog('재고 데이터 로드 완료', 'success');
+          } else {
+            addLog('재고 데이터 로드 실패 - 재고 확인 생략', 'warning');
+          }
+        }
+
+        // 마진 계산 및 분류
+        const passedOrders = [];
+        const failedOrders = [];
+
+        for (const order of unconfirmedOrders) {
+          const result = calculateMargin(order, stockData, settings);
+          if (result.pass) {
+            passedOrders.push({ ...order, marginResult: result });
+          } else {
+            failedOrders.push({ ...order, marginResult: result });
+            addLog(`제외: ${order.poNumber || order.orderNumber} - ${result.reason}`, 'warning');
+          }
+        }
+
+        addLog(`마진 계산 완료: 적합 ${passedOrders.length}건, 부적합 ${failedOrders.length}건`, 'success');
+        updateProgress(60, '마진 계산 완료');
+
+        if (passedOrders.length === 0) {
+          addLog('처리할 발주서가 없습니다.', 'warning');
+          throw new Error('조건을 충족하는 발주서가 없습니다');
+        }
+
+        // 발주 확정 양식 생성 (Step 2의 일부)
+        updateProgress(50, '발주 확정 양식 생성 중...');
+        addLog('발주 확정 양식을 생성합니다...', 'info');
+
+        // 발주 확정 양식 생성 (서버 API 호출)
+        let confirmationFileData = null;
+        let confirmationFileName = '';
+        try {
+          const confirmResponse = await fetch('/api/orders/generate-confirmation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orders: passedOrders, settings })
+          });
+
+          if (confirmResponse.ok) {
+            const confirmResult = await confirmResponse.json();
+            confirmationFileData = confirmResult.fileData;  // Base64 인코딩된 파일 데이터
+            confirmationFileName = confirmResult.filename || '발주 확정 양식.xlsx';
+            addLog(`✅ 발주 확정 양식 생성 완료: ${confirmationFileName} (${passedOrders.length}건)`, 'success');
+          } else {
+            addLog('⚠️ 발주 확정 양식 생성 실패 - 시뮬레이션 모드', 'warning');
+          }
+        } catch (e) {
+          addLog('⚠️ 발주 확정 양식 생성 API 오류: ' + e.message, 'warning');
+        }
+
+        updateProgress(80, '발주 확정 완료');
+
+        // 쉽먼트 파일 생성 (Step 2의 일부)
+        updateProgress(60, '쉽먼트 파일 생성 중...');
+        addLog('쉽먼트 일괄 양식을 생성합니다...', 'info');
+
+        // 센터별로 그룹핑
+        const ordersByCenter = {};
+        for (const order of passedOrders) {
+          const center = order.center || order.fulfillmentCenter || 'GMK1';
+          if (!ordersByCenter[center]) {
+            ordersByCenter[center] = [];
+          }
+          ordersByCenter[center].push(order);
+        }
+
+        // 쉽먼트 파일 생성 (서버 API 호출)
+        let shipmentFilesData = [];  // 센터별 파일 데이터 저장
+        try {
+          const shipmentResponse = await fetch('/api/orders/generate-shipments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ordersByCenter, settings })
+          });
+
+          if (shipmentResponse.ok) {
+            const shipmentResult = await shipmentResponse.json();
+            if (shipmentResult.shipments && shipmentResult.shipments.length > 0) {
+              shipmentFilesData = shipmentResult.shipments;  // 센터별 파일 데이터 배열
+              shipmentFilesData.forEach(s => {
+                addLog(`✅ ${s.filename} 생성 완료 (${s.orderCount}건)`, 'success');
+              });
+            }
+          } else {
+            addLog('⚠️ 쉽먼트 파일 생성 실패 - 시뮬레이션 모드', 'warning');
+          }
+        } catch (e) {
+          addLog('⚠️ 쉽먼트 파일 생성 API 오류: ' + e.message, 'warning');
+        }
+
+        // Step 3: 발주 업로드
+        setStep(3);
+        updateProgress(70, '발주 확정 업로드 중...');
+        addLog('발주 확정 업로드를 시작합니다...', 'info');
+
+        let orderConfirmationSuccess = false;
+
+        if (extensionConnected && confirmationFileData) {
+          try {
+            addLog('📤 발주 확정 파일을 쿠팡에 업로드 중...', 'info');
+            addLog('⏳ 쿠팡 페이지 로딩 대기 중... (약 10초 소요)', 'info');
+
+            // 서버에서 생성된 발주 확정 양식을 Extension을 통해 쿠팡에 업로드
+            const uploadOrderResponse = await sendMessageToExtension({
+              action: 'uploadOrderConfirmation',
+              orderData: {
+                fileData: confirmationFileData,  // Base64 인코딩된 Excel 파일 데이터
+                fileName: confirmationFileName,
+                orders: passedOrders
+              }
+            });
+
+            if (uploadOrderResponse && uploadOrderResponse.success) {
+              // 메시지에 "검증 실패"가 포함되어 있으면 실패로 처리
+              const message = uploadOrderResponse.message || '';
+              if (message.includes('검증 실패') || message.includes('데이터 검증 실패')) {
+                addLog(`❌ 발주 확정 업로드 실패: ${message}`, 'error');
+                showOrderConfirmFailModal(message);
+                orderConfirmationSuccess = false;
+              } else {
+                addLog(`✅ 발주 확정 업로드 완료: ${message}`, 'success');
+                orderConfirmationSuccess = true;
+              }
+            } else {
+              addLog(`⚠️ 발주 확정 업로드: ${uploadOrderResponse?.message || '결과 확인 필요'}`, 'warning');
+              orderConfirmationSuccess = true; // 응답이 왔으면 일단 성공으로 간주
+            }
+          } catch (e) {
+            addLog('❌ 발주 확정 업로드 실패: ' + e.message, 'error');
+            addLog('💡 서버의 output 폴더에서 파일을 다운로드하여 수동 업로드하세요.', 'info');
+            addLog('⚠️ 발주 확정이 실패하여 쉽먼트 업로드를 건너뜁니다.', 'warning');
+          }
+        } else if (!confirmationFileData) {
+          addLog('⚠️ 발주 확정 파일이 생성되지 않았습니다 - 수동 업로드 필요', 'warning');
+        } else {
+          addLog('⚠️ Extension 미연결 - 수동 업로드 필요', 'warning');
+          addLog(`💡 "${confirmationFileName}" 파일을 쿠팡에서 수동으로 업로드하세요.`, 'info');
+        }
+
+        updateProgress(90, '발주 확정 업로드 완료');
+
+        // Step 4: 쉽먼트 업로드
+        setStep(4);
+        updateProgress(80, '쉽먼트 업로드 중...');
+
+        const uploadedShipments = []; // 업로드된 쉽먼트 정보 저장
+        const failedShipments = [];   // 실패한 쉽먼트 목록
+        const successShipments = [];  // 성공한 쉽먼트 목록
+
+        if (orderConfirmationSuccess && extensionConnected && shipmentFilesData.length > 0) {
+          // 발주 확정 완료 후 쉽먼트 시작 전 대기 (페이지 전환 시간)
+          addLog('⏳ 발주 확정 완료, 5초 후 쉽먼트 업로드 시작...', 'info');
+          await simulateStep(5000);
+
+          addLog(`쉽먼트 업로드를 시작합니다... (총 ${shipmentFilesData.length}개 파일)`, 'info');
+
+          // 센터별로 쉽먼트 파일 업로드
+          for (let i = 0; i < shipmentFilesData.length; i++) {
+            const shipmentFile = shipmentFilesData[i];
+            addLog(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'info');
+            addLog(`📤 [${i + 1}/${shipmentFilesData.length}] ${shipmentFile.center} 센터 쉽먼트 업로드 중...`, 'info');
+            addLog(`   📁 파일: ${shipmentFile.filename}`, 'info');
+            addLog(`   📅 입고예정일: ${shipmentFile.expectedDate}`, 'info');
+            addLog(`   📦 상품 수: ${shipmentFile.orderCount}건`, 'info');
+
+            try {
+              const uploadShipmentResponse = await sendMessageToExtension({
+                action: 'uploadShipment',
+                shipmentData: {
+                  fileData: shipmentFile.fileData,
+                  fileName: shipmentFile.filename,
+                  center: shipmentFile.center,
+                  expectedDate: shipmentFile.expectedDate,
+                  orderCount: shipmentFile.orderCount
+                }
+              });
+
+              // 응답 상태에 따른 처리
+              const status = uploadShipmentResponse?.status || 'unknown';
+              const message = uploadShipmentResponse?.message || '';
+              const failReason = uploadShipmentResponse?.failReason || '';
+
+              if (uploadShipmentResponse && uploadShipmentResponse.success && status !== 'failed') {
+                if (status === 'completed') {
+                  addLog(`   ✅ 업로드 성공: ${message}`, 'success');
+                  successShipments.push({
+                    center: shipmentFile.center,
+                    expectedDate: shipmentFile.expectedDate,
+                    filename: shipmentFile.filename,
+                    message: message
+                  });
+                } else if (status === 'unknown') {
+                  addLog(`   ⚠️ 업로드 완료 (결과 확인 필요)`, 'warning');
+                  addLog(`   💡 쿠팡 쉽먼트 페이지에서 직접 확인하세요`, 'info');
+                  successShipments.push({
+                    center: shipmentFile.center,
+                    expectedDate: shipmentFile.expectedDate,
+                    filename: shipmentFile.filename,
+                    message: '결과 확인 필요',
+                    needsManualCheck: true
+                  });
+                } else {
+                  addLog(`   ✅ 업로드 완료: ${message || '처리됨'}`, 'success');
+                  successShipments.push({
+                    center: shipmentFile.center,
+                    expectedDate: shipmentFile.expectedDate,
+                    filename: shipmentFile.filename,
+                    message: message
+                  });
+                }
+              } else {
+                // 실패
+                const errorMsg = uploadShipmentResponse?.error || message || '알 수 없는 오류';
+                addLog(`   ❌ 업로드 실패: ${errorMsg}`, 'error');
+                if (failReason) {
+                  addLog(`   📋 실패 사유: ${failReason}`, 'error');
+                }
+                failedShipments.push({
+                  center: shipmentFile.center,
+                  expectedDate: shipmentFile.expectedDate,
+                  filename: shipmentFile.filename,
+                  error: errorMsg,
+                  failReason: failReason
+                });
+              }
+            } catch (e) {
+              addLog(`   ❌ 업로드 오류: ${e.message}`, 'error');
+              failedShipments.push({
+                center: shipmentFile.center,
+                expectedDate: shipmentFile.expectedDate,
+                filename: shipmentFile.filename,
+                error: e.message
+              });
+            }
+
+            // 다음 센터 업로드 전 대기
+            if (i < shipmentFilesData.length - 1) {
+              addLog('   ⏳ 다음 파일 업로드 대기 중 (5초)...', 'info');
+              await simulateStep(5000);
+            }
+          }
+
+          addLog(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'info');
+
+          // 쉽먼트 업로드 결과 요약
+          addLog(`📊 쉽먼트 업로드 결과: 성공 ${successShipments.length}개, 실패 ${failedShipments.length}개`,
+                 failedShipments.length > 0 ? 'warning' : 'success');
+
+          // 실패한 항목 상세 표시 (Python totalbot 방식)
+          if (failedShipments.length > 0) {
+            addLog('', 'info');
+            addLog('❌ ========== 실패한 쉽먼트 목록 ==========', 'error');
+            failedShipments.forEach((f, idx) => {
+              addLog(`   [${idx + 1}] ${f.center} - ${f.filename}`, 'error');
+              addLog(`       사유: ${f.failReason || f.error}`, 'error');
+            });
+            addLog('', 'info');
+            addLog('💡 수동 처리 안내:', 'warning');
+            addLog('   1. 쿠팡 Wing > 입고관리 > 쉽먼트 일괄등록 페이지로 이동', 'info');
+            addLog('   2. 서버의 output 폴더에서 실패한 파일 다운로드', 'info');
+            addLog('   3. 수동으로 파일 업로드 및 등록', 'info');
+            addLog('   URL: https://supplier.coupang.com/ibs/shipment/parcel/bulk-creation/upload', 'info');
+          }
+
+          // Step 5: 문서 저장 (성공한 쉽먼트의 라벨/내역서 다운로드)
+          if (successShipments.length > 0) {
+            setStep(5);
+            updateProgress(95, '문서 저장 중...');
+            addLog('', 'info');
+            addLog('🔍 쉽먼트 검색 및 문서 다운로드 중...', 'info');
+            addLog('   (발주번호로 쉽먼트 조회 → 라벨/내역서 PDF 다운로드)', 'info');
+            await simulateStep(3000);
+
+            try {
+              const poNumbers = [...new Set(passedOrders.map(o => o.poNumber))];
+              addLog(`   📋 처리할 발주번호: ${poNumbers.length}개`, 'info');
+
+              // 쉽먼트 후처리 (검색 + 다운로드) 요청
+              const postProcessResponse = await sendMessageToExtension({
+                action: 'processShipmentAfterUpload',
+                poNumbers: poNumbers
+              });
+
+              if (postProcessResponse && postProcessResponse.success) {
+                const { shipments, downloads, failed } = postProcessResponse;
+
+                // 검색 결과 표시
+                if (shipments && shipments.length > 0) {
+                  addLog('', 'info');
+                  addLog(`✅ ${shipments.length}개 쉽먼트 조회 완료:`, 'success');
+                  shipments.forEach(s => {
+                    addLog(`   📋 ${s.poNumber} → parcelShipmentSeq: ${s.parcelShipmentSeq}`, 'success');
+                  });
+                }
+
+                // 다운로드 결과 표시 및 서버에 저장
+                if (downloads && downloads.length > 0) {
+                  addLog('', 'info');
+                  addLog(`📦 ${downloads.length}개 문서 다운로드 완료:`, 'success');
+
+                  for (const doc of downloads) {
+                    addLog(`   📄 발주 ${doc.poNumber}:`, 'info');
+
+                    // 라벨 저장
+                    if (doc.label && doc.label.success && doc.label.data) {
+                      try {
+                        const labelSaveResponse = await fetch('/api/orders/save-pdf', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            fileData: doc.label.data,
+                            fileName: `라벨_${doc.parcelShipmentSeq}.pdf`,
+                            type: 'label'
+                          })
+                        });
+                        if (labelSaveResponse.ok) {
+                          addLog(`      🏷️ 라벨 저장 완료: 라벨_${doc.parcelShipmentSeq}.pdf`, 'success');
+                        }
+                      } catch (e) {
+                        addLog(`      ⚠️ 라벨 저장 실패: ${e.message}`, 'warning');
+                      }
+                    }
+
+                    // 내역서 저장
+                    if (doc.manifest && doc.manifest.success && doc.manifest.data) {
+                      try {
+                        const manifestSaveResponse = await fetch('/api/orders/save-pdf', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            fileData: doc.manifest.data,
+                            fileName: `내역서_${doc.parcelShipmentSeq}.pdf`,
+                            type: 'manifest'
+                          })
+                        });
+                        if (manifestSaveResponse.ok) {
+                          addLog(`      📄 내역서 저장 완료: 내역서_${doc.parcelShipmentSeq}.pdf`, 'success');
+                        }
+                      } catch (e) {
+                        addLog(`      ⚠️ 내역서 저장 실패: ${e.message}`, 'warning');
+                      }
+                    }
+                  }
+                }
+
+                // 실패 항목 표시
+                if (failed && failed.length > 0) {
+                  addLog('', 'info');
+                  addLog(`⚠️ ${failed.length}개 발주 처리 실패:`, 'warning');
+                  failed.forEach(f => {
+                    addLog(`   ❌ ${f.poNumber}: ${f.error}`, 'error');
+                  });
+                }
+
+              } else {
+                addLog('⚠️ 쉽먼트 후처리 실패: ' + (postProcessResponse?.error || '알 수 없는 오류'), 'warning');
+                addLog('💡 쿠팡에서 쉽먼트 번호를 직접 확인하세요.', 'info');
+              }
+            } catch (e) {
+              addLog('⚠️ 쉽먼트 후처리 오류: ' + e.message, 'warning');
+              addLog('💡 쿠팡에서 쉽먼트 번호를 직접 확인하고 수동으로 다운로드하세요.', 'info');
+            }
+          }
+
+        } else if (!orderConfirmationSuccess) {
+          addLog('❌ 발주 확정이 완료되지 않아 쉽먼트 업로드를 건너뜁니다.', 'error');
+          addLog('', 'info');
+          addLog('💡 수동 처리 안내:', 'warning');
+          addLog('   1. 먼저 발주 확정 파일을 쿠팡에서 수동 업로드하세요', 'info');
+          addLog('   URL: https://supplier.coupang.com/scm/purchase/upload/form', 'info');
+          addLog('   2. 발주 확정 완료 후 쉽먼트 파일을 업로드하세요', 'info');
+          addLog('   URL: https://supplier.coupang.com/ibs/shipment/parcel/bulk-creation/upload', 'info');
+
+          // 생성된 파일 목록 표시
+          if (shipmentFilesData.length > 0) {
+            addLog('', 'info');
+            addLog('📁 생성된 쉽먼트 파일 목록:', 'info');
+            shipmentFilesData.forEach((f, idx) => {
+              addLog(`   [${idx + 1}] ${f.filename} (${f.center}, ${f.orderCount}건)`, 'info');
+            });
+          }
+        } else if (shipmentFilesData.length === 0) {
+          addLog('⚠️ 쉽먼트 파일이 생성되지 않았습니다', 'warning');
+        } else {
+          addLog('⚠️ Extension 미연결 - 수동 업로드 필요', 'warning');
+          addLog('', 'info');
+          addLog('💡 수동 처리 안내:', 'warning');
+          addLog('   1. Chrome Extension이 설치되어 있는지 확인하세요', 'info');
+          addLog('   2. 서버의 output 폴더에서 파일을 다운로드하세요', 'info');
+          addLog('   3. 쿠팡에서 수동으로 업로드하세요', 'info');
+
+          if (shipmentFilesData.length > 0) {
+            addLog('', 'info');
+            addLog('📁 수동 업로드할 파일 목록:', 'info');
+            shipmentFilesData.forEach((f, idx) => {
+              addLog(`   [${idx + 1}] ${f.filename} (${f.center}, ${f.orderCount}건)`, 'info');
+            });
+          }
+        }
+
+        // 완료
+        updateProgress(100, '처리 완료');
+        addLog('', 'info');
+        addLog('✅ 모든 처리가 완료되었습니다!', 'success');
+        showToast('일괄 처리가 완료되었습니다!', 'success', 5000);
+
+        // 처리 결과 요약
+        addLog('', 'info');
+        addLog('═══════════════════════════════════════', 'info');
+        addLog('📊 처리 결과 요약', 'info');
+        addLog('═══════════════════════════════════════', 'info');
+        addLog(`   📋 전체 발주서: ${orders.length}건`, 'info');
+        addLog(`   📋 미확정 발주서: ${unconfirmedOrders.length}건`, 'info');
+        addLog(`   ✅ 처리된 발주서: ${passedOrders.length}건`, 'success');
+        addLog(`   ❌ 제외된 발주서: ${failedOrders.length}건`, failedOrders.length > 0 ? 'warning' : 'info');
+        addLog('', 'info');
+        addLog(`   📤 쉽먼트 업로드: 성공 ${successShipments.length}개 / 실패 ${failedShipments.length}개`,
+               failedShipments.length > 0 ? 'warning' : 'success');
+
+        if (extensionConnected) {
+          addLog(`   🔗 업로드 방식: Extension 자동 업로드`, 'info');
+        } else {
+          addLog(`   ⚠️ 업로드 방식: 수동 업로드 필요`, 'warning');
+        }
+
+        if (failedShipments.length > 0) {
+          addLog('', 'info');
+          addLog('⚠️ 실패한 쉽먼트는 위의 안내에 따라 수동 처리하세요.', 'warning');
+        }
+
+      } catch (error) {
+        addLog('처리 중 오류 발생: ' + error.message, 'error');
+        showToast('처리 실패: ' + error.message, 'error');
+        completeProcessModal(false);
+      } finally {
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        isProcessing = false;
+        // 정상 완료 시 모달 상태 업데이트
+        completeProcessModal(true);
+      }
+    }
+
+    /**
+     * 테스트용 목업 발주 데이터 생성
+     */
+    function generateMockOrders() {
+      const centers = ['GMK1', 'GMK2', 'GMK3'];
+      const statuses = ['미확정', '거래처확인요청'];
+      const orders = [];
+
+      for (let i = 1; i <= 5; i++) {
+        const baseDate = new Date();
+        baseDate.setDate(baseDate.getDate() + Math.floor(Math.random() * 7) + 3);
+
+        orders.push({
+          poNumber: `PO-2025${String(i).padStart(6, '0')}`,
+          status: statuses[Math.floor(Math.random() * statuses.length)],
+          center: centers[Math.floor(Math.random() * centers.length)],
+          expectedDate: baseDate.toISOString().split('T')[0].replace(/-/g, ''),
+          productName: `테스트 상품 ${i}`,
+          barcode: `R${100000 + i}`,
+          quantity: Math.floor(Math.random() * 10) + 1,
+          purchasePrice: 10000 + Math.floor(Math.random() * 5000),
+          supplyPrice: 15000 + Math.floor(Math.random() * 5000)
+        });
+      }
+
+      return orders;
+    }
+
+    // 처리 중지
+    function stopProcess() {
+      isProcessing = false;
+      addLog('처리가 중지되었습니다.', 'warning');
+      showToast('처리가 중지되었습니다.', 'warning');
+
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('stopBtn').disabled = true;
+
+      updateProgress(0, '중지됨');
+      setStep(0);
+
+      // 모달 상태 업데이트
+      completeProcessModal(false);
+    }
+
+    // 설정 가져오기
+    function getSettings() {
+      return {
+        individualMargin: parseInt(document.getElementById('individualMargin').value) || 1000,
+        shipmentMargin: parseInt(document.getElementById('shipmentMargin').value) || 5000,
+        baseDateOffset: parseInt(document.getElementById('baseDateOffset').value) || 3,
+        processAll: document.getElementById('processAll').checked,
+        processStock: document.getElementById('processStock').checked,
+        centerFilters: centerFilters,
+        excludedBarcodes: Array.from(excludedBarcodes)
+      };
+    }
+
+    // 필터 추가
+    function addFilter() {
+      const filterList = document.getElementById('filterList');
+
+      // 빈 메시지 제거
+      if (centerFilters.length === 0) {
+        filterList.innerHTML = '';
+      }
+
+      const filterId = Date.now();
+      centerFilters.push({ id: filterId, center: '', date: '' });
+
+      const filterHtml = `
+        <div class="filter-item" id="filter-${filterId}">
+          <select onchange="updateFilter(${filterId}, 'center', this.value)">
+            <option value="">센터 선택</option>
+            <option value="GMK1">GMK1</option>
+            <option value="GMK2">GMK2</option>
+            <option value="GMK3">GMK3</option>
+            <option value="GMK4">GMK4</option>
+            <option value="GMK5">GMK5</option>
+          </select>
+          <input type="date" onchange="updateFilter(${filterId}, 'date', this.value)">
+          <button class="btn-remove" onclick="removeFilter(${filterId})">삭제</button>
+        </div>
+      `;
+
+      filterList.insertAdjacentHTML('beforeend', filterHtml);
+      saveSettings();
+    }
+
+    // 필터 업데이트
+    function updateFilter(id, field, value) {
+      const filter = centerFilters.find(f => f.id === id);
+      if (filter) {
+        filter[field] = value;
+        saveSettings();
+      }
+    }
+
+    // 필터 제거
+    function removeFilter(id) {
+      centerFilters = centerFilters.filter(f => f.id !== id);
+      document.getElementById(`filter-${id}`).remove();
+
+      if (centerFilters.length === 0) {
+        document.getElementById('filterList').innerHTML = `
+          <div style="color: #888; text-align: center; padding: 20px;">
+            필터를 추가하면 특정 센터/입고일 조합만 처리합니다.
+          </div>
+        `;
+      }
+      saveSettings();
+    }
+
+    // 제외 바코드 모달 열기
+    function openExcludeBarcodeModal() {
+      document.getElementById('excludeBarcodeModal').style.display = 'flex';
+      renderExcludedBarcodes();
+    }
+
+    // 제외 바코드 모달 닫기
+    function closeExcludeBarcodeModal() {
+      document.getElementById('excludeBarcodeModal').style.display = 'none';
+    }
+
+    // 발주 확정 실패 모달 열기
+    function showOrderConfirmFailModal(message) {
+      document.getElementById('orderConfirmFailMessage').textContent = message;
+      document.getElementById('orderConfirmFailModal').style.display = 'flex';
+    }
+
+    // 발주 확정 실패 모달 닫기
+    function closeOrderConfirmFailModal() {
+      document.getElementById('orderConfirmFailModal').style.display = 'none';
+    }
+
+    // 제외 바코드 추가
+    function addExcludedBarcode() {
+      const input = document.getElementById('newBarcodeInput');
+      const barcode = input.value.trim().toUpperCase();
+
+      if (!barcode.startsWith('R')) {
+        showToast('바코드는 R로 시작해야 합니다.', 'warning');
+        return;
+      }
+
+      if (excludedBarcodes.has(barcode)) {
+        showToast('이미 추가된 바코드입니다.', 'warning');
+        return;
+      }
+
+      excludedBarcodes.add(barcode);
+      input.value = '';
+      renderExcludedBarcodes();
+      saveSettings();
+      showToast(`${barcode} 추가됨`, 'success');
+    }
+
+    // 제외 바코드 제거
+    function removeExcludedBarcode(barcode) {
+      excludedBarcodes.delete(barcode);
+      renderExcludedBarcodes();
+      saveSettings();
+    }
+
+    // 제외 바코드 목록 렌더링
+    function renderExcludedBarcodes() {
+      const list = document.getElementById('excludedBarcodeList');
+      document.getElementById('excludedCount').textContent = excludedBarcodes.size;
+
+      if (excludedBarcodes.size === 0) {
+        list.innerHTML = '<div style="color: #888; text-align: center;">제외된 바코드가 없습니다.</div>';
+        return;
+      }
+
+      list.innerHTML = Array.from(excludedBarcodes).map(barcode => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: white; border-radius: 4px; margin-bottom: 4px;">
+          <code style="font-size: 13px;">${barcode}</code>
+          <button onclick="removeExcludedBarcode('${barcode}')" style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">삭제</button>
+        </div>
+      `).join('');
+    }
+
+    // 설정 저장
+    function saveSettings() {
+      const settings = getSettings();
+      localStorage.setItem('orderSettings', JSON.stringify(settings));
+    }
+
+    // 설정 로드
+    function loadSettings() {
+      const saved = localStorage.getItem('orderSettings');
+      if (saved) {
+        try {
+          const settings = JSON.parse(saved);
+          document.getElementById('individualMargin').value = settings.individualMargin || 1000;
+          document.getElementById('shipmentMargin').value = settings.shipmentMargin || 5000;
+          document.getElementById('baseDateOffset').value = settings.baseDateOffset || 3;
+          document.getElementById('processAll').checked = settings.processAll || false;
+          document.getElementById('processStock').checked = settings.processStock || false;
+
+          if (settings.excludedBarcodes) {
+            excludedBarcodes = new Set(settings.excludedBarcodes);
+            document.getElementById('excludedCount').textContent = excludedBarcodes.size;
+          }
+
+          if (settings.centerFilters && settings.centerFilters.length > 0) {
+            settings.centerFilters.forEach(filter => {
+              centerFilters.push(filter);
+              const filterList = document.getElementById('filterList');
+              if (centerFilters.length === 1) {
+                filterList.innerHTML = '';
+              }
+              filterList.insertAdjacentHTML('beforeend', `
+                <div class="filter-item" id="filter-${filter.id}">
+                  <select onchange="updateFilter(${filter.id}, 'center', this.value)">
+                    <option value="">센터 선택</option>
+                    <option value="GMK1" ${filter.center === 'GMK1' ? 'selected' : ''}>GMK1</option>
+                    <option value="GMK2" ${filter.center === 'GMK2' ? 'selected' : ''}>GMK2</option>
+                    <option value="GMK3" ${filter.center === 'GMK3' ? 'selected' : ''}>GMK3</option>
+                    <option value="GMK4" ${filter.center === 'GMK4' ? 'selected' : ''}>GMK4</option>
+                    <option value="GMK5" ${filter.center === 'GMK5' ? 'selected' : ''}>GMK5</option>
+                  </select>
+                  <input type="date" value="${filter.date || ''}" onchange="updateFilter(${filter.id}, 'date', this.value)">
+                  <button class="btn-remove" onclick="removeFilter(${filter.id})">삭제</button>
+                </div>
+              `);
+            });
+          }
+
+          addLog('저장된 설정을 불러왔습니다.', 'info');
+        } catch (e) {
+          console.error('설정 불러오기 실패:', e);
+        }
+      }
+    }
+
+    // 유틸리티: 시뮬레이션 대기
+    function simulateStep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // 유틸리티: 날짜 포맷팅 (YYYYMMDD)
+    function getFormattedDate(offsetDays = 0) {
+      const date = new Date();
+      date.setDate(date.getDate() + offsetDays);
+      return date.toISOString().split('T')[0].replace(/-/g, '');
+    }
+
+    // 설정 변경 시 자동 저장
+    document.querySelectorAll('input[type="number"], input[type="checkbox"]').forEach(input => {
+      input.addEventListener('change', saveSettings);
+    });
+
+    // 초기화
+    document.addEventListener('DOMContentLoaded', async () => {
+      loadSettings();
+      addLog('페이지 로드 완료', 'info');
+
+      // Extension 연결 상태 확인
+      setTimeout(async () => {
+        const connected = await checkExtensionConnection();
+        if (!connected) {
+          addLog('💡 Chrome Extension을 설치하고 페이지를 새로고침하면 쿠팡 연동이 가능합니다.', 'info');
+          addLog('💡 Extension 없이도 시뮬레이션 모드로 테스트할 수 있습니다.', 'info');
+        }
+      }, 1000);
+    });
+
+    // Extension 메시지 수신 리스너
+    window.addEventListener('message', (event) => {
+      // Extension으로부터 받은 알림 처리
+      if (event.data && event.data.type === 'TOTALBOT_NOTIFICATION') {
+        const { notificationType, data } = event.data;
+
+        switch (notificationType) {
+          case 'downloadComplete':
+            addLog(`다운로드 완료: ${data.filename}`, 'success');
+            break;
+          case 'loginRequired':
+            addLog('쿠팡 로그인이 필요합니다.', 'warning');
+            showToast('쿠팡 로그인이 필요합니다.', 'warning');
+            break;
+          case 'error':
+            addLog(`오류: ${data.message}`, 'error');
+            break;
+        }
+      }
+    });
+  </script>
+</body>
+</html>

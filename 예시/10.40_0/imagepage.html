@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <link rel="stylesheet" href="imagestyle.css">
+    <link rel="stylesheet" href="cropper.css">
+    <!-- <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css"> -->
+</head>
+<body>
+    
+  <div class="imageeditor">
+    <h3 class="editor" style="color:#5469d4;font-weight:bolder;">COUPLUS Editor<br>(순서대로 진행)</h3>
+    <div class="buttons2"  style="margin-bottom:6px;">
+      <button type="button" id="hide" >1.이미지 자르기</button>
+    </div>  
+    <div class="wrapper">
+      <input type="checkbox" id="switch" checked>
+      <label for="switch" class="switch_label">
+        <span class="onf_btn"></span>
+      </label>
+      <label class="imageinterval">이미지간격</label>
+    </div>
+    <div class="buttons">
+      <label><input class="color" type="color" id="colorpick"></label>
+    </div>
+    <div class="buttons">
+      <button type="button" id="mask">2.박스</button>
+    </div>
+    <div class="buttons">
+      <button type="button" id="reset">리셋</button>
+    </div>  
+    <div class="buttons">
+      <label><input class="color" type="color" id="fontcolor"></label>
+    </div>
+    <div class="buttons">
+      <button type="button" id="text">2.텍스트</button>
+    </div>
+  
+    <!--   <div class="buttons">
+      <button type="button" id="font">글꼴</button>
+      </div> -->
+    <div class="buttons" style="margin-bottom:20px;">
+      <input type="number" id="size" value="30">
+    </div>
+    <div class="buttons2" style="margin-bottom:20px;">
+      <button type="button" id="done">3.다운로드</button>
+    </div>
+  
+    <!--     <div class="buttons">
+      <input type="number" id="imageqty" value='8'>
+      </div>
+        <div class="buttons">
+      <button type="button" id="download">다운로드</button>
+      </div> -->  
+    <div class="key">
+      <p style="text-align:left;">
+        [단축키]<br>
+        a : 이미지 자르기<br>
+        f : 박스<br>
+        d : 박스color<br>
+        r : 텍스트<br>
+        e : 텍스트color<br>
+        ctrl+z : 실행취소<br>
+        ctrl+y : 재실행<br>
+      </p>
+    </div>
+  </div>
+  
+  
+  
+  <div class="contain" style="padding: 0px; margin: 0px; background-color: rgb(242, 242, 242);">
+    <div class="main">               
+      <canvas id="canvas" width="800" height="100"></canvas>
+      <h1>ㅁㄴㅇㄹ</h1>
+      <p class="md">ㅁㄴㅇㄹ</p>
+                      
+      <div class="container">
+        <table style="margin-left: auto; margin-right: auto; margin-bottom: 20px;">
+          <caption></caption>
+          <tbody>
+            <tr>
+              <td>
+                <img class="optionimg" src="https://cbu01.alicdn.com/img/ibank/O1CN01ceAq9t27MCr1OSaNV_!!3376997782-0-cib.jpg">
+                <div class="optiontext">화이트</div>
+              </td>
+              <td>
+                <img class="optionimg" src="https://cbu01.alicdn.com/img/ibank/O1CN019DOYv627MCqto62zy_!!3376997782-0-cib.jpg">
+                <div class="optiontext">블랙</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="closebutton">X</div>
+      </div>
+
+      <!-- <h1></h1> -->
+      <div class='container'>
+        <img class='image' src='https://cbu01.alicdn.com/img/ibank/O1CN013lS93s27MCqxXDxXJ_!!3376997782-0-cib.jpg'>
+        <img class='changed' src="" alt=''>
+        <div class='closebutton'>X</div>
+      </div>
+      <div class="container">
+        <img class="image" src="https://cbu01.alicdn.com/img/ibank/O1CN01cwiY4b27MCqxejjVc_!!3376997782-0-cib.jpg">
+        <img class="changed" src="" alt="">
+        <div class="closebutton">X</div>
+      </div>
+      <div class="container">
+        <img class="image" src="https://cbu01.alicdn.com/img/ibank/O1CN01v4YqG127MCqxehFf6_!!3376997782-0-cib.jpg">
+        <img class="changed" src="" alt="">
+        <div class="closebutton">X</div>
+      </div>
+      <div class="container">
+        <img class="image" src="https://cbu01.alicdn.com/img/ibank/O1CN01N1aTVn27MCr09Uw0z_!!3376997782-0-cib.jpg">
+        <img class="changed" src="" alt="">
+        <div class="closebutton">X</div>
+      </div>
+    </div>
+    <div class="mainsub" id="mainsub"></div>
+  </div>
+
+
+  <script src="imagescript.js"></script>
+  <script src="domtoimage.js"></script>
+  <script src="cropper.js"></script>
+  <script src="script.js"></script>
+  <script src="html2canvas.js"></script>
+            
+</body>
+</html>

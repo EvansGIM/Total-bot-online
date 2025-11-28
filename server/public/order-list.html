@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>TotalBot - 발주 리스트</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f6f7;
+      color: #333;
+    }
+
+    /* Sidebar Styles */
+    .sidebar-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      z-index: 999;
+    }
+
+    .sidebar-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: -280px;
+      width: 280px;
+      height: 100%;
+      background: #1a1a2e;
+      transition: left 0.3s ease;
+      z-index: 1000;
+      overflow-y: auto;
+    }
+
+    .sidebar.active {
+      left: 0;
+    }
+
+    .sidebar-header {
+      padding: 24px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .sidebar-header h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-header p {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .sidebar-menu {
+      padding: 16px 0;
+    }
+
+    .sidebar-menu-title {
+      padding: 12px 20px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .sidebar-menu-item {
+      display: flex;
+      align-items: center;
+      padding: 14px 20px;
+      color: #ccc;
+      text-decoration: none;
+      font-size: 14px;
+      transition: all 0.2s;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+    }
+
+    .sidebar-menu-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: white;
+    }
+
+    .sidebar-menu-item.active {
+      background: rgba(102, 126, 234, 0.2);
+      color: #667eea;
+      border-left-color: #667eea;
+    }
+
+    .sidebar-menu-item .menu-icon {
+      width: 24px;
+      margin-right: 12px;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    .sidebar-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+      margin: 12px 20px;
+    }
+
+    /* Hamburger Button */
+    .hamburger-btn {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: 40px;
+      height: 40px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+
+    .hamburger-btn:hover {
+      background: #f0f0f0;
+    }
+
+    .hamburger-btn span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: #333;
+      margin: 2px 0;
+      border-radius: 1px;
+    }
+
+    .header {
+      background: white;
+      border-bottom: 1px solid #e5e8eb;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* Cards */
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title .icon {
+      font-size: 22px;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .stat-card .stat-icon {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+
+    .stat-card .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .stat-card .stat-label {
+      font-size: 13px;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    .stat-card.primary { border-left: 4px solid #667eea; }
+    .stat-card.success { border-left: 4px solid #10b981; }
+    .stat-card.warning { border-left: 4px solid #f59e0b; }
+    .stat-card.danger { border-left: 4px solid #ef4444; }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    /* Filters */
+    .filters {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filter-group label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .filter-group select,
+    .filter-group input {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    /* Table */
+    .table-container {
+      overflow-x: auto;
+    }
+
+    .order-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .order-table th {
+      background: #f9fafb;
+      padding: 14px 12px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid #e5e8eb;
+      white-space: nowrap;
+    }
+
+    .order-table td {
+      padding: 14px 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .order-table tr:hover {
+      background: #f9fafb;
+    }
+
+    .order-table .checkbox-cell {
+      width: 40px;
+      text-align: center;
+    }
+
+    /* Badge */
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-pending { background: #fef3c7; color: #92400e; }
+    .badge-confirmed { background: #d1fae5; color: #065f46; }
+    .badge-processing { background: #dbeafe; color: #1e40af; }
+    .badge-completed { background: #d1fae5; color: #065f46; }
+    .badge-rejected { background: #fee2e2; color: #991b1b; }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .pagination button {
+      padding: 8px 16px;
+      border: 1px solid #ddd;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .pagination button:hover {
+      background: #f0f0f0;
+    }
+
+    .pagination button.active {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+
+    .pagination button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #888;
+    }
+
+    .empty-state .icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    .empty-state h3 {
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+
+    .toast {
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      animation: slideIn 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .toast.success { background: #10b981; color: white; }
+    .toast.error { background: #ef4444; color: white; }
+    .toast.warning { background: #f59e0b; color: white; }
+    .toast.info { background: #3b82f6; color: white; }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Action Buttons in Table */
+    .action-btn {
+      padding: 4px 8px;
+      font-size: 11px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 4px;
+    }
+
+    .action-btn.view { background: #e0e7ff; color: #4338ca; }
+    .action-btn.download { background: #d1fae5; color: #065f46; }
+    .action-btn.delete { background: #fee2e2; color: #991b1b; }
+
+    @media (max-width: 768px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .filters {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2>TotalBot</h2>
+      <p>쿠팡 자동화 플랫폼</p>
+    </div>
+
+    <div class="sidebar-menu">
+      <div class="sidebar-menu-title">상품 관리</div>
+      <a class="sidebar-menu-item" href="products.html">
+        <span class="menu-icon">📦</span>
+        수집 상품
+      </a>
+      <a class="sidebar-menu-item" href="uploaded.html">
+        <span class="menu-icon">🚀</span>
+        업로드 완료
+      </a>
+      <a class="sidebar-menu-item" href="quotations.html">
+        <span class="menu-icon">📋</span>
+        견적서 관리
+      </a>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-menu-title">발주 관리</div>
+      <a class="sidebar-menu-item" href="orders.html">
+        <span class="menu-icon">🛒</span>
+        자동 발주
+      </a>
+      <a class="sidebar-menu-item active" href="order-list.html">
+        <span class="menu-icon">📑</span>
+        발주 리스트
+      </a>
+      <a class="sidebar-menu-item" href="shipments.html">
+        <span class="menu-icon">🚚</span>
+        배송 관리
+      </a>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-menu-title">분석/설정</div>
+      <a class="sidebar-menu-item" href="settlement.html">
+        <span class="menu-icon">💰</span>
+        정산
+      </a>
+      <a class="sidebar-menu-item" href="settings.html">
+        <span class="menu-icon">⚙️</span>
+        설정
+      </a>
+    </div>
+  </nav>
+
+  <div class="header">
+    <div class="header-left">
+      <button class="hamburger-btn" onclick="toggleSidebar()" title="메뉴">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <h1>발주 리스트</h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="refreshOrders()">
+        <span>🔄</span> 새로고침
+      </button>
+      <button class="btn btn-primary" onclick="exportOrders()">
+        <span>📥</span> 내보내기
+      </button>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card primary">
+        <div class="stat-icon">📋</div>
+        <div class="stat-value" id="totalOrders">0</div>
+        <div class="stat-label">전체 발주</div>
+      </div>
+      <div class="stat-card warning">
+        <div class="stat-icon">⏳</div>
+        <div class="stat-value" id="pendingOrders">0</div>
+        <div class="stat-label">미확정</div>
+      </div>
+      <div class="stat-card success">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value" id="confirmedOrders">0</div>
+        <div class="stat-label">확정 완료</div>
+      </div>
+      <div class="stat-card danger">
+        <div class="stat-icon">❌</div>
+        <div class="stat-value" id="rejectedOrders">0</div>
+        <div class="stat-label">반려</div>
+      </div>
+    </div>
+
+    <!-- Filters and Table -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">📑</span>
+          발주 목록
+        </div>
+        <div>
+          <button class="btn btn-danger" onclick="deleteSelected()" id="deleteBtn" disabled>
+            선택 삭제
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters">
+        <div class="filter-group">
+          <label>상태</label>
+          <select id="filterStatus" onchange="applyFilters()">
+            <option value="">전체</option>
+            <option value="pending">미확정</option>
+            <option value="confirmed">확정 완료</option>
+            <option value="processing">처리 중</option>
+            <option value="rejected">반려</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>센터</label>
+          <select id="filterCenter" onchange="applyFilters()">
+            <option value="">전체</option>
+            <option value="GMK1">GMK1</option>
+            <option value="GMK2">GMK2</option>
+            <option value="GMK3">GMK3</option>
+            <option value="GMK4">GMK4</option>
+            <option value="GMK5">GMK5</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>기간</label>
+          <input type="date" id="filterStartDate" onchange="applyFilters()">
+          <span>~</span>
+          <input type="date" id="filterEndDate" onchange="applyFilters()">
+        </div>
+        <div class="filter-group">
+          <label>검색</label>
+          <input type="text" id="searchQuery" placeholder="발주번호, 상품명..." onkeyup="applyFilters()">
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-container">
+        <table class="order-table">
+          <thead>
+            <tr>
+              <th class="checkbox-cell">
+                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+              </th>
+              <th>발주번호</th>
+              <th>상태</th>
+              <th>물류센터</th>
+              <th>입고예정일</th>
+              <th>상품명</th>
+              <th>바코드</th>
+              <th>수량</th>
+              <th>매입가</th>
+              <th>공급가</th>
+              <th>마진</th>
+              <th>처리일시</th>
+              <th>작업</th>
+            </tr>
+          </thead>
+          <tbody id="orderTableBody">
+            <!-- 데이터가 여기에 렌더링됩니다 -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" id="emptyState" style="display: none;">
+        <div class="icon">📋</div>
+        <h3>발주 데이터가 없습니다</h3>
+        <p>자동 발주를 실행하면 여기에 결과가 표시됩니다.</p>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" id="pagination">
+        <button onclick="changePage(-1)" id="prevBtn" disabled>이전</button>
+        <span id="pageInfo">1 / 1</span>
+        <button onclick="changePage(1)" id="nextBtn" disabled>다음</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 버전 확인
+    console.log('🔄 TotalBot 발주 리스트 v2025-11-27');
+
+    // 상태 변수
+    let allOrders = [];
+    let filteredOrders = [];
+    let currentPage = 1;
+    const pageSize = 20;
+    let selectedOrders = new Set();
+
+    // 사이드바 토글
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      sidebar.classList.toggle('active');
+      overlay.classList.toggle('active');
+    }
+
+    // Toast 알림
+    function showToast(message, type = 'info', duration = 4000) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    // 발주 데이터 로드
+    async function loadOrders() {
+      try {
+        // 서버에서 발주 데이터 로드 시도
+        const response = await fetch('/api/orders');
+        if (response.ok) {
+          allOrders = await response.json();
+        } else {
+          // 목업 데이터 사용
+          allOrders = generateMockOrders();
+        }
+      } catch (e) {
+        console.log('서버 연결 실패, 목업 데이터 사용');
+        allOrders = generateMockOrders();
+      }
+
+      updateStats();
+      applyFilters();
+    }
+
+    // 통계 업데이트
+    function updateStats() {
+      const total = allOrders.length;
+      const pending = allOrders.filter(o => o.status === 'pending' || o.status === '미확정').length;
+      const confirmed = allOrders.filter(o => o.status === 'confirmed' || o.status === '확정').length;
+      const rejected = allOrders.filter(o => o.status === 'rejected' || o.status === '반려').length;
+
+      document.getElementById('totalOrders').textContent = total;
+      document.getElementById('pendingOrders').textContent = pending;
+      document.getElementById('confirmedOrders').textContent = confirmed;
+      document.getElementById('rejectedOrders').textContent = rejected;
+    }
+
+    // 필터 적용
+    function applyFilters() {
+      const status = document.getElementById('filterStatus').value;
+      const center = document.getElementById('filterCenter').value;
+      const startDate = document.getElementById('filterStartDate').value;
+      const endDate = document.getElementById('filterEndDate').value;
+      const query = document.getElementById('searchQuery').value.toLowerCase();
+
+      filteredOrders = allOrders.filter(order => {
+        // 상태 필터
+        if (status && order.status !== status && !order.status.includes(status)) {
+          return false;
+        }
+
+        // 센터 필터
+        if (center && order.center !== center) {
+          return false;
+        }
+
+        // 날짜 필터
+        if (startDate && order.expectedDate < startDate.replace(/-/g, '')) {
+          return false;
+        }
+        if (endDate && order.expectedDate > endDate.replace(/-/g, '')) {
+          return false;
+        }
+
+        // 검색어 필터
+        if (query) {
+          const searchFields = [
+            order.poNumber,
+            order.productName,
+            order.barcode,
+            order.center
+          ].map(f => (f || '').toLowerCase());
+
+          if (!searchFields.some(f => f.includes(query))) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+
+      currentPage = 1;
+      renderTable();
+    }
+
+    // 테이블 렌더링
+    function renderTable() {
+      const tbody = document.getElementById('orderTableBody');
+      const emptyState = document.getElementById('emptyState');
+
+      if (filteredOrders.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.style.display = 'block';
+        document.getElementById('pagination').style.display = 'none';
+        return;
+      }
+
+      emptyState.style.display = 'none';
+      document.getElementById('pagination').style.display = 'flex';
+
+      // 페이징
+      const startIdx = (currentPage - 1) * pageSize;
+      const endIdx = startIdx + pageSize;
+      const pageOrders = filteredOrders.slice(startIdx, endIdx);
+      const totalPages = Math.ceil(filteredOrders.length / pageSize);
+
+      // 테이블 렌더링
+      tbody.innerHTML = pageOrders.map(order => `
+        <tr>
+          <td class="checkbox-cell">
+            <input type="checkbox" value="${order.id}" onchange="toggleSelect('${order.id}')" ${selectedOrders.has(order.id) ? 'checked' : ''}>
+          </td>
+          <td><strong>${order.poNumber || '-'}</strong></td>
+          <td>${getStatusBadge(order.status)}</td>
+          <td>${order.center || '-'}</td>
+          <td>${formatDate(order.expectedDate)}</td>
+          <td>${order.productName || '-'}</td>
+          <td><code>${order.barcode || '-'}</code></td>
+          <td>${order.quantity || 0}</td>
+          <td>${formatNumber(order.purchasePrice)}원</td>
+          <td>${formatNumber(order.supplyPrice)}원</td>
+          <td style="color: ${order.margin >= 0 ? '#10b981' : '#ef4444'}">
+            ${formatNumber(order.margin)}원
+          </td>
+          <td>${formatDateTime(order.processedAt)}</td>
+          <td>
+            <button class="action-btn view" onclick="viewOrder('${order.id}')">상세</button>
+            <button class="action-btn download" onclick="downloadOrder('${order.id}')">다운</button>
+          </td>
+        </tr>
+      `).join('');
+
+      // 페이지 정보 업데이트
+      document.getElementById('pageInfo').textContent = `${currentPage} / ${totalPages}`;
+      document.getElementById('prevBtn').disabled = currentPage <= 1;
+      document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+    }
+
+    // 상태 뱃지
+    function getStatusBadge(status) {
+      const badges = {
+        'pending': '<span class="badge badge-pending">미확정</span>',
+        '미확정': '<span class="badge badge-pending">미확정</span>',
+        'confirmed': '<span class="badge badge-confirmed">확정</span>',
+        '확정': '<span class="badge badge-confirmed">확정</span>',
+        'processing': '<span class="badge badge-processing">처리중</span>',
+        'rejected': '<span class="badge badge-rejected">반려</span>',
+        '반려': '<span class="badge badge-rejected">반려</span>'
+      };
+      return badges[status] || `<span class="badge">${status}</span>`;
+    }
+
+    // 날짜 포맷
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      const d = String(dateStr);
+      if (d.length === 8) {
+        return `${d.substring(0, 4)}-${d.substring(4, 6)}-${d.substring(6, 8)}`;
+      }
+      return d;
+    }
+
+    // 날짜시간 포맷
+    function formatDateTime(dateStr) {
+      if (!dateStr) return '-';
+      try {
+        const d = new Date(dateStr);
+        return d.toLocaleString('ko-KR');
+      } catch (e) {
+        return dateStr;
+      }
+    }
+
+    // 숫자 포맷
+    function formatNumber(num) {
+      if (num === null || num === undefined) return '0';
+      return Number(num).toLocaleString('ko-KR');
+    }
+
+    // 페이지 변경
+    function changePage(delta) {
+      const totalPages = Math.ceil(filteredOrders.length / pageSize);
+      const newPage = currentPage + delta;
+
+      if (newPage >= 1 && newPage <= totalPages) {
+        currentPage = newPage;
+        renderTable();
+      }
+    }
+
+    // 전체 선택 토글
+    function toggleSelectAll() {
+      const selectAll = document.getElementById('selectAll').checked;
+      const checkboxes = document.querySelectorAll('#orderTableBody input[type="checkbox"]');
+
+      checkboxes.forEach(cb => {
+        cb.checked = selectAll;
+        if (selectAll) {
+          selectedOrders.add(cb.value);
+        } else {
+          selectedOrders.delete(cb.value);
+        }
+      });
+
+      updateDeleteButton();
+    }
+
+    // 개별 선택 토글
+    function toggleSelect(id) {
+      if (selectedOrders.has(id)) {
+        selectedOrders.delete(id);
+      } else {
+        selectedOrders.add(id);
+      }
+      updateDeleteButton();
+    }
+
+    // 삭제 버튼 상태 업데이트
+    function updateDeleteButton() {
+      document.getElementById('deleteBtn').disabled = selectedOrders.size === 0;
+    }
+
+    // 선택 삭제
+    async function deleteSelected() {
+      if (selectedOrders.size === 0) return;
+
+      if (!confirm(`${selectedOrders.size}개의 발주를 삭제하시겠습니까?`)) {
+        return;
+      }
+
+      // TODO: 서버 API 호출
+      allOrders = allOrders.filter(o => !selectedOrders.has(o.id));
+      selectedOrders.clear();
+
+      updateStats();
+      applyFilters();
+      showToast('삭제되었습니다.', 'success');
+    }
+
+    // 발주 상세 보기
+    function viewOrder(id) {
+      const order = allOrders.find(o => o.id === id);
+      if (order) {
+        alert(JSON.stringify(order, null, 2));
+      }
+    }
+
+    // 발주 다운로드
+    function downloadOrder(id) {
+      showToast('다운로드 기능은 준비 중입니다.', 'info');
+    }
+
+    // 새로고침
+    async function refreshOrders() {
+      showToast('새로고침 중...', 'info');
+      await loadOrders();
+      showToast('새로고침 완료', 'success');
+    }
+
+    // 내보내기
+    function exportOrders() {
+      // CSV 내보내기
+      const headers = ['발주번호', '상태', '물류센터', '입고예정일', '상품명', '바코드', '수량', '매입가', '공급가', '마진'];
+      const rows = filteredOrders.map(o => [
+        o.poNumber,
+        o.status,
+        o.center,
+        formatDate(o.expectedDate),
+        o.productName,
+        o.barcode,
+        o.quantity,
+        o.purchasePrice,
+        o.supplyPrice,
+        o.margin
+      ]);
+
+      const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `발주리스트_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+
+      showToast('CSV 파일이 다운로드되었습니다.', 'success');
+    }
+
+    // 목업 데이터 생성
+    function generateMockOrders() {
+      const centers = ['GMK1', 'GMK2', 'GMK3', 'GMK4', 'GMK5'];
+      const statuses = ['pending', 'confirmed', 'processing', 'rejected'];
+      const products = ['스마트폰 케이스', 'USB 케이블', '무선 이어폰', '보조배터리', 'LED 조명'];
+      const orders = [];
+
+      for (let i = 1; i <= 50; i++) {
+        const purchasePrice = 10000 + Math.floor(Math.random() * 20000);
+        const supplyPrice = purchasePrice + Math.floor(Math.random() * 10000);
+
+        const baseDate = new Date();
+        baseDate.setDate(baseDate.getDate() + Math.floor(Math.random() * 14) - 7);
+
+        orders.push({
+          id: `order_${i}`,
+          poNumber: `PO-2025${String(i).padStart(6, '0')}`,
+          status: statuses[Math.floor(Math.random() * statuses.length)],
+          center: centers[Math.floor(Math.random() * centers.length)],
+          expectedDate: baseDate.toISOString().split('T')[0].replace(/-/g, ''),
+          productName: products[Math.floor(Math.random() * products.length)],
+          barcode: `R${100000 + i}`,
+          quantity: Math.floor(Math.random() * 50) + 1,
+          purchasePrice: purchasePrice,
+          supplyPrice: supplyPrice,
+          margin: supplyPrice - purchasePrice,
+          processedAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString()
+        });
+      }
+
+      return orders;
+    }
+
+    // 초기화
+    document.addEventListener('DOMContentLoaded', () => {
+      // 날짜 필터 기본값 설정
+      const today = new Date();
+      const monthAgo = new Date();
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+
+      document.getElementById('filterStartDate').value = monthAgo.toISOString().split('T')[0];
+      document.getElementById('filterEndDate').value = today.toISOString().split('T')[0];
+
+      loadOrders();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>옵션명 일괄편집 - TotalBot</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Nanum Gothic', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px 40px;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .main-content {
+      padding: 40px;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #e1e5e9;
+      margin-bottom: 30px;
+    }
+
+    .tab-btn {
+      padding: 12px 24px;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      font-size: 16px;
+      font-weight: 600;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .tab-btn:hover {
+      color: #667eea;
+    }
+
+    .tab-btn.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .form-group {
+      margin-bottom: 25px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #333;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e1e5e9;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .radio-group {
+      display: flex;
+      gap: 20px;
+      margin-top: 10px;
+    }
+
+    .radio-group label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: normal;
+      cursor: pointer;
+    }
+
+    .radio-group input[type="radio"] {
+      width: auto;
+      cursor: pointer;
+    }
+
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #1976d2;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 25px;
+      font-size: 13px;
+      color: #1976d2;
+    }
+
+    .preview-section {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 30px;
+    }
+
+    .preview-section h3 {
+      font-size: 16px;
+      margin-bottom: 15px;
+      color: #333;
+    }
+
+    .preview-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .preview-table th,
+    .preview-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #e1e5e9;
+    }
+
+    .preview-table th {
+      background: #f1f3f5;
+      font-weight: 600;
+      color: #495057;
+    }
+
+    .preview-table tbody tr:hover {
+      background: #f8f9fa;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-top: 30px;
+    }
+
+    button {
+      padding: 14px 32px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: #f1f3f5;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #e9ecef;
+    }
+
+    .status-message {
+      text-align: center;
+      padding: 20px;
+      margin-top: 20px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .status-message.success {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .status-message.error {
+      background: #ffebee;
+      color: #c62828;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>✏️ 옵션명 일괄편집</h1>
+      <p class="subtitle">상품 옵션명을 한 번에 변경하거나 정리합니다</p>
+    </header>
+
+    <div class="main-content">
+      <!-- 탭 -->
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('find-replace')">찾기 및 바꾸기</button>
+        <button class="tab-btn" onclick="switchTab('rename')">순차적 이름 변경</button>
+      </div>
+
+      <!-- 찾기 및 바꾸기 탭 -->
+      <div id="find-replace-tab" class="tab-content active">
+        <div class="info-box">
+          💡 텍스트의 일부만 일치해도 변경됩니다. 예: '블랙'을 찾으면 '블랙 XL', '블랙 M' 등이 모두 변경됩니다.
+        </div>
+
+        <div class="form-group">
+          <label for="option-type-fr">옵션 종류</label>
+          <select id="option-type-fr">
+            <option value="option1">옵션1</option>
+            <option value="option2">옵션2</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="find-text">찾을 텍스트</label>
+          <input type="text" id="find-text" placeholder="예: 블랙, 화이트, XL 등">
+        </div>
+
+        <div class="form-group">
+          <label for="replace-text">바꿀 텍스트</label>
+          <input type="text" id="replace-text" placeholder="예: 검정, 흰색, 95 등">
+        </div>
+
+        <div class="button-group">
+          <button class="btn-secondary" onclick="previewFindReplace()">미리보기</button>
+          <button class="btn-primary" onclick="applyFindReplace()">적용하기</button>
+        </div>
+      </div>
+
+      <!-- 순차적 이름 변경 탭 -->
+      <div id="rename-tab" class="tab-content">
+        <div class="info-box">
+          💡 옵션1 값을 일괄적으로 변경합니다. 동일한 옵션1 값을 가진 항목들은 같은 번호를 받습니다.
+        </div>
+
+        <div class="form-group">
+          <label for="option-type-rename">옵션 종류</label>
+          <select id="option-type-rename">
+            <option value="option1">옵션1</option>
+            <option value="option2">옵션2</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="prefix">기본 이름</label>
+          <input type="text" id="prefix" placeholder="예: 색상, 사이즈 등">
+        </div>
+
+        <div class="form-group">
+          <label>번호 유형</label>
+          <div class="radio-group">
+            <label>
+              <input type="radio" name="numbering-type" value="123" checked>
+              123 (숫자)
+            </label>
+            <label>
+              <input type="radio" name="numbering-type" value="ABC">
+              ABC (알파벳)
+            </label>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button class="btn-secondary" onclick="previewRename()">미리보기</button>
+          <button class="btn-primary" onclick="applyRename()">적용하기</button>
+        </div>
+      </div>
+
+      <!-- 미리보기 섹션 -->
+      <div id="preview-section" class="preview-section" style="display: none;">
+        <h3>🔍 변경 미리보기</h3>
+        <table class="preview-table">
+          <thead>
+            <tr>
+              <th>현재 값</th>
+              <th>→</th>
+              <th>변경 후 값</th>
+            </tr>
+          </thead>
+          <tbody id="preview-body">
+          </tbody>
+        </table>
+      </div>
+
+      <div id="status-message"></div>
+    </div>
+  </div>
+
+  <script>
+    let productData = null;
+
+    // 페이지 로드 시 제품 데이터 불러오기
+    async function loadProductData() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const productId = urlParams.get('productId');
+
+      try {
+        const response = await fetch(`/api/products/${productId || 'latest'}`);
+        if (!response.ok) {
+          throw new Error('제품 데이터를 불러올 수 없습니다.');
+        }
+
+        productData = await response.json();
+      } catch (error) {
+        showStatus('error', `오류: ${error.message}`);
+      }
+    }
+
+    // 탭 전환
+    function switchTab(tabName) {
+      // 모든 탭 버튼 비활성화
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+
+      // 모든 탭 내용 숨기기
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+
+      // 선택한 탭 활성화
+      event.target.classList.add('active');
+      document.getElementById(`${tabName}-tab`).classList.add('active');
+
+      // 미리보기 숨기기
+      document.getElementById('preview-section').style.display = 'none';
+      document.getElementById('status-message').innerHTML = '';
+    }
+
+    // 찾기 및 바꾸기 미리보기
+    function previewFindReplace() {
+      const findText = document.getElementById('find-text').value.trim();
+      const replaceText = document.getElementById('replace-text').value;
+      const optionType = document.getElementById('option-type-fr').value;
+
+      if (!findText) {
+        showStatus('error', '찾을 텍스트를 입력해주세요.');
+        return;
+      }
+
+      if (!productData || !productData.options) {
+        showStatus('error', '제품 데이터가 없습니다.');
+        return;
+      }
+
+      const previewData = [];
+      productData.options.forEach(option => {
+        const currentValue = option[optionType];
+        if (currentValue && currentValue.includes(findText)) {
+          const newValue = currentValue.replace(new RegExp(findText, 'g'), replaceText);
+          previewData.push({ current: currentValue, new: newValue });
+        }
+      });
+
+      displayPreview(previewData);
+    }
+
+    // 순차적 이름 변경 미리보기
+    function previewRename() {
+      const prefix = document.getElementById('prefix').value.trim();
+      const numberingType = document.querySelector('input[name="numbering-type"]:checked').value;
+      const optionType = document.getElementById('option-type-rename').value;
+
+      if (!prefix) {
+        showStatus('error', '기본 이름을 입력해주세요.');
+        return;
+      }
+
+      if (!productData || !productData.options) {
+        showStatus('error', '제품 데이터가 없습니다.');
+        return;
+      }
+
+      // 고유한 옵션 값 추출
+      const uniqueValues = [...new Set(productData.options.map(opt => opt[optionType]))];
+      const valueMap = {};
+
+      uniqueValues.forEach((value, index) => {
+        let number;
+        if (numberingType === 'ABC') {
+          number = indexToLetter(index);
+        } else {
+          number = String(index + 1);
+        }
+        valueMap[value] = `${prefix}${number}`;
+      });
+
+      const previewData = [];
+      uniqueValues.forEach(value => {
+        previewData.push({ current: value, new: valueMap[value] });
+      });
+
+      displayPreview(previewData);
+    }
+
+    // 미리보기 표시
+    function displayPreview(data) {
+      const previewSection = document.getElementById('preview-section');
+      const previewBody = document.getElementById('preview-body');
+
+      if (data.length === 0) {
+        showStatus('error', '변경할 항목이 없습니다.');
+        previewSection.style.display = 'none';
+        return;
+      }
+
+      previewBody.innerHTML = '';
+      data.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${item.current}</td>
+          <td style="text-align: center; color: #667eea;">→</td>
+          <td><strong>${item.new}</strong></td>
+        `;
+        previewBody.appendChild(row);
+      });
+
+      previewSection.style.display = 'block';
+      showStatus('', '');
+    }
+
+    // 찾기 및 바꾸기 적용
+    async function applyFindReplace() {
+      const findText = document.getElementById('find-text').value.trim();
+      const replaceText = document.getElementById('replace-text').value;
+      const optionType = document.getElementById('option-type-fr').value;
+
+      if (!findText) {
+        showStatus('error', '찾을 텍스트를 입력해주세요.');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/gemini/edit-option-names', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            productId: productData.id,
+            optionType,
+            action: 'find-replace',
+            findText,
+            replaceText
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showStatus('success', `✅ ${result.updatedCount}개 옵션이 업데이트되었습니다.`);
+          // 제품 데이터 새로고침
+          await loadProductData();
+        } else {
+          showStatus('error', `❌ ${result.message}`);
+        }
+      } catch (error) {
+        showStatus('error', `❌ 오류: ${error.message}`);
+      }
+    }
+
+    // 순차적 이름 변경 적용
+    async function applyRename() {
+      const prefix = document.getElementById('prefix').value.trim();
+      const numberingType = document.querySelector('input[name="numbering-type"]:checked').value;
+      const optionType = document.getElementById('option-type-rename').value;
+
+      if (!prefix) {
+        showStatus('error', '기본 이름을 입력해주세요.');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/gemini/edit-option-names', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            productId: productData.id,
+            optionType,
+            action: 'rename-sequential',
+            prefix,
+            numberingType
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showStatus('success', `✅ ${result.updatedCount}개 옵션이 업데이트되었습니다.`);
+          // 제품 데이터 새로고침
+          await loadProductData();
+        } else {
+          showStatus('error', `❌ ${result.message}`);
+        }
+      } catch (error) {
+        showStatus('error', `❌ 오류: ${error.message}`);
+      }
+    }
+
+    // 인덱스를 알파벳으로 변환
+    function indexToLetter(index) {
+      let result = '';
+      while (index >= 0) {
+        result = String.fromCharCode(65 + (index % 26)) + result;
+        index = Math.floor(index / 26) - 1;
+      }
+      return result;
+    }
+
+    // 상태 메시지 표시
+    function showStatus(type, message) {
+      const statusEl = document.getElementById('status-message');
+      statusEl.className = type ? `status-message ${type}` : '';
+      statusEl.textContent = message;
+    }
+
+    // 초기화
+    loadProductData();
+  </script>
+</body>
+</html>

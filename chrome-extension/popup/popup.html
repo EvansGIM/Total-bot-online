@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TotalBot</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="app">
+    <!-- 로그인 화면 -->
+    <div id="login-screen" class="screen">
+      <div class="header">
+        <h1>🤖 TotalBot</h1>
+        <p>쇼핑몰 자동화 도구</p>
+      </div>
+
+      <div class="form-container">
+        <input type="text" id="username" placeholder="아이디" autocomplete="username">
+        <input type="password" id="password" placeholder="비밀번호" autocomplete="current-password">
+        <button id="login-btn" class="primary-btn">로그인</button>
+        <p class="error-msg" id="login-error"></p>
+      </div>
+
+      <div class="links">
+        <a href="#" id="register-link">회원가입</a>
+      </div>
+    </div>
+
+    <!-- 메인 화면 -->
+    <div id="main-screen" class="screen" style="display: none;">
+      <div class="header">
+        <h1>🤖 TotalBot</h1>
+        <div class="user-info">
+          <span id="user-name">사용자</span>
+          <span id="user-grade" class="badge">Basic</span>
+        </div>
+        <button id="logout-btn" class="icon-btn">로그아웃</button>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="crawl">상품 수집</button>
+        <button class="tab-btn" data-tab="order">발주 처리</button>
+        <button class="tab-btn" data-tab="settlement">정산</button>
+        <button class="tab-btn" data-tab="settings">설정</button>
+      </div>
+
+      <!-- 상품 수집 탭 -->
+      <div id="crawl-tab" class="tab-content active">
+        <div class="action-buttons">
+          <button id="crawl-current-btn" class="action-btn compact">
+            <span>📦</span> 수집
+          </button>
+          <button id="edit-images-btn" class="action-btn compact">
+            <span>🎨</span> 편집
+          </button>
+          <button id="edit-options-btn" class="action-btn compact">
+            <span>✏️</span> 옵션
+          </button>
+        </div>
+
+        <div id="crawl-status" class="status-box"></div>
+
+        <!-- 상태별 탭 -->
+        <div class="status-tabs">
+          <button class="status-tab-btn active" data-status="all">
+            전체 <span class="count" id="count-all">0</span>
+          </button>
+          <button class="status-tab-btn" data-status="collected">
+            수집됨 <span class="count" id="count-collected">0</span>
+          </button>
+          <button class="status-tab-btn" data-status="uploaded">
+            업로드됨 <span class="count" id="count-uploaded">0</span>
+          </button>
+          <button class="status-tab-btn" data-status="approved">
+            승인됨 <span class="count" id="count-approved">0</span>
+          </button>
+        </div>
+
+        <!-- 상품 목록 -->
+        <div id="product-list" class="product-list">
+          <div class="loading">상품 목록 로딩 중...</div>
+        </div>
+      </div>
+
+      <!-- 발주 처리 탭 -->
+      <div id="order-tab" class="tab-content">
+        <h2>발주 자동 처리</h2>
+        <p class="desc">엑셀 파일을 업로드하여 발주를 처리합니다.</p>
+
+        <button id="upload-order-btn" class="action-btn">
+          <span>📁</span>
+          발주 파일 업로드
+        </button>
+
+        <button id="process-order-btn" class="action-btn">
+          <span>⚙️</span>
+          발주 처리 시작
+        </button>
+
+        <div id="order-status" class="status-box"></div>
+      </div>
+
+      <!-- 정산 탭 -->
+      <div id="settlement-tab" class="tab-content">
+        <h2>정산 자동화</h2>
+        <p class="desc">쿠팡/루트로지스/3PL 데이터를 통합하여 정산합니다.</p>
+
+        <button id="upload-settlement-btn" class="action-btn">
+          <span>📊</span>
+          정산 파일 업로드
+        </button>
+
+        <button id="calculate-settlement-btn" class="action-btn">
+          <span>💰</span>
+          정산 계산하기
+        </button>
+
+        <div id="settlement-status" class="status-box"></div>
+      </div>
+
+      <!-- 설정 탭 -->
+      <div id="settings-tab" class="tab-content">
+        <h2>설정</h2>
+
+        <div class="setting-item">
+          <label>쿠팡 아이디:</label>
+          <input type="text" id="coupang-id" placeholder="쿠팡 로그인 ID">
+        </div>
+
+        <div class="setting-item">
+          <label>쿠팡 비밀번호:</label>
+          <input type="password" id="coupang-pw" placeholder="쿠팡 비밀번호">
+        </div>
+
+        <div class="setting-item">
+          <label>사업자 번호:</label>
+          <input type="text" id="business-number" placeholder="123-45-67890">
+        </div>
+
+        <button id="save-settings-btn" class="primary-btn">설정 저장</button>
+
+        <div id="settings-status" class="status-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

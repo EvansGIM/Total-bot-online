@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <style>
+        body{
+            width:620px;
+            min-height:100px;
+            font-family: Malgun Gothic;
+            font-size: 10px;
+            line-height: 200%
+        }
+        .extended-body {
+            height: 1200px;          /* 원하는만큼 크게 잡기 */
+        }
+        .product-card-clickable:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+            transition: all 0.2s ease-in-out;
+        }
+        .product-card-clickable {
+            transition: all 0.2s ease-in-out;
+        }
+    </style>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <script src="js/bootstrap.bundle.min.js"></script>   
+    <script type="module" src="dist/gemini.bundle.js"></script>
+    <script src="popup.js"></script>
+    <script type="text/javascript" src="js/apexcharts.min.js"></script>
+</head>
+<body>
+    <script type="text/javascript" src="js/apexcharts.min.js"></script>
+    <div class="card h-100">
+        <div class="d-flex d-inline-block justify-content-center align-items-center" style="height:50px;">
+            <img src="../images/icon.png" class="d-flex h-75" alt="...">
+            <h4 class="h-50 d-flex d-inline-block fw-bold">COUPLUS</h4>
+        </div>
+        <div class="card-header">
+            <nav>
+                <div class="nav nav-tabs card-header-tabs justify-content-center" id="nav-tab" role="tablist">
+                    <button class="nav-link active" style="font-size:100%" id="nav-coupang-tab" data-bs-toggle="tab" data-bs-target="#nav-coupang" type="button" role="tab" aria-controls="nav-coupang" aria-selected="true">쿠팡사이트분석</button>
+                    <button class="nav-link" style="font-size:100%" id="nav-supplier-tab" data-bs-toggle="tab" data-bs-target="#nav-supplier" type="button" role="tab" aria-controls="nav-supplier" aria-selected="false">쿠팡로켓수집</button>
+                    <!-- <button class="nav-link" style="font-size:100%" id="nav-1688-tab" data-bs-toggle="tab" data-bs-target="#nav-1688" type="button" role="tab" aria-controls="nav-1688" aria-selected="false">상품등록</button> -->
+                    <button class="nav-link" style="font-size:100%" id="nav-edu-tab" data-bs-toggle="tab" data-bs-target="#nav-edu" type="button" role="tab" aria-controls="nav-edu" aria-selected="false">오날에듀</button>
+                    <!-- <button class="nav-link" style="font-size:100%" id="nav-aiAgent-tab" data-bs-toggle="tab" data-bs-target="#nav-aiAgent" type="button" role="tab" aria-controls="nav-aiAgent" aria-selected="false">AI에이전트</button> -->
+                </div>
+            </nav>
+        </div>
+        <div class="card-body">
+            
+            <div class="tab-content fs-10" id="nav-tabContent">
+                <div class="tab-pane fade show active" id="nav-coupang" role="tabpanel" aria-labelledby="nav-coupang-tab" tabindex="0">
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" id="trackingsales" class="btn btn-outline-primary fw-bold" style="width:120px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-collection" viewBox="0 0 16 16">
+                                    <path d="M2.5 3.5a.5.5 0 0 1 0-1h11a.5.5 0 0 1 0 1h-11zm2-2a.5.5 0 0 1 0-1h7a.5.5 0 0 1 0 1h-7zM0 13a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 16 13V6a1.5 1.5 0 0 0-1.5-1.5h-13A1.5 1.5 0 0 0 0 6v7zm1.5.5A.5.5 0 0 1 1 13V6a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-13z"/>
+                                </svg> 링크 수집 (판매량)
+                            </button>
+                            <label for="trackingsales" class="d-inline-block">판매량 추적을 위해 현재 쿠팡 링크를 수집합니다.</label>
+                        </div>
+                        <div class="col-12 mt-3">
+                            <button id="collectrank" type="button" class="btn btn-outline-primary fw-bold" style="width:120px;" data-bs-toggle="modal" data-bs-target="#exampleModal2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bar-chart" viewBox="0 0 16 16">
+                                    <path d="M4 11H2v3h2v-3zm5-4H7v7h2V7zm5-5v12h-2V2h2zm-2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1h-2zM6 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm-5 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3z"/>
+                                </svg> 링크 수집 (랭킹)
+                            </button>
+                            <button disabled type="submit" id="rankstatus" class="d-none" style="width:120px;">
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                <span id="rankrate">0</span>%<br><span id="ranktext">수집중...</span>
+                            </button>
+                            <label for="trackingrank" class="d-inline-block">랭킹 추적을 위해 현재 쿠팡 링크를 수집합니다</label>
+                            <div class="modal fade" id="exampleModal2" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                <div class="modal-dialog" role="document">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title fs-6" id="exampleModalLabel">랭킹을 추적할 키워드를 지정해 주세요</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                                            </button>
+                                        </div>
+                                        <div class="modal-body d-flex flex-column">
+                                            <label for="keyword1">키워드 (여러 키워드를 넣는 경우 콤마","로 구분해 주세요) </label>
+                                            <textarea type="text" class="form-control" id="keyword1"></textarea>
+                                            <!-- <label for="keyword1">키워드1 : </label><input type="text" class="form-control" id="keyword1">
+                                            <label for="keyword2">키워드2 : </label><input type="text" class="form-control" id="keyword2">
+                                            <label for="keyword3">키워드3 : </label><input type="text" class="form-control" id="keyword3">
+                                            <label for="keyword4">키워드4 : </label><input type="text" class="form-control" id="keyword4">
+                                            <label for="keyword5">키워드5 : </label><input type="text" class="form-control" id="keyword5"> -->
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                                            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="trackingrank">추가</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>                        
+                        <div class="col-12 mt-3 d-none">
+                            <button type="submit" id="wingandjet" class="btn btn-outline-danger fw-bold" style="width:120px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-toggle-on" viewBox="0 0 16 16">
+                                    <path d="M5 3a5 5 0 0 0 0 10h6a5 5 0 0 0 0-10H5zm6 9a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/>
+                                </svg>
+                                 제트 ON</button>
+                            <label for="wingandjet" class="d-inline-block">쿠팡 키워드 검색 시 로켓그로스 제품을 표시해 줍니다</label>
+                        </div>
+                        <div class="col-12 mt-3">
+                            <button type="submit" id="storelink" class="btn btn-outline-danger fw-bold" style="width:120px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-shop" viewBox="0 0 16 16">
+                                    <path d="M2.97 1.35A1 1 0 0 1 3.73 1h8.54a1 1 0 0 1 .76.35l2.609 3.044A1.5 1.5 0 0 1 16 5.37v.255a2.375 2.375 0 0 1-4.25 1.458A2.371 2.371 0 0 1 9.875 8 2.37 2.37 0 0 1 8 7.083 2.37 2.37 0 0 1 6.125 8a2.37 2.37 0 0 1-1.875-.917A2.375 2.375 0 0 1 0 5.625V5.37a1.5 1.5 0 0 1 .361-.976l2.61-3.045zm1.78 4.275a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 1 0 2.75 0V5.37a.5.5 0 0 0-.12-.325L12.27 2H3.73L1.12 5.045A.5.5 0 0 0 1 5.37v.255a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0M1.5 8.5A.5.5 0 0 1 2 9v6h1v-5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v5h6V9a.5.5 0 0 1 1 0v6h.5a.5.5 0 0 1 0 1H.5a.5.5 0 0 1 0-1H1V9a.5.5 0 0 1 .5-.5M4 15h3v-5H4zm5-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1zm3 0h-2v3h2z"/>
+                                  </svg>
+                                 판매자샵</button>
+                            <label for="storelink" class="d-inline-block">현재 쿠팡 상품의 판매자 스토어로 이동합니다.</label>
+                        </div>
+                        <div class="col-12 mt-3">
+                            <button type="submit" id="newproducts" class="btn btn-outline-success fw-bold" style="width:120px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-square" viewBox="0 0 16 16">
+                                    <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+                                    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                                  </svg>
+                                 신규 ON</button>
+                            <label for="newproducts" class="d-inline-block">쿠팡 키워드 검색 시 이번주에 등록된 제품을 표시해 줍니다</label>
+                        </div>   
+
+                        <div class="col-12 mt-3">
+                            <button type="submit" id="reviewdownload" class="btn btn-outline-danger fw-bold" style="width:120px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chat-right-dots" viewBox="0 0 16 16">
+                                    <path d="M2 1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h9.586a2 2 0 0 1 1.414.586l2 2V2a1 1 0 0 0-1-1H2zm12-1a2 2 0 0 1 2 2v12.793a.5.5 0 0 1-.854.353l-2.853-2.853a1 1 0 0 0-.707-.293H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h12z"/>
+                                    <path d="M5 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                  </svg>
+                                 리뷰 분석</button>
+                            <button disabled type="submit" id="reviewdownloadloading" class="d-none" style="width:120px;">
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                <span id="loadingrate">0</span>%<br><span id="loadingtext">Loading...</span>
+                            </button>
+                            <label for="reviewdownload" class="d-inline-block">현재 쿠팡 상품의 리뷰를 분석 / 저장합니다 (최대 1500개) 
+                                <span></span>
+                            </label>
+                            <label type="button" class="d-inline-block" data-bs-toggle="modal" data-bs-target="#exampleModal1">!</label>
+                                <div class="modal fade" id="exampleModal1" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title fs-6" id="exampleModalLabel">최대 수집 날짜를 지정해 주세요</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                                                </button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <input type="date" class="form-control" id="stddate">
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                                                <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="reviewfulldownload">리뷰분석</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                            <label type="button" class="d-inline-block" id="capturecollapse" data-bs-toggle="collapse" data-bs-target="#collapsecapture" aria-expanded="false" aria-controls="collapsecapture">!</label>
+                        </div>
+
+                        <div class="col-12 mt-3 d-none" id="reviewChart">
+                            <div id="chart"></div>
+                        </div>
+                        <!-- <div class="col-12 mt-3">
+                            <button type="submit" id="reviewSummaryDownload" class="btn btn-outline-primary fw-bold" style="width:120px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chat-right-dots" viewBox="0 0 16 16">
+                                    <path d="M2 1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h9.586a2 2 0 0 1 1.414.586l2 2V2a1 1 0 0 0-1-1H2zm12-1a2 2 0 0 1 2 2v12.793a.5.5 0 0 1-.854.353l-2.853-2.853a1 1 0 0 0-.707-.293H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h12z"/>
+                                    <path d="M5 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                  </svg>
+                                 리뷰 요약</button>
+                            <button disabled type="submit" id="reviewSummarydownloadloading" class="d-none" style="width:120px;">
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                <span id="loadingrate">0</span>%<br><span id="loadingtext">Loading...</span>
+                            </button>
+                            <label for="reviewdownload" class="d-inline-block">현재 키워드 상품의 리뷰를 요약 / 저장합니다 
+                                <span></span>
+                            </label>
+                        </div> -->
+                        <!-- <div class="col-12 mt-3">
+                            <button id="capturecollapse" type="button" class="btn btn-outline-secondary fw-bold" data-bs-toggle="collapse" data-bs-target="#collapsecapture" aria-expanded="false" aria-controls="collapsecapture" style="width:120px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-images" viewBox="0 0 16 16">
+                                    <path d="M4.502 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/>
+                                    <path d="M14.002 13a2 2 0 0 1-2 2h-10a2 2 0 0 1-2-2V5A2 2 0 0 1 2 3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-1.998 2zM14 2H4a1 1 0 0 0-1 1h9.002a2 2 0 0 1 2 2v7A1 1 0 0 0 15 11V3a1 1 0 0 0-1-1zM2.002 4a1 1 0 0 0-1 1v8l2.646-2.354a.5.5 0 0 1 .63-.062l2.66 1.773 3.71-3.71a.5.5 0 0 1 .577-.094l1.777 1.947V5a1 1 0 0 0-1-1h-10z"/>
+                                  </svg>
+                                 리뷰 캡처</button>
+                            <label for="capturecollapse" class="d-inline-block">특정 시간 단위로 쿠팡 링크의 리뷰를 캡처해서 저장합니다</label>
+                        </div> -->
+                        <div class="collapse mt-3" id="collapsecapture">
+                            <label for="capturecollapse" class="d-inline-block">특정 시간 단위로 쿠팡 링크의 리뷰를 캡처해서 저장합니다</label>
+                            <div class="input-group m-1">
+                                <div class="input-group-prepend">
+                                <span class="input-group-text" id="">link1</span>
+                                </div>
+                                <input type="text" class="form-control" id="link1">
+                            </div>
+                            <div class="input-group m-1">
+                                <div class="input-group-prepend">
+                                <span class="input-group-text" id="">link2</span>
+                                </div>
+                                <input type="text" class="form-control" id="link2">
+                            </div>
+                            <div class="input-group m-1">
+                                <div class="input-group-prepend">
+                                <span class="input-group-text" id="">link3</span>
+                                </div>
+                                <input type="text" class="form-control" id="link3">
+                            </div>
+                            <div class="input-group m-1">
+                                <div class="input-group-prepend">
+                                <span class="input-group-text" id="">link4</span>
+                                </div>
+                                <input type="text" class="form-control" id="link4">
+                            </div>
+                            <div class="input-group m-1">
+                                <div class="input-group-prepend">
+                                <span class="input-group-text" id="">link5</span>
+                                </div>
+                                <input type="text" class="form-control" id="link5">
+                            </div>   
+                        
+                            <div class="input-group m-1 mt-4">
+                                <div class="input-group-prepend">
+                                  <span class="input-group-text" id="">캡처간격(분)</span>
+                                </div>
+                                <input type="number" class="form-control" id="seconds" min="1" value="60">
+                            </div>                                     
+                            <button type="button" class="btn btn-outline-primary m-1 fw-bold" id="capture">START
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-play" viewBox="0 0 16 16">
+                                    <path d="M10.804 8 5 4.633v6.734L10.804         8zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696l6.363 3.692z"/>
+                                </svg>
+                            </button>
+                            <button disabled type="submit" id="captureloading" class="d-none" style="width:120px;">
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                <span>캡처중...</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-success m-1 fw-bold" id="stop">STOP
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-stop" viewBox="0 0 16 16">
+                                    <path d="M3.5 5A1.5 1.5 0 0 1 5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5zM5 4.5a.5.5 0 0 0-.5.5v6a.5.5 0 0 0 .5.5h6a.5.5 0 0 0 .5-.5V5a.5.5 0 0 0-.5-.5H5z"/>
+                                </svg>
+                            </button>
+                            <div class="m-1 d-inline-block">
+                                <p>현재 캡처수 : <span id="captureqty">0</span></p>
+                            </div>
+                        </div>    
+                        <div class="col-12 mt-3">
+                            <button type="button" class="btn btn-outline-primary" id="calcollapse">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-calculator" viewBox="0 0 16 16">
+                                    <path d="M12 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h8zM4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H4z"/>
+                                    <path d="M4 2.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5v-2zm0 4a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm0 3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm0 3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm3-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm0 3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm0 3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm3-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm0 3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-4z"/>
+                                  </svg>
+                                 <b>로켓그로스 마진계산기(new)</b></button>
+                            <label for="calcollapse" class="d-inline-block"></label>
+                        </div> 
+                         
+                        <div class="collapse mt-3" id="collapseExample">
+                            <div class="card card-body">
+                                <form id="marginCalcForm">
+                                    <div class="row g-2">
+                                        <div class="col-4">
+                                            <label for="sellingPrice" class="form-label">판매가(원)</label>
+                                            <input type="number" class="form-control" id="sellingPrice" placeholder="판매가 입력">
+                                        </div>
+                                        <div class="col-4">
+                                            <label for="costPrice" class="form-label">매입가(원)</label>
+                                            <input type="number" class="form-control" id="costPrice" placeholder="매입가 입력">
+                                        </div>
+                                        <div class="col-4">
+                                            <label for="targetKeyword" class="form-label">타겟키워드</label>
+                                            <input type="text" class="form-control" id="targetKeyword" placeholder="키워드 입력">
+                                        </div>
+                                        <div class="col-3">
+                                            <label for="width" class="form-label">가로(mm)</label>
+                                            <input type="number" class="form-control" id="width" placeholder="가로" value="100">
+                                        </div>
+                                        <div class="col-3">
+                                            <label for="length" class="form-label">세로(mm)</label>
+                                            <input type="number" class="form-control" id="length" placeholder="세로" value="100">
+                                        </div>
+                                        <div class="col-3">
+                                            <label for="height" class="form-label">높이(mm)</label>
+                                            <input type="number" class="form-control" id="height" placeholder="높이" value="100">
+                                        </div>
+                                        <div class="col-3">
+                                            <label for="weight" class="form-label">무게(g)</label>
+                                            <input type="number" class="form-control" id="weight" placeholder="무게" value="100">
+                                        </div>
+                                        <div class="col-12 text-center mt-3">
+                                            <button type="button" class="btn btn-primary calculate">계산하기</button>
+                                        </div>
+                                    </div>
+                                </form>
+                                <div class="mt-3 row">
+                                    <div class="col-12 bg-secondary" style="color:white">
+                                        <small>*모든 비용은 부가세가 포함되며, 마진은 부가세까지 제외한 금액으로 계산됩니다.</small>
+                                    </div>
+                                    <div class="col-6 mt-2 pt-3 border-top border-bottom">
+                                        <p>입출고비: <span id="handlingFee">0</span>원</p>
+                                        <p>배송비: <span id="shippingFee">0</span>원</p>
+                                        <p>판매수수료: <span id="sellingFee">0</span>원 (<span id="sellingRate">0</span>%)</p>
+                                        <p>사이즈: <span id="sizeName">0</span></p>
+                                    </div>
+                                    <div class="col-6 mt-2 pt-3 border-top border-bottom">
+                                        <p>마진: <span id="margin">0</span>원</p>
+                                        <p>마진율(ROI): <span id="marginRate">0</span>% (<span id="roi">0</span>%)</p>
+                                        <p>손익기준 ROAS: <span id="roas">0</span>%</p>
+                                    </div>
+                                    <div class="col-12 text-center mt-3">
+                                        
+                                        <button type="button" class="btn btn-success" id="calculateDownload">결과다운로드</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card card-body mt-4" style="border-color:coral;border-width:3px;">
+                                <form id="marginCalcForm">
+                                    <div class="row g-2">
+                                        <div class="col-12">
+                                            <div class="row p-2y">
+                                                <p class="text-center border-bottom text-primary fw-bold">판매 시뮬레이션</p>
+                                                <div class="col-4">
+                                                    <label for="salesCnt" class="form-label">판매수량(개)</label>
+                                                    <input type="number" class="form-control" id="salesCnt" placeholder="판매갯수 입력" value="1">
+                                                </div>
+                                                <div class="col-4">
+                                                    <label for="cntPerSales" class="form-label">건당판매갯수(개)</label>
+                                                    <input type="number" class="form-control" id="cntPerSales" placeholder="건당판매갯수 입력" value="1">
+                                                </div>
+                                                <div class="col-4">
+                                                    <label for="returnRate" class="form-label">반품율(%)</label>
+                                                    <input type="number" class="form-control" id="returnRate" placeholder="반품율 입력" value="0">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 text-center mt-3">
+                                            <button type="button" class="btn btn-primary calculate">계산하기</button>
+                                        </div>
+                                    </div>
+                                </form>
+                                <div class="mt-3 row">
+                                    <div class="col-12 bg-secondary" style="color:white">
+                                        <small>*모든 비용은 부가세가 포함되며, 마진은 부가세까지 제외한 금액으로 계산됩니다.</small><br>
+                                        <small>*건당판매갯수에 따라 합배송 및 추가배송비가 계산됩니다.</small><br>
+                                        <small>*반품율에 따라 (반품배송비+재입고비)*반품율 만큼 전체마진에서 제외됩니다.</small>
+                                    </div>
+                                    <div class="col-6 mt-2 pt-3 border-top">
+                                        <p>총입출고비: <span id="handlingFeeTotal">0</span>원</p>
+                                        <p>총배송비: <span id="shippingFeeTotal">0</span>원</p>
+                                        <p>총반품배송비: <span id="returnFeeTotal">0</span>원</p>
+                                        <p>총재입고비: <span id="reInputFeeTotal">0</span>원</p>
+                                        <p>총판매수수료: <span id="sellingFeeTotal">0</span>원 (<span id="sellingRateTotal">0</span>%)</p>
+                                    </div>
+                                    <div class="col-6 mt-2 pt-3 border-top">
+                                        <p>총매출: <span id="salesTotal">0</span>원</p>
+                                        <p>총마진: <span id="marginTotal">0</span>원</p>
+                                        <p>전체마진율(ROI): <span id="marginRateTotal">0</span>% (<span id="roiTotal">0</span>%)</p>
+                                        <p>전체손익기준 ROAS: <span id="roasTotal">0</span>%</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>                      
+                    </div>
+                </div>
+
+                <div class="tab-pane fade show h-100" id="nav-supplier" role="tabpanel" aria-labelledby="nav-supplier-tab" tabindex="0">
+                    <div class="row">
+                        <div class="col-12">
+                            <p class="text-primary fw-bold text-center"><a href="https://supplier.coupang.com/" target="_blank">Supplier</a>에 로그인 후 수집해 주세요</p>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" id="addsku" class="btn btn-outline-primary fw-bold">SKU리스트 수집</button>
+                            <button disabled type="submit" id="addskuloading" class="d-none">
+                                <span>SKU리스트</span><br>
+                                <span id="addskutext">수집중...</span><br>
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                <span id="addskustatus">0%</span>
+                            </button>
+                            <label for="addsku" class="d-inline-block">상품DB에 최신 SKU리스트 저장</label>
+                        </div>
+                        <div class="col-12 mt-3">
+                            <button type="submit" id="addpo" class="btn btn-outline-success fw-bold">발주서 수집</button>
+                            <button disabled type="submit" id="addpoloading" class="d-none">
+                                <span>발주서</span><br>
+                                <span id="addpotext">수집중...</span><br>
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                <span id="addpostatus">0%</span>
+                            </button>
+                            <label for="addpo" class="d-inline-block">최근 한달 이내의 발주서 수집</label>
+                        </div>   
+                        <div class="col-12 mt-3">
+                            <button type="submit" id="addsales" class="btn btn-outline-secondary fw-bold">로켓 판매현황 수집</button>
+                            <button disabled type="submit" id="addsalesloading" class="d-none">
+                                <span>판매현황</span><br>
+                                <span id="addsalestext">수집중...</span><br>
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                <span id="addsalesstatus">0%</span>
+                            </button>
+                            <label for="addsales" class="d-inline-block">로켓 판매현황 수집 (기간 : 이전수집 ~ 현재수집)</label>
+                        </div>
+                        <!-- <div class="col-12 mt-3 mb-2">
+                            <button type="submit" id="addsales" class="btn btn-outline-danger fw-bold">그로스 판매현황 수집</button>
+                            <button disabled type="submit" id="addsalesloading" class="d-none">
+                                <span>판매현황</span><br>
+                                <span id="addsalestext">수집중...</span><br>
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                <span id="addsalesstatus">0%</span>
+                            </button>
+                            <label for="addsales" class="d-inline-block">그로스 판매현황 수집 (기간 : 이전수집 ~ 현재수집)</label>
+                        </div> -->
+                        <div class="col-12 mt-4 mb-4">
+                            <div class="lh-1">
+                                <small class="fw-bold">[수집주기]</small><br>
+                                <small>SKU리스트 : 신규SKU등록 또는 SKU상태 변경 시</small><br>
+                                <small>발주서 : 신규발주등록 또는 발주상태 변경 시</small><br>
+                                <small>판매현황 : 하루 1회</small><br>
+                                <!-- <small>그로스판매현황 : 하루 1회</small> -->
+                            </div>
+
+                        </div>
+
+                        <div class="col-12 mt-4">
+                            <p class="text-primary fw-bold text-center"><a href="https://www.1688.com/" target="_blank">1688</a> 상품페이지에서 수집해 주세요</p>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" id="collectproduct" class="btn btn-outline-primary fw-bold">1688 링크 수집</button>
+                            <label for="collectproduct" class="d-inline-block">상세페이지 생성을 위해 1688 상품을 수집합니다</label>
+                        </div> 
+
+                    </div>
+                </div>
+
+                <!-- <div class="tab-pane fade show" id="nav-1688" role="tabpanel" aria-labelledby="nav-1688-tab" tabindex="0">
+                    <div class="row">
+                        <div class="col-12">
+                            <p class="text-primary fw-bold text-center"><a href="https://www.1688.com/" target="_blank">1688</a> 상품페이지에서 수집해 주세요</p>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" id="collectproduct" class="btn btn-outline-primary fw-bold">1688 링크 수집</button>
+                            <label for="collectproduct" class="d-inline-block">상세페이지 생성을 위해 1688 상품을 수집합니다</label>
+                        </div>    
+                    </div>
+                </div> -->
+
+                <div class="tab-pane fade show" id="nav-edu" role="tabpanel" aria-labelledby="nav-edu-tab" tabindex="0">
+                    <div class="row">
+                        <div class="col-12">
+                            <p class="text-primary fw-bold text-center">오날에듀 수강생 전용메뉴 입니다.</p>
+                        </div>
+                        <div class="col-4">
+                            <button type="submit" id="hamaBtn" class="btn btn-outline-primary fw-bold">
+                                <img src="./images/hama.jpg" class="w-100 mb-1">
+                                돈버는하마</button>
+                        </div>    
+                        <!-- <div class="col-4">
+                            <button type="submit" id="coumaBtn" class="btn btn-outline-primary fw-bold">
+                                <img src="./images/cuma.jpg" class="w-100 mb-1">
+                                사입천재쿠마</button>
+                        </div>  -->
+                        <div class="col-4">
+                            <button type="submit" id="coubnamBtn" class="btn btn-outline-primary fw-bold">
+                                <img src="./images/coubnam.png" class="w-100 mb-1">
+                                쿠브남</button>
+                        </div>  
+                    </div>
+                </div>
+
+                <div class="tab-pane fade show" id="nav-aiAgent" role="tabpanel" aria-labelledby="nav-aiAgent-tab" tabindex="0">
+                    <div class="row">
+                        <div class="col-12 text-center my-3">
+                            <!-- 1688 협상을 도와주는 agent 버튼 -->
+                            <button type="button" id="agentButton1688" class="btn btn-primary fw-bold" style="width:200px;">
+                                1688 협상도우미
+                            </button>
+                        </div>
+                        <div class="col-12">
+                            <p class="text-center">
+                                1688 상품 페이지에서 AI가 협상을 자동으로 진행할 수 있도록 설정된 기본 협상 조건을 기반으로 AI 협상이 시작됩니다.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="https://sponge-sound-7be.notion.site/COUPLUS-4e097bd8dd084166aed6438fdacc1c89" target="_blank">COUPLUS 사용자 메뉴얼</a>
+        </div>
+
+        
+        <div class="modal fade" id="hamaPage" tabindex="-1" role="dialog" aria-labelledby="hamaPageLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title fs-6">돈버는하마</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row" id="nomadclubmenu">
+                            <div class="col-12 mt-3">
+                                <button type="submit" id="secretOn" class="btn btn-outline-primary fw-bold" style="width:120px;">시크릿 모드</button>
+                                <label for="secretOn" class="d-inline-block">쿠키정보에 의한 쿠팡 관여도를 삭제합니다</label>
+                            </div>
+                            <div class="col-12 mt-3">
+                                <button type="submit" id="salesAnalysis" class="btn btn-outline-primary fw-bold" style="width:120px;">판매량 분석</button>
+                                <button disabled type="submit" id="salesAnalysisloading" class="d-none" style="width:120px;">
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                </button>
+                                <label for="salesAnalysis" class="d-inline-block">최근 한달 기준 예상 월판매량을 계산합니다</label>
+                            </div>
+                            <div class="col-12 mt-3">
+                                <button type="submit" id="purchaseAnalysis" class="btn btn-outline-primary fw-bold" style="width:120px;">마진 분석</button>
+                                <label for="purchaseAnalysis" class="d-inline-block">현재 페이지 상품의 공장을 찾고 매입가를 분석합니다</label>
+                            </div>
+                            <div class="col-12 mt-3">
+                                <button type="submit" id="matchAnalysis" class="btn btn-outline-primary fw-bold" style="width:120px;">상품 매칭 분석</button>
+                                <label for="matchAnalysis" class="d-inline-block">현재 상품과 매칭되는 제품을 연관키워드에서 찾습니다</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="close">닫기</button>
+                        <!-- <button type="button" class="d-none" id="prev">이전</button>
+                        <button type="button" class="btn btn-primary h-25 d-inline-block" id="next">다음</button> -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="coubnamPage" tabindex="-1" role="dialog" aria-labelledby="coubnamPageLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title fs-6">쿠브남</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row" id="nomadclubmenu">
+                            <div class="col-12 mt-3">
+                                <button type="submit" id="keywordBrandAnalysis" class="btn btn-outline-primary fw-bold" style="width:120px;">브랜드분석 (키워드)</button>
+                                <label for="keywordBrandAnalysis" class="d-inline-block">키워드 검색 후 각 브랜드를 분석합니다.</label>
+                            </div>
+                            <!-- <div class="col-12 mt-3">
+                                <button type="submit" id="salesAnalysis" class="btn btn-outline-primary fw-bold" style="width:120px;">판매량 분석</button>
+                                <button disabled type="submit" id="salesAnalysisloading" class="d-none" style="width:120px;">
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                </button>
+                                <label for="salesAnalysis" class="d-inline-block">최근 한달 기준 예상 월판매량을 계산합니다</label>
+                            </div> -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="close">닫기</button>
+                        <!-- <button type="button" class="d-none" id="prev">이전</button>
+                        <button type="button" class="btn btn-primary h-25 d-inline-block" id="next">다음</button> -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="searchkeyword" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title fs-6" id="exampleModalLabel">소싱마스터</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="" id="keywordfunction">
+                            <div>1. 키워드 분석 대상을 선택합니다.</div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault1" checked>
+                                <label class="form-check-label" for="flexRadioDefault1">
+                                    1. 데이터랩 쇼핑인사이트 조회 > TOP 키워드 분석
+                                </label>
+                                
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <label class="" for="startRank">TOP</label>
+                                <input class="form-control" style="width:40%" type="number" id="startRank" value="1">
+                                <label class="" for="endRank">~ TOP</label>
+                                <input class="form-control" style="width:40%" type="number" id="endRank" value="500">
+                                
+                            </div>
+                            
+                            <div class="d-flex justify-content-start align-items-center">
+                                <div class="form-check form-switch me-4">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="randomCategory">
+                                    <label class="form-check-label" for="randomCategory">랜덤카테고리</label>
+                                </div>
+                                <div class="form-check form-switch me-4">                                
+                                    <input class="form-check-input" type="checkbox" role="switch" id="reverse">
+                                    <label class="form-check-label" for="reverse">역순</label>
+                                </div>
+                                <div class="form-check form-switch">                                
+                                    <input class="form-check-input" type="checkbox" role="switch" id="keywordException">
+                                    <label class="form-check-label" for="keywordException">키워드/카테고리지정</label>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between d-none" id="keywordExcept">
+                                <button id="downloadKEsheet" type="button" class="btn btn-outline-primary" style="width:28%;font-size:90%">엑셀업로드양식</button>
+                                <input class="form-control" style="width:70%" type="file" id="keywordExceptionUpload">
+                            </div>
+
+
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2">
+                                <label class="form-check-label" for="flexRadioDefault2">
+                                    2. 키워드 리스트 업로드하여 분석
+                                </label>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <button id="downloadsheet" type="button" class="btn btn-outline-success" style="width:28%;font-size:90%">엑셀업로드양식</button>
+                                <input class="form-control" style="width:70%" type="file" id="keywordlistupload">
+                            </div>
+                            <!-- <input class="form-control" style="width:70%" type="text" id="img1">
+                            <input class="form-control" style="width:70%" type="text" id="img2">
+                            <button id="test" type="button" class="btn btn-outline-secondary" style="width:28%;">test</button> -->
+                        </div>
+
+                        <div class="d-none" id="searchfunction">
+                            <div>2. 소싱방법을 선택합니다.</div>
+                            <div class="form-check mt-1">
+                                <input class="form-check-input" type="radio" name="flexRadioDefault1a" id="flexRadioDefault11a" checked>
+                                <label class="form-check-label" for="flexRadioDefault11a">
+                                    트렌드세터 소싱
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="flexRadioDefault1a" id="flexRadioDefault12a">
+                                <label class="form-check-label" for="flexRadioDefault12a">
+                                    트렌드팔로워 소싱
+                                </label>
+                            </div>
+                            <div class="form-check d-none" id="tfcvr">
+                                <input class="form-check-input" type="radio" name="flexRadioDefault1a" id="flexRadioDefault13a">
+                                <label class="form-check-label" for="flexRadioDefault13a">
+                                    트렌드팔로워 x CTR x CVR
+                                </label>
+                                <!-- <input class="form-control w-25 d-inline-block" type="number" value="500" id="keywordCnt">
+                                <label class="form-check-label w-25 d-inline-block" for="flexRadioDefault13a">
+                                    개(최대수량)
+                                    키워드그래프 수집
+                                </label> -->
+                            </div>
+                            <div class="d-flex flex-column mt-5 cCondition d-none">
+                                <div>3. 키워드 조건</div>
+                                <div class="form-check form-switch d-flex justify-content-start align-items-center">
+                                    <input class="form-check-input me-2" type="checkbox" role="switch" id="nSalesStandard" checked>
+                                    <label class="form-check-label" for="randomCategory">네이버평균매출</label>
+                                    <input class="form-control w-25 text-center" type="number" value="1000000" id="nSalesValue">원 이상
+                                </div>
+                                <div class="form-check form-switch d-flex justify-content-start align-items-center">
+                                    <input class="form-check-input me-2" type="checkbox" role="switch" id="cSalesStandard" checked>
+                                    <label class="form-check-label" for="randomCategory">쿠팡평균매출</label>
+                                    <input class="form-control w-25 text-center" type="number" value="3000000" id="cSalesValue">원 이상
+                                </div>
+                            </div>
+
+                            <div class="d-flex flex-column mt-5 cCondition d-none">
+                                <div>4. 상품 조건</div>
+                                <div class="form-check form-switch d-flex justify-content-start align-items-center">
+                                    <input class="form-check-input me-2" type="checkbox" role="switch" id="reviewStandard" checked>
+                                    <label class="form-check-label" for="randomCategory">리뷰평점</label>
+                                    <input class="form-control w-25 text-center" type="number" value="5" id="reviewValue">점 이상
+                                </div>
+                                <!-- <div class="form-check form-switch d-flex justify-content-start align-items-center">
+                                    <input class="form-check-input me-2" type="checkbox" role="switch" id="reviewStandard" checked>
+                                    <label class="form-check-label" for="randomCategory">ROI</label>
+                                    <input class="form-control w-25 text-center" type="number" value="100" id="roiValue">% 이상
+                                </div>
+                                <div class="form-check form-switch d-flex justify-content-start align-items-center">
+                                    <input class="form-check-input me-2" type="checkbox" role="switch" id="reviewStandard" checked>
+                                    <label class="form-check-label" for="randomCategory">최소광고ROI</label>
+                                    <input class="form-control w-25 text-center" type="number" value="100" id="adRoiValue">% 이상
+                                </div> -->
+                            </div>
+                        </div>
+
+                        <div class="d-none" id="searchfunction2">
+                            <div>2. 키워드 검색 조건식을 설정합니다.</div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="keywordanalysisenable" checked>
+                                <label class="form-check-label" for="keywordanalysisenable">키워드분석</label>
+                              </div>
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <!-- <div>검색대상</div> -->
+                                    <select class="form-select w-25 store" aria-label="Default select example" disabled>
+                                        <option selected value="c">쿠팡</option>
+                                        <option value="n">네이버</option>
+                                    </select>
+                                    <!-- <div class="d-flex justify-content-end"> -->
+                                    <input class="form-control w-25 pagestart" type="number" value="1" disabled>
+                                    <label>~</label>
+                                    <input class="form-control w-25 pageend" type="number" value="1" disabled>
+                                    <label>페이지</label>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                    <!-- <div>검색조건</div> -->
+                                    <select class="form-select w-25 standard" aria-label="Default select example" disabled>
+                                        <option selected value="review">리뷰수</option>
+                                        <option value="sales">월매출</option>
+                                    </select>
+                                    <select class="form-select w-25 target" aria-label="Default select example" disabled>
+                                        <option selected value="set">지정</option>
+                                        <option value="mean">평균</option>
+                                        <option value="max">최대</option>
+                                        <option value="min">최소</option>
+                                    </select>
+    
+                                    <input class="form-control w-25 standardvalue" type="number" value="50" disabled>
+                                    <select class="form-select w-25 unit" aria-label="Default select example" disabled>
+                                        <option selected value="ea">개 기준</option>
+                                        <option value="won">원 기준</option>
+                                    </select>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+    
+                                    <input class="form-control w-25 startvalue" type="number" value="0" disabled>
+                                    <label>~</label>
+                                    <input class="form-control w-25 endvalue" type="number" value="50" disabled>
+                                    <select class="form-select w-25 unitofvalue" aria-label="Default select example" disabled>
+                                        <option selected value="percentage">%</option>
+                                        <option value="won">원</option>
+                                        <option value="ea">개</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <!-- <div>검색대상</div> -->
+                                    <select class="form-select w-25 store" aria-label="Default select example" disabled>
+                                        <option value="c">쿠팡</option>
+                                        <option selected value="n">네이버</option>
+                                    </select>
+                                    <!-- <div class="d-flex justify-content-end"> -->
+                                    <input class="form-control w-25 pagestart" type="number" value="1" disabled>
+                                    <label>~</label>
+                                    <input class="form-control w-25 pageend" type="number" value="1" disabled>
+                                    <label>페이지</label>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                    <!-- <div>검색조건</div> -->
+                                    <select class="form-select w-25 standard" aria-label="Default select example" disabled>
+                                        <option value="review">리뷰수</option>
+                                        <option selected value="sales">월매출</option>
+                                    </select>
+                                    <select class="form-select w-25 target" aria-label="Default select example" disabled>
+                                        <option value="set">지정</option>
+                                        <option selected value="mean">평균</option>
+                                        <option value="max">최대</option>
+                                        <option value="min">최소</option>
+                                    </select>
+
+                                    <input class="form-control w-25 standardvalue" type="number" value="1000000" disabled>
+                                    <select class="form-select w-25 unit" aria-label="Default select example" disabled>
+                                        <option value="ea">개 기준</option>
+                                        <option selected value="won">원 기준</option>
+                                    </select>
+
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                    <input class="form-control w-25 startvalue" type="number" value="1000000" disabled>
+                                    <label>~</label>
+                                    <input class="form-control w-25 endvalue" type="number" value="" disabled>
+                                    <select class="form-select w-25 unitofvalue" aria-label="Default select example" disabled>
+                                        <option value="percentage">%</option>
+                                        <option selected value="won">원</option>
+                                        <option value="ea">개</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-none" id="collecting">
+                            <div class="d-flex justify-content-center"><b style="color:red">브라우저 화면을 최소화하거나 이동할 경우 수집이 취소됩니다.</b></div>
+                            <div class="d-flex justify-content-center"><b style="color:green">상품 1000개를 찾으면 자동으로 수집 중지됩니다.</b></div>
+                            <div class="d-flex justify-content-center"><span id="categoryName" style="color:green"></span></div>
+                            <div class="d-flex justify-content-center"><div><b>수집타입 : <span id="currentType"></span></b></div></div>
+                            <div class="d-flex justify-content-center aline-items-center mt-3">
+                                <div><b>&nbsp;[ 타겟 키워드 :</b>&nbsp;</div>
+                                <div><b id="currentkeyword">키워드</b></div>
+                                <div><b>(</b></div>
+                                <div><b id="currentqty">0</b></div>
+                                <div><b>/</b></div>
+                                <div><b id="totalqty">0</b></div>
+                                <div><b>)</b></div>
+                                <div>&nbsp;<b>]</b></div>
+                            </div>
+                            <div class="d-flex justify-content-center aline-items-center mt-3">
+                                <div>1. 타겟키워드 수집 :&nbsp;</div>
+                                <div class="d-none" id="keyworddone">
+                                    <svg style="color:green;font-weight:bolder"xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-check2" viewBox="0 0 20 20">
+                                        <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+                                    </svg>
+                                </div>
+                                <div id="keywordspinner" class="spinner-border" style="width:20px;height:20px" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-center aline-items-center mt-1">
+                                <div>2. 소싱상품 수집 :&nbsp;</div>
+                                <div class="d-none" id="sourcingdone">
+                                    <svg style="color:green;font-weight:bolder"xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-check2" viewBox="0 0 20 20">
+                                        <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-center aline-items-center mt-1" id="reldiv">
+                                <div>[ 연관 키워드 :&nbsp;</div>
+                                <div id="relkeyword">키워드</div>
+                                <div>(</div>
+                                <div id="relqty">0</div>
+                                <div>/</div>
+                                <div id="totalrelqty">0</div>
+                                <div>)</div>
+                                <div id="ratesourcing"></div>
+                                <div>&nbsp;]&nbsp;</div>
+                                <div id="sourcingspinner" class="spinner-border" style="width:20px;height:20px" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-center aline-items-center mt-3">
+                                <div style="color:blue;"><b>수집완료 :</b>&nbsp;</div>
+                                <div style="color:blue;"><b id="collectedqty">0</b></div>
+                                <div style="color:blue;"><b>개</b></div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="searchcancel">닫기</button>
+                        <button type="button" class="d-none" id="prev">이전</button>
+                        <button type="button" class="btn btn-primary h-25 d-inline-block" id="next">다음</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="keywordAnalysis" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title fs-6" id="exampleModalLabel">키워드분석</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row" id="nomadclubmenu">
+                            <div class="col-12 mt-3">
+                                <button type="submit" id="secretOn" class="btn btn-outline-primary fw-bold" style="width:120px;">시크릿 모드</button>
+                                <label for="secretOn" class="d-inline-block">쿠키정보에 의한 쿠팡 관여도를 삭제합니다</label>
+                            </div>
+                            <div class="col-12 mt-3">
+                                <button type="submit" id="salesAnalysis" class="btn btn-outline-primary fw-bold" style="width:120px;">판매량 분석</button>
+                                <button disabled type="submit" id="salesAnalysisloading" class="d-none" style="width:120px;">
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                </button>
+                                <label for="salesAnalysis" class="d-inline-block">최근 한달 기준 예상 월판매량을 계산합니다</label>
+                            </div>
+                            <div class="col-12 mt-3 d-none">
+                                <button type="submit" id="purchaseAnalysis" class="btn btn-outline-primary fw-bold" style="width:120px;">마진 분석</button>
+                                <label for="purchaseAnalysis" class="d-inline-block">현재 페이지 상품의 공장을 찾고 매입가를 분석합니다</label>
+                            </div>
+                            <div class="col-12 mt-3 d-none">
+                                <button type="submit" id="matchAnalysis" class="btn btn-outline-primary fw-bold" style="width:120px;">상품 매칭 분석</button>
+                                <label for="matchAnalysis" class="d-inline-block">현재 상품과 매칭되는 제품을 연관키워드에서 찾습니다</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="analysiscancel">닫기</button>
+                        <!-- <button type="button" class="d-none" id="prev">이전</button>
+                        <button type="button" class="btn btn-primary h-25 d-inline-block" id="next">다음</button> -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="relatedProductsModal" tabindex="-1" aria-labelledby="relatedProductsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="relatedProductsModalLabel">관련 상품</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="relatedProductsTable">
+                            <thead>
+                                <tr>
+                                <th>이미지</th>
+                                <th>뱃지</th>
+                                <th>상품명</th>
+                                <th>가격</th>
+                                <th>월판매량</th>
+                                <th>리뷰수</th>
+                                <th>평점</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 여기에 동적으로 행이 추가될 것입니다 -->
+                            </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="reviewAnalysisModal" tabindex="-1" aria-labelledby="reviewAnalysisModalLabel" aria-hidden="true" style="font-size:70%;">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="reviewAnalysisModalLabel">리뷰 분석 결과</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="reviewAnalysisContent">
+                            <!-- The content generated by the convertToHtml function will be inserted here -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <div class="modal fade" id="keywordImpressionModal" tabindex="-1" aria-labelledby="keywordImpressionModalLabel" aria-hidden="true" style="font-size:80%;">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="keywordImpressionModalLabel">키워드 분석</h5>
+                        <div class="d-flex gap-2 align-items-center">
+                            <button type="button" class="btn btn-sm p-1" id="settingsBtn"
+                                    data-bs-toggle="collapse" data-bs-target="#settingsCollapse"
+                                    aria-expanded="false" aria-controls="settingsCollapse"
+                                    title="수수료 계산 설정"
+                                    style="border: none; background: none; color: #6c757d;"
+                                    onmouseover="this.style.color='#495057'"
+                                    onmouseout="this.style.color='#6c757d'"
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <g id="style=stroke">
+                                        <g id="setting">
+                                            <path id="vector (Stroke)" fill-rule="evenodd" clip-rule="evenodd" d="M12 9.75C10.7574 9.75 9.75 10.7574 9.75 12C9.75 13.2426 10.7574 14.25 12 14.25C13.2426 14.25 14.25 13.2426 14.25 12C14.25 10.7574 13.2426 9.75 12 9.75ZM8.25 12C8.25 9.92893 9.92893 8.25 12 8.25C14.0711 8.25 15.75 9.92893 15.75 12C15.75 14.0711 14.0711 15.75 12 15.75C9.92893 15.75 8.25 14.0711 8.25 12Z" fill="currentColor"/>
+                                            <path id="vector (Stroke)_2" fill-rule="evenodd" clip-rule="evenodd" d="M9.60347 3.77018C9.3358 3.32423 8.77209 3.18551 8.35347 3.43457L8.34256 3.44105L6.61251 4.43096C6.06514 4.74375 5.8763 5.45289 6.1894 5.9948L5.54 6.37001L6.18888 5.99391C6.72395 6.91704 6.86779 7.92882 6.38982 8.75823C5.91192 9.58753 4.96479 9.97001 3.9 9.97001C3.26678 9.97001 2.75 10.4917 2.75 11.12V12.88C2.75 13.5084 3.26678 14.03 3.9 14.03C4.96479 14.03 5.91192 14.4125 6.38982 15.2418C6.86773 16.0711 6.72398 17.0827 6.18909 18.0058C5.87642 18.5476 6.06491 19.2561 6.6121 19.5688L8.35352 20.5654C8.77214 20.8144 9.33577 20.6758 9.60345 20.2299L9.71093 20.0442C10.2458 19.1214 11.052 18.4925 12.0087 18.4925C12.9662 18.4925 13.77 19.1219 14.3 20.0458C14.3002 20.0462 14.3004 20.0466 14.3007 20.047L14.4065 20.2298C14.6742 20.6758 15.2379 20.8145 15.6565 20.5655L15.6674 20.559L17.3975 19.5691C17.9434 19.2571 18.1351 18.5578 17.8198 18.0038C17.2858 17.0813 17.1426 16.0705 17.6202 15.2418C18.0981 14.4125 19.0452 14.03 20.11 14.03C20.7432 14.03 21.26 13.5084 21.26 12.88V11.12C21.26 10.4868 20.7384 9.97001 20.11 9.97001C19.0452 9.97001 18.0981 9.58753 17.6202 8.75824C17.1423 7.92899 17.286 6.91744 17.8208 5.99445C18.1336 5.45258 17.9451 4.74391 17.3979 4.43119L15.6565 3.43466C15.2379 3.1856 14.6742 3.32423 14.4065 3.77019L14.2991 3.95579C13.7642 4.8786 12.958 5.50751 12.0012 5.50751C11.0439 5.50751 10.2402 4.87825 9.71021 3.95455C9.70992 3.95403 9.70962 3.95352 9.70933 3.95301L9.60347 3.77018ZM7.59248 2.14193C8.75191 1.45656 10.2226 1.87704 10.8946 3.00654L10.8991 3.01421L11.0091 3.20423L11.0107 3.20701C11.3807 3.85247 11.7666 4.00751 12.0012 4.00751C12.237 4.00751 12.6259 3.85115 13.0009 3.20423C13.001 3.20412 13.0009 3.20434 13.0009 3.20423L13.1154 3.00651C13.7874 1.877 15.2581 1.45656 16.4175 2.14193L18.1421 3.12883C19.4147 3.85604 19.8463 5.48713 19.1194 6.74522L19.1189 6.74611C18.7439 7.39298 18.8028 7.8062 18.9198 8.00929C19.0369 8.21249 19.3648 8.47001 20.11 8.47001C21.5616 8.47001 22.76 9.65323 22.76 11.12V12.88C22.76 14.3317 21.5768 15.53 20.11 15.53C19.3648 15.53 19.0369 15.7875 18.9198 15.9907C18.8028 16.1938 18.7439 16.607 19.1189 17.2539L19.1212 17.2579C19.8444 18.5235 19.4157 20.1431 18.1425 20.871C18.1424 20.871 18.1426 20.8709 18.1425 20.871L16.4174 21.8581C15.258 22.5434 13.7874 22.123 13.1154 20.9935L13.1109 20.9858L13.0009 20.7958L12.9993 20.793C12.6293 20.1476 12.2434 19.9925 12.0087 19.9925C11.773 19.9925 11.3841 20.1489 11.0091 20.7958C11.009 20.7959 11.0091 20.7957 11.0091 20.7958L10.8946 20.9935C10.2226 22.123 8.75199 22.5434 7.59257 21.8581L5.8679 20.8712C5.86776 20.8711 5.86803 20.8713 5.8679 20.8712C4.59558 20.1439 4.16378 18.5128 4.8906 17.2548L4.89112 17.2539C5.26605 16.607 5.20721 16.1938 5.09018 15.9907C4.97308 15.7875 4.64521 15.53 3.9 15.53C2.43322 15.53 1.25 14.3317 1.25 12.88V11.12C1.25 9.66837 2.43322 8.47001 3.9 8.47001C4.64521 8.47001 4.97308 8.21249 5.09018 8.00929C5.20721 7.8062 5.26605 7.39298 4.89112 6.74611L4.8906 6.74522C4.16378 5.48726 4.59518 3.85639 5.86749 3.12906L7.59248 2.14193Z" fill="currentColor"/>
+                                        </g>
+                                    </g>
+                                </svg>
+                            </button>
+                            <small class="text-muted" id="currentSettingsDisplay">매입배율: 350원/위안</small>
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="collectKeywordBtn" style="display: none;">
+                                <i class="fas fa-download"></i> 키워드 수집
+                            </button>
+                            <button type="button" class="btn btn-outline-success btn-sm" id="additionalCollectBtn" style="display: none;">
+                                <i class="fas fa-plus"></i> 추가수집
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-sm" id="resetDataBtn" style="display: none;">
+                                <i class="fas fa-refresh"></i> 리셋
+                            </button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                    </div>
+                    <div class="modal-body">
+                        <!-- 설정 패널 (Collapse) -->
+                        <div class="collapse" id="settingsCollapse">
+                            <div class="card border-secondary mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0 d-flex align-items-center">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="me-2">
+                                            <g id="style=stroke">
+                                                <g id="setting">
+                                                    <path id="vector (Stroke)" fill-rule="evenodd" clip-rule="evenodd" d="M12 9.75C10.7574 9.75 9.75 10.7574 9.75 12C9.75 13.2426 10.7574 14.25 12 14.25C13.2426 14.25 14.25 13.2426 14.25 12C14.25 10.7574 13.2426 9.75 12 9.75ZM8.25 12C8.25 9.92893 9.92893 8.25 12 8.25C14.0711 8.25 15.75 9.92893 15.75 12C15.75 14.0711 14.0711 15.75 12 15.75C9.92893 15.75 8.25 14.0711 8.25 12Z" fill="currentColor"/>
+                                                    <path id="vector (Stroke)_2" fill-rule="evenodd" clip-rule="evenodd" d="M9.60347 3.77018C9.3358 3.32423 8.77209 3.18551 8.35347 3.43457L8.34256 3.44105L6.61251 4.43096C6.06514 4.74375 5.8763 5.45289 6.1894 5.9948L5.54 6.37001L6.18888 5.99391C6.72395 6.91704 6.86779 7.92882 6.38982 8.75823C5.91192 9.58753 4.96479 9.97001 3.9 9.97001C3.26678 9.97001 2.75 10.4917 2.75 11.12V12.88C2.75 13.5084 3.26678 14.03 3.9 14.03C4.96479 14.03 5.91192 14.4125 6.38982 15.2418C6.86773 16.0711 6.72398 17.0827 6.18909 18.0058C5.87642 18.5476 6.06491 19.2561 6.6121 19.5688L8.35352 20.5654C8.77214 20.8144 9.33577 20.6758 9.60345 20.2299L9.71093 20.0442C10.2458 19.1214 11.052 18.4925 12.0087 18.4925C12.9662 18.4925 13.77 19.1219 14.3 20.0458C14.3002 20.0462 14.3004 20.0466 14.3007 20.047L14.4065 20.2298C14.6742 20.6758 15.2379 20.8145 15.6565 20.5655L15.6674 20.559L17.3975 19.5691C17.9434 19.2571 18.1351 18.5578 17.8198 18.0038C17.2858 17.0813 17.1426 16.0705 17.6202 15.2418C18.0981 14.4125 19.0452 14.03 20.11 14.03C20.7432 14.03 21.26 13.5084 21.26 12.88V11.12C21.26 10.4868 20.7384 9.97001 20.11 9.97001C19.0452 9.97001 18.0981 9.58753 17.6202 8.75824C17.1423 7.92899 17.286 6.91744 17.8208 5.99445C18.1336 5.45258 17.9451 4.74391 17.3979 4.43119L15.6565 3.43466C15.2379 3.1856 14.6742 3.32423 14.4065 3.77019L14.2991 3.95579C13.7642 4.8786 12.958 5.50751 12.0012 5.50751C11.0439 5.50751 10.2402 4.87825 9.71021 3.95455C9.70992 3.95403 9.70962 3.95352 9.70933 3.95301L9.60347 3.77018ZM7.59248 2.14193C8.75191 1.45656 10.2226 1.87704 10.8946 3.00654L10.8991 3.01421L11.0091 3.20423L11.0107 3.20701C11.3807 3.85247 11.7666 4.00751 12.0012 4.00751C12.237 4.00751 12.6259 3.85115 13.0009 3.20423C13.001 3.20412 13.0009 3.20434 13.0009 3.20423L13.1154 3.00651C13.7874 1.877 15.2581 1.45656 16.4175 2.14193L18.1421 3.12883C19.4147 3.85604 19.8463 5.48713 19.1194 6.74522L19.1189 6.74611C18.7439 7.39298 18.8028 7.8062 18.9198 8.00929C19.0369 8.21249 19.3648 8.47001 20.11 8.47001C21.5616 8.47001 22.76 9.65323 22.76 11.12V12.88C22.76 14.3317 21.5768 15.53 20.11 15.53C19.3648 15.53 19.0369 15.7875 18.9198 15.9907C18.8028 16.1938 18.7439 16.607 19.1189 17.2539L19.1212 17.2579C19.8444 18.5235 19.4157 20.1431 18.1425 20.871C18.1424 20.871 18.1426 20.8709 18.1425 20.871L16.4174 21.8581C15.258 22.5434 13.7874 22.123 13.1154 20.9935L13.1109 20.9858L13.0009 20.7958L12.9993 20.793C12.6293 20.1476 12.2434 19.9925 12.0087 19.9925C11.773 19.9925 11.3841 20.1489 11.0091 20.7958C11.009 20.7959 11.0091 20.7957 11.0091 20.7958L10.8946 20.9935C10.2226 22.123 8.75199 22.5434 7.59257 21.8581L5.8679 20.8712C5.86776 20.8711 5.86803 20.8713 5.8679 20.8712C4.59558 20.1439 4.16378 18.5128 4.8906 17.2548L4.89112 17.2539C5.26605 16.607 5.20721 16.1938 5.09018 15.9907C4.97308 15.7875 4.64521 15.53 3.9 15.53C2.43322 15.53 1.25 14.3317 1.25 12.88V11.12C1.25 9.66837 2.43322 8.47001 3.9 8.47001C4.64521 8.47001 4.97308 8.21249 5.09018 8.00929C5.20721 7.8062 5.26605 7.39298 4.89112 6.74611L4.8906 6.74522C4.16378 5.48726 4.59518 3.85639 5.86749 3.12906L7.59248 2.14193Z" fill="currentColor"/>
+                                                </g>
+                                            </g>
+                                        </svg>
+                                        수수료 계산 설정
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="productWidth" class="form-label">상품 가로 (cm)</label>
+                                                <input type="number" class="form-control form-control-sm" id="productWidth" value="10" min="1" max="1000">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="productLength" class="form-label">상품 세로 (cm)</label>
+                                                <input type="number" class="form-control form-control-sm" id="productLength" value="10" min="1" max="1000">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="productHeight" class="form-label">상품 높이 (cm)</label>
+                                                <input type="number" class="form-control form-control-sm" id="productHeight" value="10" min="1" max="1000">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="productWeight" class="form-label">상품 무게 (g)</label>
+                                                <input type="number" class="form-control form-control-sm" id="productWeight" value="100" min="1" max="50000">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="exchangeRate" class="form-label">매입배율 (원/위안)</label>
+                                                <input type="number" class="form-control form-control-sm" id="exchangeRate" value="350" min="200" max="500" step="1">
+                                            </div>
+                                            <div class="d-grid">
+                                                <button type="button" class="btn btn-primary btn-sm" id="saveInitialSettings">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
+                                                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                                        <polyline points="17,21 17,13 7,13 7,21"></polyline>
+                                                        <polyline points="7,3 7,8 15,8"></polyline>
+                                                    </svg>
+                                                    설정 저장
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="alert alert-info mt-3 mb-0">
+                                        <small class="d-flex align-items-start">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1 mt-1 flex-shrink-0">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <path d="M12 16v-4"></path>
+                                                <path d="M12 8h.01"></path>
+                                            </svg>
+                                            <span>
+                                                이 정보는 상품별 수수료 및 마진 계산에 사용됩니다.
+                                                매입배율은 중국 위안화 구매가에 물류비, 통관비 등을 포함한 실제 매입 비율입니다.
+                                            </span>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 진행상황 표시 영역 -->
+                        <div id="progressSection" class="mb-4" style="display: none;">
+                            <div class="card border-info">
+                                <div class="card-body">
+                                    <h6 class="card-title text-info mb-3">
+                                        <i class="fas fa-spinner fa-spin"></i> 데이터 수집 중...
+                                    </h6>
+                                    <div class="progress mb-2">
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                             role="progressbar" style="width: 0%" id="progressBar"></div>
+                                    </div>
+                                    <p class="text-muted mb-0" id="progressText">준비 중...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 초기 수집 버튼 영역 -->
+                        <div id="initialCollectSection" class="mb-4" style="display: none;">
+                            <div class="card border-primary">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-primary mb-3">
+                                        <i class="fas fa-search"></i> 키워드 데이터 수집
+                                    </h6>
+                                    <p class="text-muted mb-3">현재 키워드에 대한 데이터가 없습니다.<br>키워드 수집을 시작하시겠습니까?</p>
+                                    <button type="button" class="btn btn-primary" id="startCollectBtn">
+                                        <i class="fas fa-download"></i> 키워드 수집 시작
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 분석 결과 영역 -->
+                        <div id="analysisSection">
+                            <div class="mb-4">
+                                <p class="text-muted">검색된 상품들의 키워드별 총 노출수를 분석한 결과입니다.</p>
+                            </div>
+
+                        <!-- 키워드 분석 결과 요약 섹션 -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">📊 키워드 상품 소싱 전략</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <!-- 상품 소싱 -->
+                                    <div class="col-md-6">
+                                        <div class="card border-primary h-100">
+                                            <div class="card-body p-3">
+                                                <h6 class="card-title text-primary mb-3">
+                                                    <i class="fas fa-shopping-cart"></i> 상품 소싱
+                                                </h6>
+                                                <p class="card-text small mb-2" id="sourcingCriteria">
+                                                    <strong>기준:</strong> 시장CTR(0.00%), 시장CVR(0.00%)보다 높으며<br>RPI 베스트 상품의 매력도와 유사한 상품
+                                                </p>
+                                                <div id="sourcingProduct">
+                                                    <div class="text-muted">데이터 없음</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 판매가 -->
+                                    <div class="col-md-6">
+                                        <div class="card border-success h-100">
+                                            <div class="card-body p-3">
+                                                <h6 class="card-title text-success mb-3">
+                                                    <i class="fas fa-won-sign"></i> 판매가
+                                                </h6>
+                                                <p class="card-text small mb-2">
+                                                    <strong>기준:</strong> 가격대별 분석에서 매출이 가장 높은 가격대
+                                                </p>
+                                                <div class="bg-light p-2 rounded">
+                                                    <strong class="text-success fs-5" id="bestPriceRange">데이터 없음</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 카테고리 -->
+                                    <div class="col-md-6">
+                                        <div class="card border-warning h-100">
+                                            <div class="card-body p-3">
+                                                <h6 class="card-title text-warning mb-3">
+                                                    <i class="fas fa-tags"></i> 카테고리
+                                                </h6>
+                                                <p class="card-text small mb-2">
+                                                    <strong>기준:</strong> 최적화된 카테고리
+                                                </p>
+                                                <div class="bg-light p-2 rounded">
+                                                    <strong class="text-warning" id="optimizedCategory">데이터 없음</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 썸네일 스타일 -->
+                                    <div class="col-md-6">
+                                        <div class="card border-info h-100">
+                                            <div class="card-body p-3">
+                                                <h6 class="card-title text-info mb-3">
+                                                    <i class="fas fa-image"></i> 썸네일 스타일
+                                                </h6>
+                                                <p class="card-text small mb-2">
+                                                    <strong>기준:</strong> 베스트CTR, 시선집중도 상품의 썸네일 벤치마킹
+                                                </p>
+                                                <div class="bg-light p-2 rounded" id="thumbnailStyle">
+                                                    <div class="text-muted">데이터 없음</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 상세페이지 스타일 -->
+                                    <div class="col-md-6">
+                                        <div class="card border-danger h-100">
+                                            <div class="card-body p-3">
+                                                <h6 class="card-title text-danger mb-3">
+                                                    <i class="fas fa-file-alt"></i> 상세페이지 스타일
+                                                </h6>
+                                                <p class="card-text small mb-2">
+                                                    <strong>기준:</strong> 베스트 CVR 벤치마킹
+                                                </p>
+                                                <div id="detailPageStyle">
+                                                    <div class="text-muted">데이터 없음</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- SEO 키워드 전략 -->
+                                    <div class="col-md-6">
+                                        <div class="card border-secondary h-100">
+                                            <div class="card-body p-3">
+                                                <h6 class="card-title text-secondary mb-3">
+                                                    <i class="fas fa-font"></i> SEO 키워드 전략
+                                                </h6>
+                                                <div class="mb-3">
+                                                    <p class="card-text small mb-1">
+                                                        <strong>상품명 키워드:</strong> 키워드 종합 분석 상위 5개 참고
+                                                    </p>
+                                                    <div class="bg-light p-2 rounded mb-2">
+                                                        <small class="text-primary" id="productNameKeywords">데이터 없음</small>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <p class="card-text small mb-1">
+                                                        <strong>태그 키워드:</strong> 키워드 종합 분석 6~25번째 참고
+                                                    </p>
+                                                    <div class="bg-light p-2 rounded" style="max-height: 60px; overflow-y: auto;">
+                                                        <small class="text-secondary" id="tagKeywords">데이터 없음</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-center mt-3">
+                                    <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#detailedAnalysis" aria-expanded="false" aria-controls="detailedAnalysis">
+                                        <i class="fas fa-chart-line"></i> 분석 상세보기
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 상세 분석 Collapse 섹션 -->
+                        <div class="collapse" id="detailedAnalysis">
+
+                        <!-- 종합 지표 섹션 -->
+                        <div class="row mb-4">
+                            <div class="col-md-8">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="card-title mb-0">종합 지표</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row text-center">
+                                            <div class="col-4">
+                                                <h4 class="text-primary mb-1" id="medianCTR">-</h4>
+                                                <small class="text-muted">시장 CTR</small>
+                                            </div>
+                                            <div class="col-4">
+                                                <h4 class="text-success mb-1" id="medianCVR">-</h4>
+                                                <small class="text-muted">시장 CVR</small>
+                                            </div>
+                                            <div class="col-4">
+                                                <h4 class="text-warning mb-1" id="medianOverall">-</h4>
+                                                <small class="text-muted">RPI</small>
+                                            </div>
+                                        </div>
+                                        <hr>
+                                        <div class="row text-center small">
+                                            <div class="col-4">
+                                                <div class="text-info fw-bold" id="totalImpressions">-</div>
+                                                <div class="text-muted">총 노출수</div>
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="text-warning fw-bold" id="totalClicks">-</div>
+                                                <div class="text-muted">총 클릭수</div>
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="text-success fw-bold" id="totalProducts">-</div>
+                                                <div class="text-muted">분석 상품수</div>
+                                            </div>
+                                        </div>
+                                        <hr>
+                                        <div class="row text-center small">
+                                            <div class="col-4">
+                                                <div class="text-danger fw-bold" id="expectedMonthlyInvestment">-</div>
+                                                <div class="text-muted">예상월투자금</div>
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="text-primary fw-bold" id="expectedMonthlyProfit">-</div>
+                                                <div class="text-muted">예상월수익금</div>
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="text-success fw-bold" id="expectedROI">-</div>
+                                                <div class="text-muted">투자수익률(ROI)</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- 베스트 상품 섹션 -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">베스트 상품 분석</h6>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row g-2">
+                                    <div class="col-3">
+                                        <div class="text-center">
+                                            <div class="mb-1">
+                                                <small class="text-primary fw-bold"
+                                                       data-bs-toggle="tooltip"
+                                                       data-bs-placement="top"
+                                                       title="CTR = 노출 대비 클릭률 (Click Through Rate)&#10;높을수록 상품이 매력적이라는 의미">
+                                                    🎯 베스트 CTR
+                                                </small>
+                                            </div>
+                                            <div id="bestCTRProduct">
+                                                <!-- 베스트 CTR 상품 정보 -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-3">
+                                        <div class="text-center">
+                                            <div class="mb-1">
+                                                <small class="text-success fw-bold"
+                                                       data-bs-toggle="tooltip"
+                                                       data-bs-placement="top"
+                                                       title="CVR = 클릭 대비 판매율 (Conversion Rate)&#10;높을수록 구매 전환이 잘 되는 상품">
+                                                    💰 베스트 CVR
+                                                </small>
+                                            </div>
+                                            <div id="bestCVRProduct">
+                                                <!-- 베스트 CVR 상품 정보 -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-3">
+                                        <div class="text-center">
+                                            <div class="mb-1">
+                                                <small class="text-warning fw-bold"
+                                                       data-bs-toggle="tooltip"
+                                                       data-bs-placement="top"
+                                                       title="베스트 RPI = CTR × CVR × 가격&#10;노출 대비 매출이 가장 높은 상품&#10;Revenue Per Impression이 가장 좋은 상품">
+                                                    ⭐ 베스트 RPI
+                                                </small>
+                                            </div>
+                                            <div id="bestOverallProduct">
+                                                <!-- 베스트 RPI 상품 정보 -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-3">
+                                        <div class="text-center">
+                                            <div class="mb-1">
+                                                <small class="text-info fw-bold"
+                                                       data-bs-toggle="tooltip"
+                                                       data-bs-placement="top"
+                                                       title="시선집중도 = 동일 노출 대비 사용자 관심도&#10;사용자가 스크롤하다가 일정시간 이상 머무른&#10;'눈길이 머무른 비율'을 의미">
+                                                    👁️ 시선집중도
+                                                </small>
+                                            </div>
+                                            <div id="bestAttentionProduct">
+                                                <!-- 베스트 시선집중도 상품 정보 -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 최적화 카테고리 섹션 -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">최적화 카테고리 분석</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div id="optimizedCategoryInfo">
+                                            <!-- 최적화 카테고리 정보 -->
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div id="categoryKeywordSummary">
+                                            <!-- 카테고리별 키워드 요약 -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 가격별 CVR 분석 섹션 -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">가격별 CVR 분석</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <div id="priceVsCvrChart" style="height: 300px;"></div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="d-flex flex-column justify-content-center h-100">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">적용가격 입력</label>
+                                                <div class="input-group">
+                                                    <input type="number" class="form-control" id="priceInput" placeholder="가격 입력">
+                                                    <span class="input-group-text">원</span>
+                                                </div>
+                                            </div>
+                                            <div class="text-center p-3 bg-light rounded">
+                                                <div class="mb-2">
+                                                    <small class="text-muted">예상 최소 CVR</small>
+                                                </div>
+                                                <div class="fs-3 fw-bold text-success" id="expectedMinCVR">-</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 가격대별 분석 섹션 -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">가격대별 매출 분석</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="priceRangeSalesChart" style="height: 400px;">
+                                    <!-- 가격대별 분석 차트 -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 일별 트래픽 분석 섹션 -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="card-title mb-0">상품별 노출수 변화 추이</h6>
+                                    <button class="btn btn-sm btn-outline-primary" id="downloadDailyTrafficBtn">
+                                        <i class="fas fa-download"></i> 엑셀 다운로드
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="dailyTrafficChart" style="height: 400px;">
+                                    <!-- 일별 트래픽 차트 -->
+                                </div>
+                            </div>
+                        </div>
+
+
+
+                        <!-- 광고경쟁력 vs 광고노출비율 분석 섹션 -->
+                        <div class="card mb-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="card-title mb-0">광고경쟁력(최대ROAS) vs 광고노출비율</h6>
+                                <div class="d-flex align-items-center">
+                                    <small class="text-muted me-2">키워드노출수 정렬</small>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="sortByImpressionSwitch" style="transform: scale(0.8);">
+                                        <label class="form-check-label" for="sortByImpressionSwitch" style="font-size: 0.8em;"></label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="adCompetitivenessChart" style="height: 400px;">
+                                    <!-- 광고경쟁력 vs 광고노출비율 차트 -->
+                                </div>
+                                <!-- 최소ROAS 설정 (차트 하단으로 이동) -->
+                                <div class="row mt-3 align-items-end" id="roasControlPanel">
+                                    <div class="col-3">
+                                        <label for="adCompetitivenessMarginRate" class="form-label" style="font-size: 0.8em;">마진율 (%)</label>
+                                        <input type="number" class="form-control form-control-sm" id="adCompetitivenessMarginRate" value="30" min="1" max="100" step="1">
+                                    </div>
+                                    <div class="col-3">
+                                        <label for="adCompetitivenessMinROAS" class="form-label" style="font-size: 0.8em;">최소ROAS (%)</label>
+                                        <input type="number" class="form-control form-control-sm" id="adCompetitivenessMinROAS" value="333" min="100" step="1">
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted" style="font-size: 0.7em;">마진율과 최소ROAS는 서로 연동됩니다 (마진율 = 100 ÷ 최소ROAS × 100)</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RPI 경쟁력 분석 섹션 -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-chart-bar"></i> 상품별 RPI 경쟁력 분석
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="rpiCompetitivenessChart" style="height: 400px;">
+                                    <!-- RPI 경쟁력 차트 -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 통합 키워드 분석 섹션 -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="card-title mb-0">키워드 종합 분석</h6>
+                                    <button class="btn btn-sm btn-outline-primary" id="downloadKeywordBtn">
+                                        <i class="fas fa-download"></i> 엑셀 다운로드
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="integratedKeywordTable">
+                                    <!-- 통합 키워드 테이블 -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 상품별 종합 분석 섹션 -->
+                        <div class="card" id="productSummarySection">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="card-title mb-0">상품별 종합 분석</h6>
+                                    <button class="btn btn-sm btn-outline-primary" id="downloadSummaryBtn">
+                                        <i class="fas fa-download"></i> 엑셀 다운로드
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="productSummaryTable">
+                                    <!-- 상품별 종합 테이블 -->
+                                </div>
+                            </div>
+                        </div>
+
+                        </div> <!-- 상세 분석 Collapse 끝 -->
+                        </div> <!-- analysisSection 끝 -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    <script type="text/javascript" src="js/Chart.bundle.min.js"></script>
+    <script type="text/javascript" src="js/apexcharts.min.js"></script>
+    <script type="text/javascript" src="js/chartjs-plugin-labels.min.js"></script>
+</body>
+</html>

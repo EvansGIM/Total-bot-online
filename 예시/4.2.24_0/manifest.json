@@ -1,0 +1,138 @@
+{
+   "action": {
+      "default_icon": {
+         "16": "images/favicon-16x16.png",
+         "32": "images/favicon-32x32.png"
+      }
+   },
+   "background": {
+      "service_worker": "serviceWorker.js",
+      "type": "module"
+   },
+   "content_scripts": [ {
+      "css": [ "theme-content.css" ],
+      "js": [ "contentScripts/features/scrap/domeggook/scrapDetailPage.js", "contentScripts/features/scrap/domeggook/scrapListPage.js" ],
+      "matches": [ "https://domeggook.com/*", "http://domeggook.com/*" ],
+      "run_at": "document_end"
+   }, {
+      "css": [ "theme-content.css" ],
+      "js": [ "contentScripts/features/scrap/domeme/scrapDetailPage.js", "contentScripts/features/scrap/domeme/scrapListPage.js" ],
+      "matches": [ "https://domemedb.domeggook.com/*", "http://domemedb.domeggook.com/*", "http://domeme.domeggook.com/*", "https://domeme.domeggook.com/*" ],
+      "run_at": "document_end"
+   }, {
+      "css": [ "theme-content.css" ],
+      "js": [ "contentScripts/features/scrap/ownerclan/scrapListPage.js", "contentScripts/features/scrap/ownerclan/scrapDetailPage.js" ],
+      "matches": [ "https://www.ownerclan.com/*", "https://ownerclan.com/*" ],
+      "run_at": "document_end"
+   }, {
+      "css": [ "theme-content.css" ],
+      "js": [ "contentScripts/features/scrap/vvic/scrapDetailPage.js", "contentScripts/features/scrap/vvic/scrapListPage.js" ],
+      "matches": [ "https://www.vvic.com/*" ],
+      "run_at": "document_end"
+   }, {
+      "css": [ "theme-content.css" ],
+      "js": [ "contentScripts/features/scrap/temu/scrapDetailPage.js" ],
+      "matches": [ "https://www.temu.com/*" ],
+      "run_at": "document_end"
+   }, {
+      "css": [ "theme-content.css" ],
+      "js": [ "contentScripts/features/scrap/1688/scrapDetailPage.js" ],
+      "matches": [ "https://detail.1688.com/*" ],
+      "run_at": "document_end"
+   }, {
+      "css": [ "theme-content.css" ],
+      "js": [ "contentScripts/features/scrap/1688/scrapListPage.js" ],
+      "matches": [ "https://s.1688.com/*" ],
+      "run_at": "document_end"
+   }, {
+      "css": [ "theme-content.css" ],
+      "js": [ "contentScripts/features/scrap/1688/scrapShowListPage.js" ],
+      "matches": [ "https://show.1688.com/*" ],
+      "run_at": "document_end"
+   }, {
+      "css": [ "theme-content.css" ],
+      "js": [ "contentScripts/features/scrap/aliexpress/initializeDetailPage.js" ],
+      "matches": [ "https://*.aliexpress.com/item/*" ],
+      "run_at": "document_start",
+      "world": "MAIN"
+   }, {
+      "css": [ "theme-content.css" ],
+      "js": [ "contentScripts/features/scrap/aliexpress/scrapDetailPage.js" ],
+      "matches": [ "https://*.aliexpress.com/item/*" ],
+      "run_at": "document_end"
+   }, {
+      "css": [ "theme-content.css" ],
+      "js": [ "contentScripts/features/scrap/aliexpress/scrapListPage.js" ],
+      "matches": [ "https://*.aliexpress.com/*wholesale*", "https://*.aliexpress.com/*category/*", "https://*.aliexpress.com/p/calp-plus/*", "https://*.aliexpress.com/af/*" ],
+      "run_at": "document_end"
+   }, {
+      "css": [ "theme-content.css" ],
+      "js": [ "contentScripts/features/scrap/taobao/scrapDetailPage.js" ],
+      "matches": [ "https://item.taobao.com/*" ],
+      "run_at": "document_end",
+      "type": "module"
+   }, {
+      "css": [ "theme-content.css" ],
+      "js": [ "contentScripts/features/scrap/taobao/scrapListPage.js" ],
+      "matches": [ "https://s.taobao.com/*" ],
+      "run_at": "document_end"
+   }, {
+      "css": [ "theme-content.css" ],
+      "js": [ "contentScripts/features/scrap/tmall/scrapDetailPage.js" ],
+      "matches": [ "https://detail.tmall.com/*", "https://*.detail.tmall.com/*", "https://detail.tmall.hk/*" ],
+      "run_at": "document_end"
+   }, {
+      "css": [ "theme-content.css" ],
+      "js": [ "contentScripts/features/scrap/tmall/scrapListPage.js" ],
+      "matches": [ "https://list.tmall.com/*", "https://list.tmall.hk/*" ],
+      "run_at": "document_end"
+   }, {
+      "css": [ "theme-content.css" ],
+      "js": [ "contentScripts/features/scrap/amazon/scrapDetailPage.js" ],
+      "matches": [ "https://*.amazon.co.jp/*", "https://*.amazon.com.mx/*", "https://*.amazon.in/*", "https://*.amazon.de/*", "https://*.amazon.fr/*", "https://*.amazon.it/*", "https://*.amazon.es/*", "https://*.amazon.co.uk/*", "https://*.amazon.ca/*", "https://*.amazon.com/*" ],
+      "run_at": "document_end"
+   }, {
+      "css": [ "theme-content.css" ],
+      "js": [ "contentScripts/features/scrap/amazon/scrapListPage.js" ],
+      "matches": [ "https://*.amazon.co.jp/*", "https://*.amazon.com.mx/*", "https://*.amazon.in/*", "https://*.amazon.de/*", "https://*.amazon.fr/*", "https://*.amazon.it/*", "https://*.amazon.es/*", "https://*.amazon.co.uk/*", "https://*.amazon.ca/*", "https://*.amazon.com/*" ],
+      "run_at": "document_end"
+   }, {
+      "css": [ "theme-content.css" ],
+      "js": [ "contentScripts/features/scrap/rakuten/scrapDetailPage.js" ],
+      "matches": [ "https://item.rakuten.co.jp/*" ],
+      "run_at": "document_end"
+   }, {
+      "css": [ "theme-content.css" ],
+      "js": [ "contentScripts/features/scrap/rakuten/scrapListPage.js" ],
+      "matches": [ "https://www.rakuten.co.jp/category/*", "https://search.rakuten.co.jp/*" ],
+      "run_at": "document_end"
+   }, {
+      "js": [ "windly.js" ],
+      "matches": [ "https://*.windly.cc/*", "http://dev.windly.cc/*", "https://localhost/*", "http://localhost/*" ],
+      "run_at": "document_start"
+   } ],
+   "content_security_policy": {
+      "extension_pages": "script-src 'self'; object-src 'self';"
+   },
+   "default_locale": "ko",
+   "description": "__MSG_description__",
+   "externally_connectable": {
+      "matches": [ "https://*.windly.cc/*", "https://localhost/*" ]
+   },
+   "homepage_url": "https://hub.windly.cc/",
+   "host_permissions": [ "https://*/*", "http://*/*" ],
+   "icons": {
+      "16": "images/favicon-16x16.png",
+      "48": "images/favicon-48x48.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgxxpeBVjLDaOwUbgiiV0vMJapRkHyDlKF32sZYPkE/bN964h8JSjMpE0kJGo2MmEHtfL2WjjaVx7TBd+qr542+kIRCWbxqL13DtwezVo+14Wg+mQTT1Aj4SFzoR8tTLGZLFppraoQY5e7RwJL1f6bIOdLF38UebDyhqsXPyk+/kUkyRe1HzTjJgxsP0+y80mRlR6jCBFuOYsovw3wbf3DLEtiudrFiJ+iIUKsCEhw7irkKGP17NU3dWkY9O7VZnS6tRlzetodimdAok6dbovERlAvXuNai2gwFoRUzN7GAa410tRpniIhD0GBvrExSrz4WnmG6iFfBcx1RcvOT9sWQIDAQAB",
+   "manifest_version": 3,
+   "name": "__MSG_title__",
+   "permissions": [ "declarativeNetRequest", "offscreen", "tabs", "scripting" ],
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "4.2.24",
+   "web_accessible_resources": [ {
+      "matches": [ "*://*/*" ],
+      "resources": [ "contentScripts/features/scrap/tmall/spy.js", "contentScripts/features/scrap/aliexpress/spy.js", "contentScripts/features/scrap/aliexpress/initializeDetailPage.js", "contentScripts/features/scrap/rakuten/spy.js", "contentScripts/features/scrap/temu/spy.js", "contentScripts/features/scrap/vvic/spy.js", "contentScripts/features/scrap/domeggook/spy.js", "contentScripts/features/scrap/1688/spy.js", "contentScripts/features/scrap/taobao/spy.js", "contentScripts/features/scrap/domeme/spy.js", "index.html", "app.html", "pricing.html" ]
+   } ]
+}

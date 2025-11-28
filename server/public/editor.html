@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- 캐시 방지 메타 태그 -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <title>TotalBot - 상품 편집 v2.0</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f6f7;
+      color: #333;
+    }
+
+    .header {
+      background: white;
+      border-bottom: 1px solid #e5e8eb;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #1e90ff;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1873cc;
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #218838;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .editor-wrapper {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #e5e8eb;
+      background: #f9fafb;
+    }
+
+    .tab {
+      padding: 16px 24px;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+      font-weight: 500;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .tab:hover {
+      background: #f0f0f0;
+    }
+
+    .tab.active {
+      color: #1e90ff;
+      border-bottom-color: #1e90ff;
+      background: white;
+    }
+
+    .tab-content {
+      display: none;
+      padding: 24px;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #1e90ff;
+      box-shadow: 0 0 0 3px rgba(30,144,255,0.1);
+    }
+
+    .form-group textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+    }
+
+    .options-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+
+    .options-table th,
+    .options-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #e5e8eb;
+    }
+
+    .options-table th {
+      background: #f9fafb;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .options-table input {
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+      width: 100%;
+    }
+
+    .options-table .btn {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .image-item {
+      position: relative;
+      aspect-ratio: 1;
+      border: 2px solid #e5e8eb;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .image-item:hover {
+      border-color: #1e90ff;
+      box-shadow: 0 2px 8px rgba(30,144,255,0.2);
+    }
+
+    .image-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .image-item .remove-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 24px;
+      height: 24px;
+      background: rgba(255,0,0,0.8);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .image-item .main-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: rgba(30,144,255,0.9);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .add-image-box {
+      aspect-ratio: 1;
+      border: 2px dashed #ccc;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #888;
+    }
+
+    .add-image-box:hover {
+      border-color: #1e90ff;
+      color: #1e90ff;
+    }
+
+    .add-image-box svg {
+      width: 40px;
+      height: 40px;
+      margin-bottom: 8px;
+    }
+
+    .html-editor {
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .html-editor .toolbar {
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e8eb;
+      padding: 12px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .html-editor .toolbar button {
+      padding: 6px 12px;
+      border: 1px solid #ddd;
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .html-editor .toolbar button:hover {
+      background: #f0f0f0;
+    }
+
+    .html-editor .editor-area {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: #e5e8eb;
+    }
+
+    .html-editor textarea {
+      border: none;
+      padding: 16px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      resize: none;
+      min-height: 500px;
+    }
+
+    .html-editor .preview {
+      background: white;
+      padding: 16px;
+      overflow-y: auto;
+      min-height: 500px;
+      max-height: 500px;
+    }
+
+    .loading {
+      padding: 40px;
+      text-align: center;
+      color: #888;
+    }
+
+    .alert {
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .alert-success {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+    }
+
+    .alert-error {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>상품 편집 <span style="font-size: 12px; background: #4CAF50; color: white; padding: 4px 8px; border-radius: 4px; margin-left: 8px; font-weight: normal;">v2.0 ✓</span></h1>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="window.location.href='/products.html'">목록으로</button>
+      <button class="btn btn-success" onclick="saveProduct()">저장</button>
+      <button class="btn btn-primary" onclick="generateDetailPage()">상세페이지 생성</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div id="alertContainer"></div>
+
+    <div class="editor-wrapper">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('basic')">기본정보</div>
+        <div class="tab" onclick="switchTab('options')">옵션</div>
+        <div class="tab" onclick="switchTab('detail')">상세페이지</div>
+        <div class="tab" onclick="switchTab('images')">이미지</div>
+      </div>
+
+      <div id="basic" class="tab-content active">
+        <h2 style="margin-bottom: 24px;">기본 정보</h2>
+
+        <div class="form-group">
+          <label>상품명 *</label>
+          <input type="text" id="productTitle" placeholder="상품명을 입력하세요">
+        </div>
+
+        <div class="form-group">
+          <label>상품 설명</label>
+          <textarea id="productDescription" placeholder="상품 설명을 입력하세요"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>플랫폼</label>
+            <select id="platform">
+              <option value="1688-product">1688</option>
+              <option value="coupang-product">쿠팡</option>
+              <option value="aliexpress-product">알리익스프레스</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>원본 URL</label>
+            <input type="text" id="sourceUrl" placeholder="원본 상품 URL">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>기본 가격 (원)</label>
+            <input type="number" id="basePrice" placeholder="0">
+          </div>
+
+          <div class="form-group">
+            <label>판매 가격 (원)</label>
+            <input type="number" id="salePrice" placeholder="0">
+          </div>
+        </div>
+      </div>
+
+      <div id="options" class="tab-content">
+        <h2 style="margin-bottom: 24px;">옵션 관리</h2>
+
+        <button class="btn btn-primary" onclick="addOption()" style="margin-bottom: 16px;">옵션 추가</button>
+
+        <table class="options-table" id="optionsTable">
+          <thead>
+            <tr>
+              <th style="width: 50px;">#</th>
+              <th>옵션명1</th>
+              <th>옵션명2</th>
+              <th>가격</th>
+              <th>재고</th>
+              <th>SKU</th>
+              <th style="width: 100px;">작업</th>
+            </tr>
+          </thead>
+          <tbody id="optionsTableBody">
+            <!-- 옵션 행들이 여기에 동적으로 추가됨 -->
+          </tbody>
+        </table>
+      </div>
+
+      <div id="detail" class="tab-content">
+        <h2 style="margin-bottom: 24px;">상세페이지 HTML</h2>
+
+        <div class="html-editor">
+          <div class="toolbar">
+            <button onclick="insertTag('h2')">제목</button>
+            <button onclick="insertTag('p')">단락</button>
+            <button onclick="insertTag('b')">굵게</button>
+            <button onclick="insertTag('br')">&lt;br&gt;</button>
+            <button onclick="insertImage()">이미지 삽입</button>
+            <button onclick="insertTable()">표 삽입</button>
+          </div>
+          <div class="editor-area">
+            <textarea id="htmlEditor" oninput="updatePreview()" placeholder="HTML 코드를 입력하거나 '상세페이지 생성' 버튼을 눌러 자동 생성하세요"></textarea>
+            <div class="preview" id="htmlPreview"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="images" class="tab-content">
+        <h2 style="margin-bottom: 24px;">이미지 관리</h2>
+
+        <div class="form-group">
+          <label>대표 이미지 URL</label>
+          <input type="text" id="mainImageUrl" placeholder="대표 이미지 URL" onchange="updateMainImage()">
+        </div>
+
+        <h3 style="margin: 24px 0 16px 0; font-size: 16px;">이미지 목록</h3>
+        <div class="image-grid" id="imageGrid">
+          <div class="add-image-box" onclick="addImage()">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>이미지 추가</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let productId = null;
+    let productData = {
+      title: '',
+      description: '',
+      platform: '1688-product',
+      sourceUrl: '',
+      basePrice: 0,
+      salePrice: 0,
+      mainImage: '',
+      images: [],
+      results: [],
+      detailHtml: ''
+    };
+
+    // 페이지 로드
+    window.addEventListener('load', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      productId = urlParams.get('id');
+
+      if (productId) {
+        loadProduct(productId);
+      } else {
+        showAlert('새 상품을 생성합니다.', 'success');
+      }
+    });
+
+    // 상품 데이터 로드
+    async function loadProduct(id) {
+      try {
+        const response = await fetch(`/api/products/${id}`, {
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          throw new Error('상품을 불러올 수 없습니다.');
+        }
+
+        const data = await response.json();
+        productData = data.product;
+
+        // 폼에 데이터 채우기
+        document.getElementById('productTitle').value = productData.title || productData.titleCn || '';
+        document.getElementById('productDescription').value = productData.description || '';
+        document.getElementById('platform').value = productData.platform || '1688-product';
+        document.getElementById('sourceUrl').value = productData.url || '';
+        document.getElementById('basePrice').value = productData.basePrice || 0;
+        document.getElementById('salePrice').value = productData.salePrice || 0;
+        document.getElementById('mainImageUrl').value = productData.mainImage || '';
+
+        // detailHtml이 비어있으면 기본 템플릿 자동 생성
+        if (!productData.detailHtml || productData.detailHtml.trim() === '') {
+          console.log('[Editor] detailHtml이 비어있어 기본 템플릿 생성');
+          productData.detailHtml = generateDefaultDetailHtml(productData);
+          // 자동 저장
+          await autoSaveProduct();
+        }
+
+        document.getElementById('htmlEditor').value = productData.detailHtml;
+
+        // 옵션 렌더링
+        renderOptions();
+
+        // 이미지 렌더링
+        renderImages();
+
+        // 미리보기 업데이트
+        updatePreview();
+
+        showAlert('상품 데이터를 불러왔습니다.', 'success');
+      } catch (error) {
+        console.error('상품 로드 오류:', error);
+        showAlert('상품 데이터를 불러오는데 실패했습니다.', 'error');
+      }
+    }
+
+    // 탭 전환
+    function switchTab(tabName) {
+      // 모든 탭 비활성화
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+      // 선택한 탭 활성화
+      event.target.classList.add('active');
+      document.getElementById(tabName).classList.add('active');
+    }
+
+    // 옵션 렌더링
+    function renderOptions() {
+      const tbody = document.getElementById('optionsTableBody');
+      tbody.innerHTML = '';
+
+      if (!productData.results || productData.results.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #888;">옵션이 없습니다. "옵션 추가" 버튼을 눌러 옵션을 추가하세요.</td></tr>';
+        return;
+      }
+
+      productData.results.forEach((option, index) => {
+        const row = tbody.insertRow();
+        row.innerHTML = `
+          <td>${index + 1}</td>
+          <td><input type="text" value="${option.optionName1 || option.optionName1Cn || ''}" onchange="updateOption(${index}, 'optionName1', this.value)"></td>
+          <td><input type="text" value="${option.optionName2 || option.optionName2Cn || ''}" onchange="updateOption(${index}, 'optionName2', this.value)"></td>
+          <td><input type="number" value="${option.price || 0}" onchange="updateOption(${index}, 'price', this.value)"></td>
+          <td><input type="number" value="${option.stock || 0}" onchange="updateOption(${index}, 'stock', this.value)"></td>
+          <td><input type="text" value="${option.sku || ''}" onchange="updateOption(${index}, 'sku', this.value)"></td>
+          <td><button class="btn btn-secondary" onclick="removeOption(${index})">삭제</button></td>
+        `;
+      });
+    }
+
+    // 옵션 추가
+    function addOption() {
+      if (!productData.results) {
+        productData.results = [];
+      }
+
+      productData.results.push({
+        optionName1: '',
+        optionName2: '',
+        price: 0,
+        stock: 0,
+        sku: ''
+      });
+
+      renderOptions();
+    }
+
+    // 옵션 업데이트
+    function updateOption(index, field, value) {
+      productData.results[index][field] = value;
+    }
+
+    // 옵션 삭제
+    function removeOption(index) {
+      if (confirm('이 옵션을 삭제하시겠습니까?')) {
+        productData.results.splice(index, 1);
+        renderOptions();
+      }
+    }
+
+    // 이미지 렌더링
+    function renderImages() {
+      const grid = document.getElementById('imageGrid');
+      const existingAddBox = grid.querySelector('.add-image-box');
+
+      // 기존 이미지 아이템 제거
+      grid.querySelectorAll('.image-item').forEach(item => item.remove());
+
+      // 대표 이미지
+      if (productData.mainImage) {
+        const mainDiv = document.createElement('div');
+        mainDiv.className = 'image-item';
+        mainDiv.innerHTML = `
+          <img src="${productData.mainImage}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/%3E%3C/svg%3E'">
+          <div class="main-badge">대표</div>
+          <button class="remove-btn" onclick="removeMainImage()">×</button>
+        `;
+        grid.insertBefore(mainDiv, existingAddBox);
+      }
+
+      // 추가 이미지들
+      if (productData.images && productData.images.length > 0) {
+        productData.images.forEach((img, index) => {
+          const div = document.createElement('div');
+          div.className = 'image-item';
+          div.innerHTML = `
+            <img src="${img}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/%3E%3C/svg%3E'">
+            <button class="remove-btn" onclick="removeImage(${index})">×</button>
+          `;
+          grid.insertBefore(div, existingAddBox);
+        });
+      }
+    }
+
+    // 대표 이미지 업데이트
+    function updateMainImage() {
+      productData.mainImage = document.getElementById('mainImageUrl').value;
+      renderImages();
+    }
+
+    // 대표 이미지 삭제
+    function removeMainImage() {
+      if (confirm('대표 이미지를 삭제하시겠습니까?')) {
+        productData.mainImage = '';
+        document.getElementById('mainImageUrl').value = '';
+        renderImages();
+      }
+    }
+
+    // 이미지 추가
+    function addImage() {
+      const url = prompt('이미지 URL을 입력하세요:');
+      if (url) {
+        if (!productData.images) {
+          productData.images = [];
+        }
+        productData.images.push(url);
+        renderImages();
+      }
+    }
+
+    // 이미지 삭제
+    function removeImage(index) {
+      if (confirm('이 이미지를 삭제하시겠습니까?')) {
+        productData.images.splice(index, 1);
+        renderImages();
+      }
+    }
+
+    // HTML 태그 삽입
+    function insertTag(tag) {
+      const editor = document.getElementById('htmlEditor');
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      const selectedText = editor.value.substring(start, end);
+
+      let newText = '';
+      if (tag === 'br') {
+        newText = '<br>';
+      } else {
+        newText = `<${tag}>${selectedText}</${tag}>`;
+      }
+
+      editor.value = editor.value.substring(0, start) + newText + editor.value.substring(end);
+      editor.focus();
+      updatePreview();
+    }
+
+    // 이미지 태그 삽입
+    function insertImage() {
+      const url = prompt('이미지 URL을 입력하세요:');
+      if (url) {
+        const editor = document.getElementById('htmlEditor');
+        const start = editor.selectionStart;
+        editor.value = editor.value.substring(0, start) + `<img src="${url}" style="max-width: 100%;">` + editor.value.substring(start);
+        editor.focus();
+        updatePreview();
+      }
+    }
+
+    // 표 삽입
+    function insertTable() {
+      const rows = prompt('행 수를 입력하세요:', '3');
+      const cols = prompt('열 수를 입력하세요:', '3');
+
+      if (rows && cols) {
+        let table = '<table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">\n';
+        for (let i = 0; i < parseInt(rows); i++) {
+          table += '  <tr>\n';
+          for (let j = 0; j < parseInt(cols); j++) {
+            table += '    <td style="border: 1px solid #ddd; padding: 8px;">내용</td>\n';
+          }
+          table += '  </tr>\n';
+        }
+        table += '</table>';
+
+        const editor = document.getElementById('htmlEditor');
+        const start = editor.selectionStart;
+        editor.value = editor.value.substring(0, start) + table + editor.value.substring(start);
+        editor.focus();
+        updatePreview();
+      }
+    }
+
+    // 미리보기 업데이트
+    function updatePreview() {
+      const html = document.getElementById('htmlEditor').value;
+      document.getElementById('htmlPreview').innerHTML = html;
+    }
+
+    // 상세페이지 생성
+    async function generateDetailPage() {
+      if (!confirm('현재 상세페이지 내용을 덮어쓰고 자동 생성하시겠습니까?')) {
+        return;
+      }
+
+      try {
+        // 클라이언트에서 직접 HTML 생성 (서버 호출 없이)
+        console.log('[Editor] 상세페이지 수동 생성');
+        const generatedHtml = generateDefaultDetailHtml(productData);
+
+        document.getElementById('htmlEditor').value = generatedHtml;
+        productData.detailHtml = generatedHtml;
+        updatePreview();
+
+        showAlert('상세페이지가 생성되었습니다.', 'success');
+      } catch (error) {
+        console.error('상세페이지 생성 오류:', error);
+        showAlert('상세페이지 생성에 실패했습니다.', 'error');
+      }
+    }
+
+    // 상품 저장
+    async function saveProduct() {
+      // 폼 데이터 수집
+      productData.title = document.getElementById('productTitle').value;
+      productData.description = document.getElementById('productDescription').value;
+      productData.platform = document.getElementById('platform').value;
+      productData.sourceUrl = document.getElementById('sourceUrl').value;
+      productData.basePrice = parseFloat(document.getElementById('basePrice').value) || 0;
+      productData.salePrice = parseFloat(document.getElementById('salePrice').value) || 0;
+      productData.mainImage = document.getElementById('mainImageUrl').value;
+
+      // 디버깅: productData 확인
+      console.log('[Editor] 저장 전 productData 상태:');
+      console.log('  - title:', productData.title);
+      console.log('  - results 개수:', productData.results?.length || 0);
+      console.log('  - images 개수:', productData.images?.length || 0);
+      console.log('  - mainImage:', productData.mainImage);
+
+      // HTML 에디터에서 현재 값을 가져옴 (사용자가 수정한 내용)
+      productData.detailHtml = document.getElementById('htmlEditor').value;
+      console.log('[Editor] HTML 에디터의 detailHtml 길이:', productData.detailHtml.length);
+
+      if (!productData.title) {
+        showAlert('상품명을 입력하세요.', 'error');
+        return;
+      }
+
+      try {
+        const url = productId ? `/api/products/${productId}` : '/api/products/save';
+        const method = productId ? 'PUT' : 'POST';
+
+        const response = await fetch(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(productData)
+        });
+
+        if (!response.ok) {
+          throw new Error('저장 실패');
+        }
+
+        const data = await response.json();
+        productId = data.id || data.product.id;
+
+        showAlert('상품이 저장되었습니다.', 'success');
+
+        // URL 업데이트
+        if (!window.location.search.includes('id=')) {
+          window.history.pushState({}, '', `?id=${productId}`);
+        }
+      } catch (error) {
+        console.error('저장 오류:', error);
+        showAlert('상품 저장에 실패했습니다.', 'error');
+      }
+    }
+
+    // 기본 상세페이지 HTML 템플릿 생성 (products.js의 generateDetailPageHtml과 동일)
+    function generateDefaultDetailHtml(product) {
+      const title = product.title || product.titleCn || '상품명';
+      const description = product.description || '';
+      const mainImage = product.mainImage || '';
+      const images = product.images || [];
+      const options = product.results || [];
+
+      let html = `
+<div style="max-width: 800px; margin: 0 auto; font-family: Arial, sans-serif;">
+  <!-- 상품 제목 -->
+  <h1 style="font-size: 28px; font-weight: bold; margin-bottom: 20px; color: #333;">
+    ${title}
+  </h1>
+
+  <!-- 대표 이미지 -->
+  ${mainImage ? `
+  <div style="margin-bottom: 30px; text-align: center;">
+    <img src="${mainImage}" style="max-width: 100%; height: auto; border-radius: 8px;">
+  </div>
+  ` : ''}
+
+  <!-- 상품 설명 -->
+  ${description ? `
+  <div style="margin-bottom: 30px; padding: 20px; background: #f9f9f9; border-radius: 8px;">
+    <h2 style="font-size: 20px; margin-bottom: 12px; color: #333;">상품 설명</h2>
+    <p style="font-size: 15px; line-height: 1.8; color: #666;">
+      ${description}
+    </p>
+  </div>
+  ` : ''}
+
+  <!-- 옵션 정보 -->
+  ${options.length > 0 ? `
+  <div style="margin-bottom: 30px;">
+    <h2 style="font-size: 20px; margin-bottom: 12px; color: #333;">구매 옵션</h2>
+    <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
+      <thead>
+        <tr style="background: #f5f5f5;">
+          <th style="padding: 12px; border: 1px solid #ddd; text-align: left;">옵션</th>
+          <th style="padding: 12px; border: 1px solid #ddd; text-align: right;">가격</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${options.map(opt => `
+        <tr>
+          <td style="padding: 12px; border: 1px solid #ddd;">
+            ${opt.optionName1 || opt.optionName1Cn || ''}
+            ${opt.optionName2 || opt.optionName2Cn ? ' - ' + (opt.optionName2 || opt.optionName2Cn) : ''}
+          </td>
+          <td style="padding: 12px; border: 1px solid #ddd; text-align: right;">
+            ${opt.price ? opt.price.toLocaleString() + '원' : '-'}
+          </td>
+        </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+  ` : ''}
+
+  <!-- 추가 이미지들 -->
+  ${images.length > 0 ? `
+  <div style="margin-bottom: 30px;">
+    <h2 style="font-size: 20px; margin-bottom: 12px; color: #333;">상세 이미지</h2>
+    ${images.map(img => `
+    <div style="margin-bottom: 20px; text-align: center;">
+      <img src="${img}" style="max-width: 100%; height: auto; border-radius: 8px;">
+    </div>
+    `).join('')}
+  </div>
+  ` : ''}
+
+  <!-- 주의사항 -->
+  <div style="margin-top: 40px; padding: 20px; background: #fff9e6; border-left: 4px solid #ffcc00; border-radius: 4px;">
+    <h3 style="font-size: 16px; margin-bottom: 10px; color: #333;">구매 전 확인사항</h3>
+    <ul style="font-size: 14px; line-height: 1.8; color: #666; padding-left: 20px;">
+      <li>상품의 색상 및 사이즈는 모니터 해상도에 따라 실제와 다를 수 있습니다.</li>
+      <li>교환 및 반품은 상품 수령 후 7일 이내 가능합니다.</li>
+      <li>사용한 상품이나 포장이 훼손된 경우 교환/반품이 불가능할 수 있습니다.</li>
+      <li>배송비는 구매 금액에 따라 달라질 수 있습니다.</li>
+    </ul>
+  </div>
+</div>
+      `.trim();
+
+      return html;
+    }
+
+    // 자동 저장 (알림 없이) - detailHtml이 비어있을 때만 기본 템플릿 생성
+    async function autoSaveProduct() {
+      try {
+        console.log('[Editor] 자동 저장 시작 (초기 로드 시에만)');
+
+        // detailHtml이 비어있을 때만 기본 템플릿 생성
+        if (!productData.detailHtml || productData.detailHtml.trim() === '') {
+          console.log('[Editor] detailHtml이 비어있어 기본 템플릿 생성');
+          productData.detailHtml = generateDefaultDetailHtml(productData);
+
+          // HTML 에디터에도 반영
+          document.getElementById('htmlEditor').value = productData.detailHtml;
+          updatePreview();
+        } else {
+          console.log('[Editor] detailHtml이 이미 존재함, 그대로 유지');
+        }
+
+        const url = productId ? `/api/products/${productId}` : '/api/products/save';
+        const method = productId ? 'PUT' : 'POST';
+
+        console.log('[Editor] 서버로 전송 중...');
+        console.log('  - URL:', url);
+        console.log('  - Method:', method);
+        console.log('  - detailHtml included:', !!productData.detailHtml);
+
+        const response = await fetch(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(productData)
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[Editor] 서버 응답 오류:', response.status, errorText);
+          throw new Error('자동 저장 실패');
+        }
+
+        const data = await response.json();
+        productId = data.id || data.product.id;
+
+        console.log('[Editor] 자동 저장 완료:', productId);
+        console.log('[Editor] 서버 응답 데이터:', data);
+
+        // URL 업데이트
+        if (!window.location.search.includes('id=')) {
+          window.history.pushState({}, '', `?id=${productId}`);
+        }
+      } catch (error) {
+        console.error('[Editor] 자동 저장 오류:', error);
+        console.error('[Editor] 오류 상세:', error.message, error.stack);
+      }
+    }
+
+    // 알림 표시
+    function showAlert(message, type) {
+      const container = document.getElementById('alertContainer');
+      const alert = document.createElement('div');
+      alert.className = `alert alert-${type}`;
+      alert.textContent = message;
+      container.appendChild(alert);
+
+      setTimeout(() => {
+        alert.remove();
+      }, 5000);
+    }
+  </script>
+</body>
+</html>

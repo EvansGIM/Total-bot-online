@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TotalBot</title>
+  <style>
+    body {
+      width: 300px;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+    }
+    h1 {
+      font-size: 18px;
+      margin: 0 0 16px 0;
+      color: #1e90ff;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #1e90ff;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #1873cc;
+    }
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+    .info {
+      font-size: 12px;
+      color: #666;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #eee;
+    }
+  </style>
+</head>
+<body>
+  <h1>🤖 TotalBot</h1>
+  <button class="btn btn-primary" id="openDashboard">대시보드 열기</button>
+  <button class="btn btn-secondary" id="openCoupang">쿠팡 사이트 열기</button>
+
+  <div class="info">
+    <strong>Extension ID:</strong><br>
+    <span id="extensionId" style="font-size: 10px; word-break: break-all;"></span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,2234 @@
+// ESM 모달을 위한 pre-flight, styles
+.modal-container {
+  //   // preflight //
+  //   /*! tailwindcss v2.2.19 | MIT License | https://tailwindcss.com */
+
+  //   /*! modern-normalize v1.1.0 | MIT License | https://github.com/sindresorhus/modern-normalize */
+
+  //   /*
+  // Document
+  // ========
+  // */
+
+  //   /**
+  // Use a better box model (opinionated).
+  // */
+
+  //   *,
+  //   ::before,
+  //   ::after {
+  //     box-sizing: border-box;
+  //   }
+
+  //   /**
+  // Use a more readable tab size (opinionated).
+  // */
+
+  //   html {
+  //     -moz-tab-size: 4;
+  //     tab-size: 4;
+  //   }
+
+  //   /**
+  // 1. Correct the line height in all browsers.
+  // 2. Prevent adjustments of font size after orientation changes in iOS.
+  // */
+
+  //   html {
+  //     line-height: 1.15; /* 1 */
+  //     -webkit-text-size-adjust: 100%; /* 2 */
+  //   }
+
+  //   /*
+  // Sections
+  // ========
+  // */
+
+  //   /**
+  // Remove the margin in all browsers.
+  // */
+
+  //   body {
+  //     margin: 0;
+  //   }
+
+  //   /**
+  // Improve consistency of default fonts in all browsers. (https://github.com/sindresorhus/modern-normalize/issues/3)
+  // */
+
+  //   body {
+  //     font-family: system-ui, -apple-system, /* Firefox supports this but not yet `system-ui` */ "Segoe UI", Roboto,
+  //       Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  //   }
+
+  //   /*
+  // Grouping content
+  // ================
+  // */
+
+  //   /**
+  // 1. Add the correct height in Firefox.
+  // 2. Correct the inheritance of border color in Firefox. (https://bugzilla.mozilla.org/show_bug.cgi?id=190655)
+  // */
+
+  //   hr {
+  //     height: 0; /* 1 */
+  //     color: inherit; /* 2 */
+  //   }
+
+  //   /*
+  // Text-level semantics
+  // ====================
+  // */
+
+  //   /**
+  // Add the correct text decoration in Chrome, Edge, and Safari.
+  // */
+
+  //   abbr[title] {
+  //     -webkit-text-decoration: underline dotted;
+  //     text-decoration: underline dotted;
+  //   }
+
+  //   /**
+  // Add the correct font weight in Edge and Safari.
+  // */
+
+  //   b,
+  //   strong {
+  //     font-weight: bolder;
+  //   }
+
+  //   /**
+  // 1. Improve consistency of default fonts in all browsers. (https://github.com/sindresorhus/modern-normalize/issues/3)
+  // 2. Correct the odd 'em' font sizing in all browsers.
+  // */
+
+  //   code,
+  //   kbd,
+  //   samp,
+  //   pre {
+  //     font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace; /* 1 */
+  //     font-size: 1em; /* 2 */
+  //   }
+
+  //   /**
+  // Add the correct font size in all browsers.
+  // */
+
+  //   small {
+  //     font-size: 80%;
+  //   }
+
+  //   /**
+  // Prevent 'sub' and 'sup' elements from affecting the line height in all browsers.
+  // */
+
+  //   sub,
+  //   sup {
+  //     font-size: 75%;
+  //     line-height: 0;
+  //     position: relative;
+  //     vertical-align: baseline;
+  //   }
+
+  //   sub {
+  //     bottom: -0.25em;
+  //   }
+
+  //   sup {
+  //     top: -0.5em;
+  //   }
+
+  //   /*
+  // Tabular data
+  // ============
+  // */
+
+  //   /**
+  // 1. Remove text indentation from table contents in Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=999088, https://bugs.webkit.org/show_bug.cgi?id=201297)
+  // 2. Correct table border color inheritance in all Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=935729, https://bugs.webkit.org/show_bug.cgi?id=195016)
+  // */
+
+  //   table {
+  //     text-indent: 0; /* 1 */
+  //     border-color: inherit; /* 2 */
+  //   }
+
+  //   /*
+  // Forms
+  // =====
+  // */
+
+  //   /**
+  // 1. Change the font styles in all browsers.
+  // 2. Remove the margin in Firefox and Safari.
+  // */
+
+  //   button,
+  //   input,
+  //   optgroup,
+  //   select,
+  //   textarea {
+  //     font-family: inherit; /* 1 */
+  //     font-size: 100%; /* 1 */
+  //     line-height: 1.15; /* 1 */
+  //     margin: 0; /* 2 */
+  //   }
+
+  //   /**
+  // Remove the inheritance of text transform in Edge and Firefox.
+  // 1. Remove the inheritance of text transform in Firefox.
+  // */
+
+  //   button,
+  //   select {
+  //     /* 1 */
+  //     text-transform: none;
+  //   }
+
+  //   /**
+  // Correct the inability to style clickable types in iOS and Safari.
+  // */
+
+  //   button,
+  //   [type="button"],
+  //   [type="reset"],
+  //   [type="submit"] {
+  //     -webkit-appearance: button;
+  //   }
+
+  //   /**
+  // Remove the inner border and padding in Firefox.
+  // */
+
+  //   ::-moz-focus-inner {
+  //     border-style: none;
+  //     padding: 0;
+  //   }
+
+  //   /**
+  // Restore the focus styles unset by the previous rule.
+  // */
+
+  //   :-moz-focusring {
+  //     outline: 1px dotted ButtonText;
+  //   }
+
+  //   /**
+  // Remove the additional ':invalid' styles in Firefox.
+  // See: https://github.com/mozilla/gecko-dev/blob/2f9eacd9d3d995c937b4251a5557d95d494c9be1/layout/style/res/forms.css#L728-L737
+  // */
+
+  //   :-moz-ui-invalid {
+  //     box-shadow: none;
+  //   }
+
+  //   /**
+  // Remove the padding so developers are not caught out when they zero out 'fieldset' elements in all browsers.
+  // */
+
+  //   legend {
+  //     padding: 0;
+  //   }
+
+  //   /**
+  // Add the correct vertical alignment in Chrome and Firefox.
+  // */
+
+  //   progress {
+  //     vertical-align: baseline;
+  //   }
+
+  //   /**
+  // Correct the cursor style of increment and decrement buttons in Safari.
+  // */
+
+  //   ::-webkit-inner-spin-button,
+  //   ::-webkit-outer-spin-button {
+  //     height: auto;
+  //   }
+
+  //   /**
+  // 1. Correct the odd appearance in Chrome and Safari.
+  // 2. Correct the outline style in Safari.
+  // */
+
+  //   [type="search"] {
+  //     -webkit-appearance: textfield; /* 1 */
+  //     outline-offset: -2px; /* 2 */
+  //   }
+
+  //   /**
+  // Remove the inner padding in Chrome and Safari on macOS.
+  // */
+
+  //   ::-webkit-search-decoration {
+  //     -webkit-appearance: none;
+  //   }
+
+  //   /**
+  // 1. Correct the inability to style clickable types in iOS and Safari.
+  // 2. Change font properties to 'inherit' in Safari.
+  // */
+
+  //   ::-webkit-file-upload-button {
+  //     -webkit-appearance: button; /* 1 */
+  //     font: inherit; /* 2 */
+  //   }
+
+  //   /*
+  // Interactive
+  // ===========
+  // */
+
+  //   /*
+  // Add the correct display in Chrome and Safari.
+  // */
+
+  //   summary {
+  //     display: list-item;
+  //   }
+
+  //   /**
+  //  * Manually forked from SUIT CSS Base: https://github.com/suitcss/base
+  //  * A thin layer on top of normalize.css that provides a starting point more
+  //  * suitable for web applications.
+  //  */
+
+  //   /**
+  //  * Removes the default spacing and border for appropriate elements.
+  //  */
+
+  //   blockquote,
+  //   dl,
+  //   dd,
+  //   h1,
+  //   h2,
+  //   h3,
+  //   h4,
+  //   h5,
+  //   h6,
+  //   hr,
+  //   figure,
+  //   p,
+  //   pre {
+  //     margin: 0;
+  //   }
+
+  //   fieldset {
+  //     margin: 0;
+  //     padding: 0;
+  //   }
+
+  //   ol,
+  //   ul {
+  //     list-style: none;
+  //     margin: 0;
+  //     padding: 0;
+  //   }
+
+  //   /**
+  //  * Tailwind custom reset styles
+  //  */
+
+  //   /**
+  //  * 1. Use the user's configured `sans` font-family (with Tailwind's default
+  //  *    sans-serif font stack as a fallback) as a sane default.
+  //  * 2. Use Tailwind's default "normal" line-height so the user isn't forced
+  //  *    to override it to ensure consistency even when using the default theme.
+  //  */
+
+  //   html {
+  //     font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+  //       Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; /* 1 */
+  //     line-height: 1.5; /* 2 */
+  //   }
+
+  //   /**
+  //  * Inherit font-family and line-height from `html` so users can set them as
+  //  * a class directly on the `html` element.
+  //  */
+
+  //   body {
+  //     font-family: inherit;
+  //     line-height: inherit;
+  //   }
+
+  //   /**
+  //  * 1. Prevent padding and border from affecting element width.
+  //  *
+  //  *    We used to set this in the html element and inherit from
+  //  *    the parent element for everything else. This caused issues
+  //  *    in shadow-dom-enhanced elements like <details> where the content
+  //  *    is wrapped by a div with box-sizing set to `content-box`.
+  //  *
+  //  *    https://github.com/mozdevs/cssremedy/issues/4
+  //  *
+  //  *
+  //  * 2. Allow adding a border to an element by just adding a border-width.
+  //  *
+  //  *    By default, the way the browser specifies that an element should have no
+  //  *    border is by setting it's border-style to `none` in the user-agent
+  //  *    stylesheet.
+  //  *
+  //  *    In order to easily add borders to elements by just setting the `border-width`
+  //  *    property, we change the default border-style for all elements to `solid`, and
+  //  *    use border-width to hide them instead. This way our `border` utilities only
+  //  *    need to set the `border-width` property instead of the entire `border`
+  //  *    shorthand, making our border utilities much more straightforward to compose.
+  //  *
+  //  *    https://github.com/tailwindcss/tailwindcss/pull/116
+  //  */
+
+  //   *,
+  //   ::before,
+  //   ::after {
+  //     box-sizing: border-box; /* 1 */
+  //     border-width: 0; /* 2 */
+  //     border-style: solid; /* 2 */
+  //     border-color: currentColor; /* 2 */
+  //   }
+
+  //   /*
+  //  * Ensure horizontal rules are visible by default
+  //  */
+
+  //   hr {
+  //     border-top-width: 1px;
+  //   }
+
+  //   /**
+  //  * Undo the `border-style: none` reset that Normalize applies to images so that
+  //  * our `border-{width}` utilities have the expected effect.
+  //  *
+  //  * The Normalize reset is unnecessary for us since we default the border-width
+  //  * to 0 on all elements.
+  //  *
+  //  * https://github.com/tailwindcss/tailwindcss/issues/362
+  //  */
+
+  //   img {
+  //     border-style: solid;
+  //   }
+
+  //   textarea {
+  //     resize: vertical;
+  //   }
+
+  //   input::placeholder,
+  //   textarea::placeholder {
+  //     opacity: 1;
+  //     color: #9ca3af;
+  //   }
+
+  //   button,
+  //   [role="button"] {
+  //     cursor: pointer;
+  //   }
+
+  //   /**
+  //  * Override legacy focus reset from Normalize with modern Firefox focus styles.
+  //  *
+  //  * This is actually an improvement over the new defaults in Firefox in our testing,
+  //  * as it triggers the better focus styles even for links, which still use a dotted
+  //  * outline in Firefox by default.
+  //  */
+
+  //   :-moz-focusring {
+  //     outline: auto;
+  //   }
+
+  table {
+    border-collapse: collapse;
+  }
+
+  //   h1,
+  //   h2,
+  //   h3,
+  //   h4,
+  //   h5,
+  //   h6 {
+  //     font-size: inherit;
+  //     font-weight: inherit;
+  //   }
+
+  //   /**
+  //  * Reset links to optimize for opt-in styling instead of
+  //  * opt-out.
+  //  */
+
+  //   a {
+  //     color: inherit;
+  //     text-decoration: inherit;
+  //   }
+
+  //   /**
+  //  * Reset form element properties that are easy to forget to
+  //  * style explicitly so you don't inadvertently introduce
+  //  * styles that deviate from your design system. These styles
+  //  * supplement a partial reset that is already applied by
+  //  * normalize.css.
+  //  */
+
+  //   button,
+  //   input,
+  //   optgroup,
+  //   select,
+  //   textarea {
+  //     padding: 0;
+  //     line-height: inherit;
+  //     color: inherit;
+  //   }
+
+  //   /**
+  //  * Use the configured 'mono' font family for elements that
+  //  * are expected to be rendered with a monospace font, falling
+  //  * back to the system monospace stack if there is no configured
+  //  * 'mono' font family.
+  //  */
+
+  //   pre,
+  //   code,
+  //   kbd,
+  //   samp {
+  //     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  //   }
+
+  //   /**
+  //  * 1. Make replaced elements `display: block` by default as that's
+  //  *    the behavior you want almost all of the time. Inspired by
+  //  *    CSS Remedy, with `svg` added as well.
+  //  *
+  //  *    https://github.com/mozdevs/cssremedy/issues/14
+  //  *
+  //  * 2. Add `vertical-align: middle` to align replaced elements more
+  //  *    sensibly by default when overriding `display` by adding a
+  //  *    utility like `inline`.
+  //  *
+  //  *    This can trigger a poorly considered linting error in some
+  //  *    tools but is included by design.
+  //  *
+  //  *    https://github.com/jensimmons/cssremedy/issues/14#issuecomment-634934210
+  //  */
+
+  //   img,
+  //   svg,
+  //   video,
+  //   canvas,
+  //   audio,
+  //   iframe,
+  //   embed,
+  //   object {
+  //     display: block; /* 1 */
+  //     vertical-align: middle; /* 2 */
+  //   }
+
+  //   /**
+  //  * Constrain images and videos to the parent width and preserve
+  //  * their intrinsic aspect ratio.
+  //  *
+  //  * https://github.com/mozdevs/cssremedy/issues/14
+  //  */
+
+  //   img,
+  //   video {
+  //     max-width: 100%;
+  //     height: auto;
+  //   }
+
+  //   /**
+  //  * Ensure the default browser behavior of the `hidden` attribute.
+  //  */
+
+  //   [hidden] {
+  //     display: none;
+  //   }
+
+  //   *,
+  //   ::before,
+  //   ::after {
+  //     --tw-border-opacity: 1;
+  //     border-color: rgba(229, 231, 235, var(--tw-border-opacity));
+  //   }
+  ///////////////
+
+  font-family: "Nanum Gothic", sans-serif;
+  word-break: keep-all;
+  @apply flex;
+  @apply text-sm;
+
+  mark {
+    @apply bg-yellow-300;
+  }
+
+  .thumbnail {
+    margin: auto;
+  }
+
+  button.icon {
+    @apply inline-block;
+    @apply text-blue-500;
+    @apply align-bottom;
+
+    &:hover {
+      @apply text-blue-700;
+    }
+
+    &:focus {
+      @apply outline-none;
+    }
+  }
+
+  input[type="checkbox"]:not(:disabled) {
+    @apply cursor-pointer;
+  }
+
+  ul.problems {
+    @apply bg-orange-100;
+    @apply border-l-4;
+    @apply border-orange-500;
+    @apply mb-4;
+    @apply p-2;
+    @apply text-orange-700;
+    @apply list-none;
+
+    &.no-margin-b {
+      @apply mb-0;
+    }
+  }
+
+  ul.notice {
+    @apply bg-blue-100;
+    @apply border-l-4;
+    @apply border-blue-500;
+    @apply mb-4;
+    @apply p-2;
+    @apply text-blue-700;
+    @apply list-none;
+  }
+
+  .catalog-product {
+    & > ul:first-child {
+      @apply flex;
+      @apply border-b;
+      @apply shadow-md;
+      @apply items-end;
+
+      & > li:first-child {
+        @apply self-center;
+        @apply px-3;
+        @apply m-0;
+
+        input[type="checkbox"] {
+          @apply block;
+        }
+      }
+
+      & > li,
+      & > div > li {
+        @apply mr-1;
+        @apply relative;
+
+        a {
+          @apply bg-white;
+          @apply inline-block;
+          @apply py-2;
+          @apply px-4;
+          @apply text-gray-700;
+          @apply font-semibold;
+        }
+
+        a:hover {
+          @apply text-blue-800;
+          @apply bg-blue-200;
+        }
+
+        .badge {
+          right: -0.125rem;
+          top: -0.5rem;
+
+          @apply absolute;
+          @apply bg-transparent;
+          @apply border-none;
+          @apply invisible;
+          @apply text-xs;
+        }
+      }
+
+      & > li {
+        @apply mr-1;
+        @apply relative;
+
+        button {
+          @apply py-2;
+          @apply px-4;
+        }
+
+        button.only-icon {
+          @apply py-1;
+          @apply px-2;
+
+          svg {
+            @apply w-6;
+            @apply h-6;
+          }
+        }
+      }
+
+      & > li.active,
+      & > div > li.active {
+        @apply -mb-px;
+
+        a {
+          @apply border-l;
+          @apply border-t;
+          @apply border-r;
+          @apply rounded-t;
+          @apply text-blue-500;
+        }
+
+        a:hover {
+          @apply text-blue-500;
+          @apply bg-blue-200;
+        }
+
+        a::after {
+          height: 3px;
+          position: absolute;
+          right: 1px;
+          bottom: 0px;
+          left: 1px;
+          content: "";
+
+          @apply bg-blue-500;
+        }
+      }
+
+      & > li.disabled,
+      & > div > li.disabled {
+        a {
+          @apply text-gray-400;
+          @apply pointer-events-none;
+        }
+
+        a:hover {
+          @apply text-gray-400;
+        }
+      }
+
+      button {
+        @apply bg-blue-500;
+        @apply text-white;
+        @apply px-2;
+        @apply py-0;
+        @apply my-1;
+        @apply rounded;
+
+        &:hover {
+          @apply bg-blue-700;
+        }
+
+        &:focus {
+          @apply outline-none;
+          @apply shadow-outline;
+        }
+      }
+
+      button.remove {
+        @apply bg-red-500;
+
+        &:hover {
+          @apply bg-red-700;
+        }
+      }
+
+      button.debug {
+        @apply bg-orange-500;
+
+        &:hover {
+          @apply bg-orange-700;
+        }
+      }
+    }
+
+    h4 {
+      @apply tracking-wide;
+      @apply text-gray-700;
+      @apply text-sm;
+      @apply font-bold;
+    }
+
+    .thumbnail {
+      height: unset;
+      margin: auto;
+      max-height: unset;
+      max-width: 12rem;
+
+      &.square {
+        @apply w-48;
+        @apply h-48;
+      }
+    }
+  }
+
+  .tab-container {
+    & > ul:first-child {
+      @apply flex;
+      @apply border-b;
+      @apply shadow-md;
+      @apply items-end;
+      @apply space-x-1;
+
+      & > li {
+        @apply relative;
+
+        button {
+          @apply bg-white;
+          @apply inline-block;
+          @apply py-2;
+          @apply px-4;
+          @apply text-gray-700;
+          @apply font-semibold;
+        }
+
+        button:hover {
+          @apply text-blue-800;
+          @apply bg-blue-200;
+        }
+      }
+
+      & > li.active {
+        @apply -mb-px;
+
+        button {
+          @apply border-l;
+          @apply border-t;
+          @apply border-r;
+          @apply rounded-t;
+          @apply text-blue-500;
+        }
+
+        button:hover {
+          @apply text-blue-500;
+          @apply bg-blue-200;
+        }
+
+        button::after {
+          height: 3px;
+          position: absolute;
+          right: 1px;
+          bottom: 0px;
+          left: 1px;
+          content: "";
+
+          @apply bg-blue-500;
+        }
+      }
+
+      & > li.disabled {
+        a {
+          @apply text-gray-400;
+          @apply pointer-events-none;
+        }
+
+        a:hover {
+          @apply text-gray-400;
+        }
+      }
+    }
+  }
+
+  .catalog-product {
+    @apply duration-300;
+    @apply ease-in-out;
+    @apply transition-opacity;
+
+    .videos {
+      @apply ml-8;
+
+      &:empty {
+        @apply hidden;
+      }
+    }
+
+    .images a,
+    .videos a {
+      @apply border;
+      @apply border-4;
+      @apply border-transparent;
+
+      .thumbnail {
+        @apply border;
+        @apply border-gray-500;
+      }
+
+      &:first-child:not([data-url=""]) {
+        @apply border-blue-600;
+        @apply rounded;
+      }
+
+      &:hover {
+        button {
+          @apply opacity-100;
+        }
+      }
+
+      .label {
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(1px);
+        padding: 0.125rem 0rem;
+        @apply flex;
+        @apply absolute;
+        @apply left-0;
+        @apply right-0;
+        @apply bottom-0;
+        @apply py-1;
+        @apply text-white;
+        @apply text-center;
+        @apply items-center;
+        @apply pointer-events-none;
+
+        span {
+          @apply flex-auto;
+          @apply text-sm;
+          @apply font-normal;
+        }
+      }
+    }
+
+    .images > button:disabled,
+    .videos > button:disabled {
+      @apply hidden;
+    }
+
+    .images .thumbnail,
+    .videos .thumbnail {
+      max-width: 100%;
+      @apply h-auto;
+
+      &.square {
+        @apply w-28;
+        @apply h-28;
+      }
+    }
+
+    img.preview {
+      width: calc(32rem - 1rem);
+      height: calc(32rem - 1rem);
+      @apply p-1;
+    }
+
+    video.preview {
+      max-height: calc(32rem - 1rem);
+      @apply p-1;
+    }
+  }
+
+  .catalog-product .cover {
+    background: rgba(160, 174, 192, 0.75); // bg-gray-500 with 75% opacity
+    transition: opacity 0.15s ease-out;
+    @apply flex;
+    @apply absolute;
+    @apply inset-0;
+    @apply rounded;
+    @apply rounded-t-none;
+    @apply text-white;
+    @apply text-center;
+    @apply pt-20;
+    @apply justify-center;
+    @apply opacity-0;
+    @apply pointer-events-none;
+    @apply z-30;
+  }
+
+  // .catalog-product {
+  //     .product-actions {
+  //         button:disabled {
+  //             @apply bg-gray-500;
+  //             @apply hover:bg-gray-700;
+  //             @apply cursor-help;
+  //         }
+  //         button {
+  //             &:hover span{
+  //                 max-width: 7rem;
+  //             }
+  //             span {
+  //                 max-width: 0;
+  //                 -webkit-transition: max-width 0.5s;
+  //                 transition: max-width 0.5s;
+  //                 @apply ease-in-out;
+  //                 @apply delay-75;
+  //                 display: inline-block;
+  //                 vertical-align: top;
+  //                 white-space: nowrap;
+  //                 overflow: hidden;
+  //             }
+  //         }
+
+  //     }
+  // }
+
+  .catalog-product[data-status="uploading"],
+  .catalog-product[data-status="pending"],
+  .catalog-product[data-status="uploaded"] {
+    .product-actions {
+      button {
+        @apply pointer-events-none;
+      }
+    }
+
+    .cover {
+      @apply opacity-100;
+      @apply pointer-events-auto;
+    }
+  }
+
+  nav.nav-main {
+    .collapse-button {
+      @apply flex-auto;
+      @apply flex;
+      @apply items-end;
+
+      button {
+        @apply px-4;
+      }
+    }
+
+    .logo-holder {
+      @apply h-11;
+    }
+
+    ul {
+      li {
+        @apply h-9;
+        @apply flex;
+        @apply items-center;
+
+        .viewing {
+          @apply text-white;
+        }
+
+        &:hover {
+          button,
+          a {
+            @apply text-white;
+          }
+        }
+      }
+    }
+
+    a,
+    button {
+      @apply transition-colors;
+      @apply duration-200;
+    }
+
+    &:not(.collapse) {
+      @apply w-64;
+    }
+
+    &.collapse {
+      @apply w-16;
+      @apply px-0;
+      @apply text-center;
+
+      .logo-holder {
+        visibility: hidden;
+      }
+
+      .collapse-button {
+        @apply justify-center;
+        @apply p-0;
+      }
+
+      a {
+        @apply justify-center;
+      }
+
+      button {
+        @apply mx-auto;
+      }
+
+      span.label {
+        @apply hidden;
+      }
+      span.expand-label {
+        @apply inline-block;
+      }
+    }
+  }
+
+  .nav-main .cover {
+    background: rgba(160, 174, 192, 0.75); // bg-gray-500 with 75% opacity
+    transition: opacity 0.15s ease-out;
+    @apply flex;
+    @apply absolute;
+    @apply inset-0;
+    @apply rounded;
+    @apply rounded-t-none;
+    @apply text-white;
+    @apply text-center;
+    @apply items-center;
+    @apply justify-center;
+    @apply opacity-0;
+    @apply pointer-events-none;
+    @apply z-30;
+  }
+
+  .nav-main[data-status="uploading"] {
+    .cover {
+      @apply opacity-100;
+      @apply pointer-events-auto;
+    }
+  }
+
+  table.table-striped {
+    // 이름은 Bootstrap에 관련 함수로 따왔습니다.
+    // https://getbootstrap.com/docs/5.0/content/tables/#striped-rows
+
+    tbody tr:nth-child(even) {
+      @apply bg-gray-100;
+    }
+  }
+
+  table.table-hover {
+    tbody tr:hover {
+      @apply bg-gray-200;
+    }
+  }
+
+  .table-like {
+    div.row:nth-child(even) {
+      @apply bg-gray-200;
+    }
+  }
+
+  [role="progressbar"] .bar {
+    background: #e3f2fd;
+    @apply border-none;
+    @apply h-1;
+    @apply m-0;
+    @apply overflow-hidden;
+    @apply p-0;
+    @apply relative;
+    @apply w-full;
+    @apply z-40;
+
+    &:before,
+    &:after {
+      background: #2196f3;
+      content: "";
+      will-change: left, right;
+      @apply absolute;
+      @apply bottom-0;
+      @apply left-0;
+      @apply top-0;
+    }
+
+    &:before {
+      animation: indeterminate-progress-indicator 2.1s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite;
+    }
+
+    &:after {
+      animation: indeterminate-progress-indicator-short 2.1s cubic-bezier(0.165, 0.84, 0.44, 1) infinite;
+      animation-delay: 1.15s;
+    }
+  }
+
+  tr[data-active] {
+    @apply duration-200;
+    @apply transition-opacity;
+  }
+
+  tr[data-active="false"] {
+    th {
+      @apply opacity-30;
+    }
+    td {
+      @apply opacity-30;
+      @apply pointer-events-none;
+    }
+    td > a {
+      @apply pointer-events-auto;
+    }
+  }
+
+  @keyframes indeterminate-progress-indicator {
+    0% {
+      left: -35%;
+      right: 100%;
+    }
+    60% {
+      left: 100%;
+      right: -90%;
+    }
+    100% {
+      left: 100%;
+      right: -90%;
+    }
+  }
+
+  @keyframes indeterminate-progress-indicator-short {
+    0% {
+      left: -200%;
+      right: 100%;
+    }
+    60% {
+      left: 107%;
+      right: -8%;
+    }
+    100% {
+      left: 107%;
+      right: -8%;
+    }
+  }
+
+  .thumbnail.micro {
+    @apply rounded;
+    @apply w-8;
+    @apply h-8;
+    @apply object-contain;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="email"],
+  input[type="password"] {
+    @apply flex-shrink;
+    @apply flex-grow;
+    @apply flex-auto;
+    @apply leading-normal;
+    @apply w-px;
+    @apply flex-1;
+    @apply border;
+    @apply border-gray-500;
+    @apply h-8;
+    @apply px-3;
+    @apply relative;
+
+    &:focus {
+      @apply outline-none;
+      // @apply bg-white;
+      @apply border-blue-500;
+    }
+  }
+
+  form {
+    &:not(.link) input[type="submit"],
+    &:not(.link) button[type="submit"] {
+      @apply bg-blue-500;
+      @apply text-white;
+      @apply font-bold;
+      @apply px-4;
+      @apply py-2;
+      @apply rounded;
+
+      &:hover {
+        @apply bg-blue-700;
+      }
+
+      &:focus {
+        @apply outline-none;
+        @apply shadow-outline;
+      }
+
+      &:disabled {
+        @apply bg-gray-300;
+        @apply outline-none;
+      }
+    }
+
+    &.link input[type="submit"],
+    &.link button[type="submit"] {
+      @apply outline-none;
+
+      &:focus {
+        @apply outline-none;
+      }
+    }
+  }
+
+  a svg,
+  button svg {
+    width: 1.25em;
+    height: 1.25em;
+    @apply inline;
+    @apply fill-current;
+    @apply align-text-bottom;
+  }
+
+  [role="dialog"] {
+    .overflow-auto,
+    .overflow-scroll {
+      max-height: 50vh;
+    }
+  }
+
+  .grid.option-groups {
+    grid-template-columns: repeat(auto-fit, minmax(0, 75ch));
+  }
+
+  .grid {
+    & > div {
+      & > h5 {
+        @apply text-sm;
+        @apply text-gray-500;
+      }
+
+      & > p {
+        @apply text-sm;
+        @apply font-medium;
+        @apply text-gray-900;
+      }
+    }
+  }
+
+  .input-holder {
+    @apply flex;
+    @apply rounded;
+    @apply border;
+    @apply border-gray-500;
+
+    &:focus-within {
+      @apply border-blue-600;
+    }
+
+    &.invalid {
+      @apply border-red-600;
+    }
+
+    input {
+      @apply border-none;
+      @apply rounded;
+    }
+  }
+
+  .input-holder.borderless {
+    @apply border-0;
+  }
+
+  input.keyword {
+    @apply flex-auto;
+
+    &:focus {
+      min-width: 8em;
+    }
+  }
+
+  input.loading {
+    @apply animate-pulse;
+    @apply bg-gray-300;
+    @apply cursor-wait;
+    @apply text-gray-300;
+  }
+
+  img {
+    @apply duration-200;
+    @apply opacity-100;
+    @apply transition-opacity;
+    @apply object-contain;
+
+    &.lazyload {
+      @apply opacity-0;
+    }
+  }
+
+  div[data-prefix],
+  div[data-suffix] {
+    input[type="number"],
+    input[type="text"] {
+      &::-webkit-outer-spin-button,
+      &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+    }
+  }
+
+  div[data-prefix] {
+    input {
+      @apply rounded-l-none;
+    }
+
+    &::before {
+      content: attr(data-prefix);
+      @apply flex;
+      @apply items-center;
+      @apply bg-gray-200;
+      @apply px-3;
+      @apply text-gray-500;
+      @apply rounded;
+
+      @apply rounded-r-none;
+    }
+  }
+
+  div[data-suffix] {
+    input {
+      @apply rounded-r-none;
+    }
+
+    input[type="number"],
+    input[type="text"] {
+      @apply text-right;
+      @apply pl-0;
+
+      &::-webkit-outer-spin-button,
+      &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+    }
+
+    &::after {
+      content: attr(data-suffix);
+      @apply flex;
+      @apply items-center;
+      @apply bg-gray-200;
+      @apply px-3;
+      @apply text-gray-500;
+      @apply rounded;
+
+      @apply rounded-l-none;
+    }
+  }
+
+  img.preview {
+    max-height: 80vh;
+  }
+
+  input:checked ~ .toggle-line {
+    @apply bg-blue-500;
+  }
+
+  input:checked:disabled ~ .toggle-line {
+    @apply opacity-70;
+  }
+
+  .toggle-dot {
+    left: -0.25rem;
+    top: -0.25rem;
+  }
+
+  input:checked ~ .toggle-dot {
+    transform: translateX(100%);
+  }
+
+  input:disabled {
+    @apply bg-gray-300;
+  }
+
+  input[type="password"] {
+    @apply font-mono;
+  }
+
+  .option-group-configuration {
+    width: 36em; // 옵션명 길이 제한이 25자이기 때문에 약간의 여백을 고려하고 결정한 값입니다.
+  }
+
+  a.button {
+    @apply px-4;
+    @apply py-2;
+    @apply rounded;
+    @apply font-bold;
+    @apply text-center;
+
+    &:focus {
+      @apply ring;
+    }
+  }
+
+  a.inline {
+    @apply text-blue-500;
+
+    &:hover {
+      @apply text-blue-700;
+      @apply underline;
+    }
+  }
+
+  button.bg-red-500,
+  a.button.bg-red-500 {
+    @apply text-white;
+  }
+
+  button.bg-blue-500,
+  a.button.bg-blue-500 {
+    @apply text-white;
+
+    &:hover {
+      @apply bg-blue-700;
+    }
+    &:focus {
+      @apply ring-blue-500;
+      @apply ring-opacity-50;
+    }
+  }
+
+  button.bg-indigo-500,
+  a.button.bg-indigo-500 {
+    @apply text-white;
+
+    &:hover {
+      @apply bg-indigo-700;
+    }
+    &:focus {
+      @apply ring-indigo-500;
+      @apply ring-opacity-50;
+    }
+  }
+
+  button.bg-green-500,
+  a.button.bg-green-500 {
+    @apply text-white;
+
+    &:hover {
+      @apply bg-green-700;
+    }
+    &:focus {
+      @apply ring-green-500;
+      @apply ring-opacity-50;
+    }
+  }
+
+  button.bg-gray-500,
+  a.button.bg-gray-500 {
+    @apply text-white;
+
+    &:hover:not([disabled]) {
+      @apply bg-gray-700;
+    }
+    &:focus {
+      @apply ring-gray-500;
+      @apply ring-opacity-50;
+    }
+    &:disabled {
+      @apply cursor-default;
+    }
+  }
+
+  button.bg-gray-700,
+  a.button.bg-gray-700 {
+    @apply text-white;
+
+    &:hover {
+      @apply bg-gray-900;
+    }
+    &:focus {
+      @apply ring-gray-700;
+      @apply ring-opacity-50;
+    }
+  }
+
+  button:disabled:not(.not-theme) {
+    @apply bg-gray-500;
+    @apply text-gray-100;
+
+    &:hover {
+      @apply bg-gray-500;
+    }
+  }
+
+  ul.progress {
+    @apply flex;
+    @apply flex-col;
+    @apply gap-2;
+
+    li {
+      @apply flex;
+      @apply items-center;
+    }
+  }
+
+  [role="dialog"] {
+    button[data-dismiss="modal"].close {
+      @apply float-right;
+      @apply rounded-full;
+      @apply border;
+      @apply border-gray-500;
+      @apply p-1;
+      @apply bg-white;
+      @apply shadow-sm;
+      @apply transition;
+      @apply ease-in-out;
+      @apply duration-150;
+
+      &:hover {
+        @apply text-gray-500;
+      }
+
+      &:focus {
+        @apply outline-none;
+        @apply border-blue-300;
+      }
+    }
+
+    button:not(.close, .choices__button, .not-theme) {
+      @apply min-w-24;
+      @apply ml-2;
+      @apply py-2;
+      @apply px-4;
+      @apply rounded;
+      @apply text-sm;
+      @apply shadow-md;
+      @apply items-center;
+
+      &:focus {
+        @apply outline-none;
+        @apply shadow-outline;
+      }
+    }
+
+    button.flat {
+      @apply shadow-none;
+    }
+
+    button.bg-red-500,
+    button.bg-blue-500,
+    button.bg-green-500 {
+      @apply font-bold;
+    }
+  }
+
+  .drop-zone {
+    @apply border-2;
+    @apply border-transparent;
+    @apply rounded;
+
+    &.drag-over {
+      @apply bg-gray-300;
+      @apply border-dashed;
+      @apply border-gray-600;
+    }
+  }
+
+  // https://developers.kakao.com/docs/latest/ko/reference/design-guide
+  .kakaotalk {
+    @apply rounded;
+
+    background-color: #fee500;
+    color: rgba(0, 0, 0, 0.85);
+    text-align: center;
+  }
+
+  .toastify {
+    @apply text-base;
+    @apply font-semibold;
+
+    &.success {
+      background: linear-gradient(to right, #00b09b, #96c93d);
+    }
+
+    &.warning {
+      background: linear-gradient(to right, #ff5f6d, #ffc371);
+    }
+
+    &.error {
+      background: linear-gradient(to right, #ff5f6d, #ffc371);
+    }
+  }
+
+  .autocomplete {
+    margin-top: 2px;
+    z-index: 1000;
+    @apply border;
+    @apply border-gray-500;
+    @apply rounded;
+    @apply text-sm;
+  }
+
+  .autocomplete > div {
+    @apply border-none;
+    @apply py-2;
+    @apply px-3;
+  }
+
+  .autocomplete .group {
+    @apply bg-white;
+    @apply border-b;
+    @apply border-gray-500;
+    @apply font-semibold;
+    @apply py-1;
+  }
+
+  .autocomplete .group:first-child {
+    @apply mt-0;
+  }
+
+  .autocomplete > div:hover:not(.group),
+  .autocomplete > div.selected {
+    cursor: pointer;
+    @apply bg-blue-200;
+  }
+
+  .ql-toolbar {
+    @apply rounded;
+    @apply rounded-b-none;
+  }
+
+  .ql-editor img {
+    cursor: default;
+    display: inline;
+    max-width: 860px * 0.8 !important;
+  }
+
+  .ql-editor hr {
+    color: #ddd;
+    width: 220px;
+    @apply mx-auto;
+    margin-top: 30px;
+    margin-bottom: 30px;
+  }
+
+  .gu-mirror {
+    img {
+      max-width: unset;
+      max-height: unset;
+      @apply w-28;
+      @apply h-28;
+    }
+
+    *:not(img) {
+      @apply invisible;
+    }
+  }
+
+  // 커서를 엘리먼트에 위에 가져가면 관련된 툴팁을 표시합니다.
+  .relative > .absolute[role="tooltip"] {
+    display: none;
+  }
+
+  .relative:hover > .absolute[role="tooltip"],
+  .absolute[role="tooltip"] {
+    display: block;
+  }
+
+  .contract {
+    h2 {
+      @apply text-xl;
+      @apply font-bold;
+      @apply mb-2;
+    }
+
+    h3 {
+      @apply text-lg;
+      @apply font-semibold;
+      @apply mb-2;
+    }
+
+    h4 {
+      @apply text-lg;
+      @apply font-semibold;
+      @apply mb-1;
+    }
+
+    hr {
+      @apply my-4;
+    }
+
+    ul {
+      @apply list-disc;
+    }
+
+    ol {
+      @apply list-decimal;
+    }
+
+    ul,
+    ol {
+      margin: revert;
+      padding: revert;
+    }
+
+    p {
+      @apply mb-4;
+    }
+
+    a {
+      @apply text-blue-500;
+
+      &:hover {
+        @apply text-blue-700;
+        @apply underline;
+      }
+    }
+  }
+
+  // 커서를 엘리먼트에 위에 가져가면 관련된 서브 메뉴를 표시합니다.
+  .relative > .absolute[role="menu"] {
+    display: none;
+  }
+
+  .relative:hover > .absolute[role="menu"],
+  .absolute[role="menu"] {
+    display: block;
+  }
+
+  .no-scroll-bar::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .no-scroll-bar::-webkit-scrollbar-thumb {
+    background-color: #aaaaaa;
+    border: 1px solid transparent;
+    border-radius: 5px;
+  }
+
+  .no-scroll-bar::-webkit-scrollbar-thumb:hover {
+    background-color: #666 !important;
+  }
+
+  .thumbnailList {
+    @apply flex;
+    @apply overflow-x-auto;
+    @apply overflow-y-hidden;
+    @apply w-full;
+    @apply pl-5;
+    @apply py-3;
+    @apply border-t;
+    @apply border-b;
+    @apply border-gray-700;
+
+    .thumbnailBox {
+      @apply flex-none;
+      @apply h-24;
+      @apply w-24;
+      @apply mr-3;
+      @apply overflow-hidden;
+      @apply cursor-pointer;
+      @apply relative;
+
+      .delete {
+        @apply absolute;
+        @apply top-0;
+        @apply right-0;
+        @apply hidden;
+      }
+      &:hover .delete {
+        @apply block;
+      }
+    }
+  }
+
+  .domain-icon {
+    background-size: contain;
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    vertical-align: text-bottom;
+    @apply mr-1;
+
+    &.medium {
+      width: 1.2rem;
+      height: 1.2rem;
+    }
+    &.no-margin {
+      margin: 0;
+    }
+    &.source-url {
+      max-width: 2rem;
+      max-height: 1rem;
+      width: auto;
+
+      img {
+        height: 1rem;
+      }
+    }
+  }
+
+  .market-form {
+    button.connect-button {
+      @apply text-white;
+      @apply px-4;
+      @apply py-2;
+      @apply my-1;
+      @apply rounded;
+      @apply w-40;
+
+      &:focus {
+        @apply outline-none;
+        @apply shadow-outline;
+      }
+
+      &[data-validate=""] {
+        @apply bg-blue-500;
+
+        &:hover {
+          @apply bg-blue-700;
+        }
+      }
+
+      &[data-validate="ok"] {
+        @apply bg-green-500;
+
+        &:hover {
+          @apply bg-green-700;
+        }
+      }
+    }
+
+    .market-toggle {
+      &[data-active="true"] {
+        @apply block;
+      }
+      &[data-active="false"] {
+        @apply hidden;
+      }
+    }
+  }
+
+  .place-container {
+    .cards {
+      p {
+        @apply text-xs;
+        @apply overflow-hidden;
+        @apply overflow-ellipsis;
+        @apply whitespace-nowrap;
+      }
+    }
+  }
+
+  select.select {
+    @apply block;
+    @apply appearance-none;
+    @apply w-full;
+    @apply bg-gray-200;
+    @apply border;
+    @apply border-gray-500;
+    @apply text-gray-700;
+    @apply py-2;
+    @apply pl-3;
+    @apply pr-8;
+    @apply rounded;
+    @apply leading-snug;
+    @apply focus:outline-none;
+    @apply focus:bg-white;
+    @apply focus:border-gray-500;
+  }
+
+  #searchContainer {
+    @apply flex;
+    @apply space-x-1;
+
+    button {
+      @apply px-4;
+      @apply py-2;
+      @apply rounded;
+    }
+  }
+
+  .blockcover {
+    background: rgba(160, 174, 192, 0.75); // bg-gray-500 with 75% opacity
+    transition: opacity 0.15s ease-out;
+    @apply flex;
+    @apply absolute;
+    @apply inset-0;
+    @apply rounded;
+    @apply rounded-t-none;
+    @apply text-center;
+    @apply items-center;
+    @apply justify-center;
+    @apply opacity-0;
+    @apply pointer-events-none;
+    @apply z-30;
+  }
+
+  .blockcover[data-status="block"] {
+    @apply opacity-100;
+    @apply pointer-events-auto;
+  }
+
+  .billing-history table {
+    tbody {
+      td:not(:first-child) {
+        @apply text-center;
+      }
+
+      td {
+        @apply px-4;
+        @apply py-2;
+      }
+
+      tr:not(:last-child) {
+        @apply border-b;
+      }
+
+      tr {
+        @apply border-gray-200;
+
+        .status-capsule {
+          @apply font-bold;
+
+          &[data-status="승인대기중"] {
+            @apply bg-purple-200;
+            @apply text-purple-600;
+          }
+          &[data-status="승인완료"] {
+            @apply bg-blue-200;
+            @apply text-blue-600;
+          }
+          &[data-status="결제취소"] {
+            @apply bg-red-200;
+            @apply text-red-600;
+          }
+          &[data-status="결제거절"] {
+            @apply bg-red-200;
+            @apply text-red-600;
+          }
+        }
+      }
+    }
+  }
+
+  .point-history table {
+    tbody {
+      tr:not(:last-child) {
+        @apply border-b;
+      }
+    }
+  }
+
+  .my-plan {
+    .usage-table {
+      @apply relative;
+      @apply flex;
+      @apply flex-col;
+      @apply min-w-0;
+      @apply mb-4;
+      @apply lg:mb-0;
+      @apply break-words;
+      @apply w-full;
+      @apply rounded;
+      @apply shadow;
+    }
+
+    table {
+      @apply table-fixed;
+      @apply items-center;
+      @apply w-full;
+      @apply bg-transparent;
+      @apply border-collapse;
+
+      th {
+        @apply px-4;
+        @apply bg-gray-100;
+
+        @apply align-middle;
+        @apply border;
+        @apply border-solid;
+        @apply border-gray-200;
+        @apply py-3;
+
+        @apply border-l-0;
+        @apply border-r-0;
+        @apply whitespace-nowrap;
+
+        @apply rounded-lg;
+        @apply text-sm;
+        @apply font-bold;
+        @apply text-gray-700;
+      }
+
+      td {
+        @apply border-t-0;
+        @apply px-4;
+        @apply align-middle;
+        @apply border-l-0;
+        @apply border-r-0;
+        @apply text-xs;
+        @apply whitespace-nowrap;
+        @apply p-4;
+      }
+
+      td .percent-bar {
+        @apply shadow-none;
+        @apply flex;
+        @apply flex-col;
+        @apply text-center;
+        @apply whitespace-nowrap;
+        @apply text-white;
+        @apply justify-center;
+      }
+    }
+  }
+
+  span.plan-capsule {
+    @apply inline-block;
+    @apply rounded-full;
+    @apply text-white;
+    @apply text-xs;
+    @apply font-bold;
+    @apply mr-2;
+    @apply px-3;
+    @apply py-1;
+    @apply opacity-100;
+
+    &[data-plan="1"] {
+      @apply bg-red-500;
+    }
+    &[data-plan="2"] {
+      @apply bg-green-500;
+    }
+    &[data-plan="3"] {
+      @apply bg-blue-500;
+    }
+    &[data-plan="4"] {
+      @apply bg-purple-500;
+    }
+    &[data-plan="5"] {
+      @apply bg-green-500;
+    }
+    &[data-plan="6"] {
+      @apply bg-purple-500;
+    }
+  }
+
+  .notice-contents {
+    p {
+      @apply mb-2;
+    }
+
+    a {
+      color: -webkit-link;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+  }
+
+  .shortcut-key {
+    @apply bg-gray-800;
+    @apply rounded;
+    @apply shadow;
+    @apply py-1;
+    @apply px-2;
+    @apply font-bold;
+  }
+
+  .content-visible {
+    content-visibility: visible;
+  }
+
+  .content-hidden {
+    content-visibility: hidden;
+  }
+
+  div.preview-image-container {
+    @apply bg-white;
+    @apply p-1;
+    @apply z-50;
+
+    @apply absolute;
+
+    @apply border;
+    @apply border-gray-400;
+    @apply text-black;
+    @apply no-underline;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    width: 545px;
+    height: 545px;
+
+    img {
+      @apply border-0;
+      @apply p-1;
+      @apply w-full;
+      @apply h-full;
+      @apply object-contain;
+      // margin: 0 auto;
+    }
+  }
+
+  span.market-validation-message {
+    @apply text-green-600;
+
+    &.invalid {
+      @apply text-red-600;
+    }
+  }
+
+  .category-loading {
+    input {
+      @apply cursor-wait;
+    }
+  }
+
+  input:checked ~ label {
+    color: white;
+    @apply bg-blue-500;
+    @apply hover:bg-blue-700;
+  }
+
+  input:checked:disabled ~ label {
+    color: white;
+    @apply bg-gray-500;
+  }
+
+  .nav-spliter {
+    @apply my-2;
+    // @apply border;
+    // @apply border-gray-600;
+    @apply w-full;
+  }
+
+  .animate-shaking {
+    animation: horizontal-shaking 0.2s linear infinite;
+  }
+
+  @keyframes horizontal-shaking {
+    0% {
+      transform: translateX(0);
+    }
+
+    25% {
+      transform: translateX(5px);
+    }
+
+    50% {
+      transform: translateX(-5px);
+    }
+
+    75% {
+      transform: translateX(5px);
+    }
+
+    100% {
+      transform: translateX(0);
+    }
+  }
+
+  .listing-select-button {
+    @apply rounded;
+    @apply w-20;
+    @apply h-20;
+    @apply border;
+    @apply border-gray-200;
+    @apply bg-gray-100;
+    &:hover {
+      @apply shadow-md;
+    }
+  }
+
+  .scroll-top {
+    @apply transition;
+    @apply shadow-sm;
+    @apply fixed;
+    @apply p-2;
+    @apply bg-white;
+    @apply rounded-3xl;
+    @apply border;
+    @apply border-gray-200;
+    @apply right-11;
+    bottom: 120px;
+  }
+
+  .sortable-ghost {
+    @apply opacity-50;
+    @apply bg-blue-400;
+  }
+}

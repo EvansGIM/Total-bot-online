@@ -1,0 +1,99 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+@import "./fonts.scss";
+
+body {
+    font-family: "Spoqa Han Sans Neo", sans-serif;
+    word-break: keep-all;
+    @apply flex;
+}
+
+#root {
+    @apply w-full;
+}
+
+.product-name {
+    font-family: "Nanum Gothic", sans-serif;
+    font-weight: bold;
+}
+
+.plan-card {
+    @apply p-4;
+    @apply md:p-8;
+    @apply border-2;
+    @apply md:border;
+    @apply border-blue-100;
+    @apply md:shadow-md;
+    @apply rounded-lg;
+    @apply bg-white;
+
+    a.button {
+        @apply border;
+        @apply rounded-lg;
+        @apply block;
+        @apply text-center;
+        @apply py-3;
+        @apply px-5;
+        @apply lg:px-8;
+        @apply font-bold;
+        @apply mb-8;
+        @apply text-base;
+    }
+}
+
+.gradient-button {
+    @apply bg-gradient-to-br;
+    @apply from-blue-500;
+    @apply to-blue-700;
+    @apply hover:from-blue-400;
+    @apply hover:to-blue-700;
+    @apply text-white;
+    &:disabled {
+        @apply opacity-50;
+        @apply bg-gray-600
+    };
+
+    &.gradient-red {
+        @apply from-red-500;
+        @apply to-red-700;
+        @apply hover:from-red-400;
+        @apply hover:to-red-700;
+    }
+}
+
+.plan-card:hover {
+    @apply p-4;
+    @apply md:p-8;
+    @apply border-2;
+    @apply md:border;
+    @apply border-blue-100;
+    @apply md:shadow-2xl;
+    @apply rounded-lg;
+    @apply bg-white;
+
+    @apply md:transform;
+    @apply md:transition-all;
+    @apply md:duration-500;
+}
+
+.confirm-card {
+    @apply shadow-lg;
+    @apply rounded-md;
+    @apply border;
+    @apply border-gray-300;
+    @apply bg-white;
+
+    &:not(.divide) {
+        @apply p-4;
+    }
+    &.divide {
+        @apply divide-y;
+        @apply divide-gray-400;
+
+        > div {
+            @apply p-4;
+        }
+    }
+}

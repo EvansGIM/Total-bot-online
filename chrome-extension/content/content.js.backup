@@ -1,0 +1,190 @@
+/**
+ * TotalBot Content Script (완전 구현)
+ * - 1688, 쿠팡, 알리익스프레스 상품 크롤링
+ * - 웹페이지 DOM 직접 조작
+ */
+
+import { crawl1688Product } from './crawlers/1688.js';
+import { crawlCoupangProduct } from './crawlers/coupang.js';
+import { crawlAliexpressProduct } from './crawlers/aliexpress.js';
+
+console.log('[TotalBot] Content Script 로드됨:', window.location.href);
+
+// 현재 페이지 유형 감지
+function detectPageType() {
+  const url = window.location.href;
+  const hostname = window.location.hostname;
+
+  if (hostname.includes('1688.com')) {
+    if (url.includes('/offer/') || url.includes('detail.1688.com')) {
+      return '1688-product';
+    }
+    return '1688-other';
+  } else if (hostname.includes('coupang.com')) {
+    if (url.includes('/vp/products/')) {
+      return 'coupang-product';
+    }
+    return 'coupang-other';
+  } else if (hostname.includes('aliexpress.com')) {
+    if (url.includes('/item/')) {
+      return 'aliexpress-product';
+    }
+    return 'aliexpress-other';
+  }
+
+  return 'unknown';
+}
+
+// Background Script로부터 메시지 수신
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('[Content] 메시지 수신:', request.action);
+
+  if (request.action === 'extractProductData') {
+    handleExtractProductData(sendResponse);
+    return true; // 비동기 응답
+  }
+
+  return false;
+});
+
+// 상품 데이터 추출 핸들러
+async function handleExtractProductData(sendResponse) {
+  try {
+    const pageType = detectPageType();
+    console.log('[Content] 페이지 유형:', pageType);
+
+    let result = null;
+
+    switch (pageType) {
+      case '1688-product':
+        result = await crawl1688Product();
+        break;
+
+      case 'coupang-product':
+        result = await crawlCoupangProduct();
+        break;
+
+      case 'aliexpress-product':
+        result = await crawlAliexpressProduct();
+        break;
+
+      default:
+        sendResponse({
+          success: false,
+          error: '지원하지 않는 페이지입니다. 상품 페이지에서 실행해주세요.'
+        });
+        return;
+    }
+
+    if (result && result.results && result.results.length > 0) {
+      console.log('[Content] 데이터 추출 성공:', result.results.length, '개');
+
+      sendResponse({
+        success: true,
+        data: result,
+        pageType: pageType
+      });
+    } else {
+      sendResponse({
+        success: false,
+        error: '데이터를 추출할 수 없습니다.'
+      });
+    }
+
+  } catch (error) {
+    console.error('[Content] 추출 오류:', error);
+    sendResponse({
+      success: false,
+      error: error.message || '알 수 없는 오류가 발생했습니다.'
+    });
+  }
+}
+
+// 페이지 로드 완료 후 자동 감지
+window.addEventListener('load', () => {
+  const pageType = detectPageType();
+  console.log('[TotalBot] 페이지 유형 감지:', pageType);
+
+  // 상품 페이지면 아이콘 표시 (선택사항)
+  if (pageType.includes('product')) {
+    console.log('[TotalBot] 상품 페이지 감지됨 - 크롤링 가능');
+
+    // 페이지에 표시기 추가 (선택사항)
+    showCrawlIndicator();
+  }
+});
+
+// 크롤링 가능 표시기 (선택사항)
+function showCrawlIndicator() {
+  // 이미 표시기가 있으면 리턴
+  if (document.querySelector('#totalbot-indicator')) return;
+
+  const indicator = document.createElement('div');
+  indicator.id = 'totalbot-indicator';
+  indicator.innerHTML = '🤖 TotalBot';
+  indicator.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 999999;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Nanum Gothic', sans-serif;
+  `;
+
+  indicator.addEventListener('mouseenter', () => {
+    indicator.style.transform = 'scale(1.05)';
+    indicator.style.boxShadow = '0 6px 16px rgba(0,0,0,0.2)';
+  });
+
+  indicator.addEventListener('mouseleave', () => {
+    indicator.style.transform = 'scale(1)';
+    indicator.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+  });
+
+  indicator.addEventListener('click', async () => {
+    indicator.innerHTML = '⏳ 수집 중...';
+    indicator.style.pointerEvents = 'none';
+
+    try {
+      const response = await new Promise((resolve) => {
+        chrome.runtime.sendMessage(
+          { action: 'extractProductData' },
+          resolve
+        );
+      });
+
+      if (response && response.success) {
+        indicator.innerHTML = '✅ 완료!';
+        setTimeout(() => {
+          indicator.innerHTML = '🤖 TotalBot';
+          indicator.style.pointerEvents = 'auto';
+        }, 2000);
+      } else {
+        indicator.innerHTML = '❌ 실패';
+        setTimeout(() => {
+          indicator.innerHTML = '🤖 TotalBot';
+          indicator.style.pointerEvents = 'auto';
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('크롤링 오류:', error);
+      indicator.innerHTML = '❌ 오류';
+      setTimeout(() => {
+        indicator.innerHTML = '🤖 TotalBot';
+        indicator.style.pointerEvents = 'auto';
+      }, 2000);
+    }
+  });
+
+  document.body.appendChild(indicator);
+}
+
+console.log('[TotalBot] Content Script 준비 완료');
