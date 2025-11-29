@@ -5,6 +5,20 @@
 
 console.log('🔌 Localhost Content Script 로드됨');
 
+// Extension ID를 페이지에 알림 (TotalbotExtensionReady 이벤트 발생)
+const extensionId = chrome.runtime.id;
+console.log('📌 Extension ID:', extensionId);
+
+// localStorage에 저장
+localStorage.setItem('totalbotExtensionId', extensionId);
+
+// CustomEvent로 페이지에 알림
+window.dispatchEvent(new CustomEvent('TotalbotExtensionReady', {
+  detail: { extensionId: extensionId }
+}));
+
+console.log('✅ TotalbotExtensionReady 이벤트 발생됨');
+
 // Background script로부터 메시지를 받아 페이지로 전달
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('📨 Content script received from background:', message);
