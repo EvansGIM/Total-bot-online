@@ -21,11 +21,13 @@
     "https://*.1688.com/*",
     "https://*.aliexpress.com/*",
     "https://*.aliexpress.us/*",
-    "http://localhost:5001/*"
+    "http://localhost:5001/*",
+    "https://totalbot.cafe24.com/*"
   ],
   "externally_connectable": {
     "matches": [
-      "http://localhost:5001/*"
+      "http://localhost:5001/*",
+      "https://totalbot.cafe24.com/*"
     ]
   },
   "background": {
@@ -148,7 +150,8 @@
     },
     {
       "matches": [
-        "http://localhost:5001/*"
+        "http://localhost:5001/*",
+        "https://totalbot.cafe24.com/node-api/*"
       ],
       "js": ["content/content-localhost.js"],
       "run_at": "document_end"

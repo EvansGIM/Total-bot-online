@@ -4,6 +4,9 @@
  * - 데이터 추출 헬퍼
  */
 
+// 서버 URL 설정
+const SERVER_URL = 'https://totalbot.cafe24.com/node-api';
+
 // 이미지 URL 정리 (Python _clean_img 함수 포팅)
 function cleanImageUrl(url) {
   if (!url) return '';
@@ -2838,7 +2841,7 @@ function showCrawlIndicator() {
         console.log('[TotalBot] 수집 성공:', result.results.length, '개');
 
         // 서버로 데이터 전송
-        const response = await fetch('http://localhost:5001/api/products/save', {
+        const response = await fetch(`${SERVER_URL}/api/products/save`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(result)

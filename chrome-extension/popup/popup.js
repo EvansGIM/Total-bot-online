@@ -2,6 +2,9 @@
  * TotalBot Popup UI Script
  */
 
+// 서버 URL 설정
+const SERVER_URL = 'https://totalbot.cafe24.com/node-api';
+
 // DOM 요소
 const loginScreen = document.getElementById('login-screen');
 const mainScreen = document.getElementById('main-screen');
@@ -244,7 +247,7 @@ editImagesBtn.addEventListener('click', async () => {
     }
 
     // 새 창에서 이미지 편집 페이지 열기
-    const url = `http://localhost:5001/image-editor.html?productId=${products[0].id || 'latest'}`;
+    const url = `${SERVER_URL}/image-editor.html?productId=${products[0].id || 'latest'}`;
     chrome.tabs.create({ url });
 
     crawlStatus.innerHTML = '<p class="success">✅ 이미지 편집 페이지를 열었습니다.</p>';
@@ -267,7 +270,7 @@ editOptionsBtn.addEventListener('click', async () => {
     }
 
     // 새 창에서 옵션명 편집 페이지 열기
-    const url = `http://localhost:5001/option-editor.html?productId=${products[0].id || 'latest'}`;
+    const url = `${SERVER_URL}/option-editor.html?productId=${products[0].id || 'latest'}`;
     chrome.tabs.create({ url });
 
     crawlStatus.innerHTML = '<p class="success">✅ 옵션명 편집 페이지를 열었습니다.</p>';
@@ -493,7 +496,7 @@ async function loadProductList() {
   try {
     productListEl.innerHTML = '<div class="loading">상품 목록 로딩 중...</div>';
 
-    const response = await fetch('http://localhost:5001/api/products/list');
+    const response = await fetch(`${SERVER_URL}/api/products/list`);
     const data = await response.json();
 
     if (data.success && data.products) {
@@ -598,6 +601,6 @@ function renderProductList() {
 
 // 상품 상세 페이지 열기
 function openProductDetail(productId) {
-  const url = `http://localhost:5001/image-editor.html?productId=${productId}`;
+  const url = `${SERVER_URL}/image-editor.html?productId=${productId}`;
   chrome.tabs.create({ url });
 }

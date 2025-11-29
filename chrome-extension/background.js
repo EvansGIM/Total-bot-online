@@ -7,6 +7,9 @@
 importScripts('lib/jszip.min.js');
 importScripts('lib/xlsx.full.min.js');
 
+// 서버 URL 설정
+const SERVER_URL = 'https://totalbot.cafe24.com/node-api';
+
 console.log('🚀 TotalBot Background Script loaded');
 console.log('✅ JSZip loaded:', typeof JSZip);
 console.log('✅ SheetJS loaded:', typeof XLSX);
@@ -104,7 +107,7 @@ async function checkUploadedProductsApproval() {
     console.log('========================================');
 
     // 1. 서버에서 uploaded 상태 상품 목록 가져오기
-    const response = await fetch('http://localhost:5001/api/products/list');
+    const response = await fetch('${SERVER_URL}/api/products/list');
     if (!response.ok) {
       console.log('⚠️ 서버 연결 실패, 다음 주기에 재시도');
       return;
@@ -264,7 +267,7 @@ async function findCoupangTab() {
  */
 async function updateProductsToApproved(productIds) {
   try {
-    const response = await fetch('http://localhost:5001/api/products/batch-status', {
+    const response = await fetch('${SERVER_URL}/api/products/batch-status', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -278,7 +281,7 @@ async function updateProductsToApproved(productIds) {
 
       // 각 상품에 approvedAt 추가
       for (const productId of productIds) {
-        await fetch(`http://localhost:5001/api/products/${productId}`, {
+        await fetch(`${SERVER_URL}/api/products/${productId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -472,7 +475,7 @@ async function updateProductsSkuStatus(productIds, statusResult) {
 
     // 각 상품에 SKU 상태 업데이트
     for (const productId of productIds) {
-      await fetch(`http://localhost:5001/api/products/${productId}`, {
+      await fetch(`${SERVER_URL}/api/products/${productId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -506,10 +509,10 @@ startApprovalChecker();
 
 // localhost 탭에 자동으로 content script 주입
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  // 탭이 완전히 로드되고, localhost:5001이며, 아직 주입하지 않았을 때
+  // 탭이 완전히 로드되고, totalbot.cafe24.com/node-api이며, 아직 주입하지 않았을 때
   if (changeInfo.status === 'complete' &&
       tab.url &&
-      tab.url.startsWith('http://localhost:5001/') &&
+      tab.url.startsWith('http://totalbot.cafe24.com/node-api/') &&
       !injectedTabs.has(tabId)) {
 
     console.log('🔧 Injecting content script to localhost tab:', tabId);
@@ -1134,7 +1137,7 @@ async function handleFillQuotationExcels(data) {
       try {
         const allTabs = await chrome.tabs.query({});
         const localhostTab = allTabs.find(tab =>
-          tab.url && tab.url.includes('localhost:5001')
+          tab.url && tab.url.includes('totalbot.cafe24.com/node-api')
         );
 
         if (localhostTab) {
@@ -1757,7 +1760,7 @@ async function handleFillQuotationExcels(data) {
       console.log(`   📤 셀 업데이트: ${cellUpdates.length}개`);
 
       // 서버 API 호출
-      const response = await fetch('http://localhost:5001/api/quote/edit-excel', {
+      const response = await fetch('${SERVER_URL}/api/quote/edit-excel', {
         method: 'POST',
         body: formData
       });
@@ -1860,7 +1863,7 @@ async function handleFillQuotationExcels(data) {
     }
 
     try {
-      const response = await fetch('http://localhost:5001/api/products/generate-images', {
+      const response = await fetch('${SERVER_URL}/api/products/generate-images', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -2140,7 +2143,7 @@ async function handleFillQuotationExcels(data) {
             console.log('📊 상품 상태 업데이트 중...', productIds.length, '개');
 
             // 일괄 상태 변경 API 호출
-            const statusResponse = await fetch('http://localhost:5001/api/products/batch-status', {
+            const statusResponse = await fetch('${SERVER_URL}/api/products/batch-status', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -2155,7 +2158,7 @@ async function handleFillQuotationExcels(data) {
 
             // 각 상품에 quoteId 저장
             for (const productId of productIds) {
-              await fetch(`http://localhost:5001/api/products/${productId}`, {
+              await fetch(`${SERVER_URL}/api/products/${productId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -2184,7 +2187,7 @@ async function handleFillQuotationExcels(data) {
         // 3초 후 모달 닫기
         await new Promise(resolve => setTimeout(resolve, 3000));
         const allTabs = await chrome.tabs.query({});
-        const localhostTab = allTabs.find(tab => tab.url && tab.url.includes('localhost:5001'));
+        const localhostTab = allTabs.find(tab => tab.url && tab.url.includes('totalbot.cafe24.com/node-api'));
         if (localhostTab) {
           await chrome.tabs.sendMessage(localhostTab.id, {
             action: 'closeProgressModal'
@@ -2198,7 +2201,7 @@ async function handleFillQuotationExcels(data) {
 
         // 반려 정보를 localhost 탭에 전송
         const allTabs = await chrome.tabs.query({});
-        const localhostTab = allTabs.find(tab => tab.url && tab.url.includes('localhost:5001'));
+        const localhostTab = allTabs.find(tab => tab.url && tab.url.includes('totalbot.cafe24.com/node-api'));
         if (localhostTab) {
           await chrome.tabs.sendMessage(localhostTab.id, {
             action: 'showRejectedModal',
@@ -2223,7 +2226,7 @@ async function handleFillQuotationExcels(data) {
           if (productIds.length > 0) {
             console.log('📊 상품 상태 업데이트 중 (pending)...', productIds.length, '개');
 
-            await fetch('http://localhost:5001/api/products/batch-status', {
+            await fetch('${SERVER_URL}/api/products/batch-status', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -2233,7 +2236,7 @@ async function handleFillQuotationExcels(data) {
             });
 
             for (const productId of productIds) {
-              await fetch(`http://localhost:5001/api/products/${productId}`, {
+              await fetch(`${SERVER_URL}/api/products/${productId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -2252,7 +2255,7 @@ async function handleFillQuotationExcels(data) {
 
         // 검증 진행 중 정보를 localhost 탭에 전송
         const allTabs = await chrome.tabs.query({});
-        const localhostTab = allTabs.find(tab => tab.url && tab.url.includes('localhost:5001'));
+        const localhostTab = allTabs.find(tab => tab.url && tab.url.includes('totalbot.cafe24.com/node-api'));
         if (localhostTab) {
           await chrome.tabs.sendMessage(localhostTab.id, {
             action: 'showPendingModal',
@@ -2267,7 +2270,7 @@ async function handleFillQuotationExcels(data) {
 
         // 실패 정보를 localhost 탭에 전송 (수동 업로드 옵션 제공)
         const allTabs = await chrome.tabs.query({});
-        const localhostTab = allTabs.find(tab => tab.url && tab.url.includes('localhost:5001'));
+        const localhostTab = allTabs.find(tab => tab.url && tab.url.includes('totalbot.cafe24.com/node-api'));
         if (localhostTab) {
           await chrome.tabs.sendMessage(localhostTab.id, {
             action: 'showUploadFailedModal',
