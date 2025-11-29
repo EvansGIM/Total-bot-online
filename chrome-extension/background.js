@@ -1294,12 +1294,41 @@ async function handleFillQuotationExcels(data) {
     // 데이터 준비 완료
     await updateProgress('prepare', 'completed');
 
-    // 사이즈 차트 이미지 생성 (autoMappings에 포함되어 있으므로 항상 생성)
-    // Excel 헤더에 "사이즈차트 이미지 파일명"이 있으면 사용됨
-    globalSizeChartImages = []; // 초기화
-    console.log('   📐 사이즈 차트 이미지 생성 중...');
+    // Excel 헤더 스캔하여 사이즈차트 이미지 필요 여부 확인
+    let needsSizeChart = false;
+    console.log('   🔍 Excel 헤더 스캔 중...');
 
-    {
+    for (const fileInfo of filesData) {
+      const excelData = excelDataStore[fileInfo.dataIndex];
+      if (!excelData) continue;
+
+      const workbook = XLSX.read(excelData.arrayBuffer, { type: 'array' });
+      const sheetName = workbook.SheetNames[1]; // 2번째 시트
+      if (!sheetName) continue;
+
+      const worksheet = workbook.Sheets[sheetName];
+
+      // 5행 헤더만 빠르게 스캔
+      for (let col = 0; col < 100; col++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: 4, c: col }); // 5행 = index 4
+        const cell = worksheet[cellAddress];
+        if (cell && cell.v) {
+          const headerName = String(cell.v).trim();
+          if (headerName === '사이즈차트 이미지 파일명') {
+            needsSizeChart = true;
+            console.log(`   ✅ 사이즈차트 헤더 발견: ${fileInfo.filename}`);
+            break;
+          }
+        }
+      }
+      if (needsSizeChart) break;
+    }
+
+    // 사이즈 차트 이미지 생성 (헤더에 있을 때만)
+    globalSizeChartImages = []; // 초기화
+
+    if (needsSizeChart) {
+      console.log('   📐 사이즈 차트 이미지 생성 중...');
 
       try {
         const sizeChartResponse = await authFetch(`${SERVER_URL}/api/size-chart/generate-batch`, {
@@ -1336,6 +1365,8 @@ async function handleFillQuotationExcels(data) {
       } catch (sizeChartError) {
         console.error('   ❌ 사이즈 차트 생성 오류:', sizeChartError);
       }
+    } else {
+      console.log('   📐 사이즈차트 헤더 없음 - 이미지 생성 스킵');
     }
 
     // Excel 파일 작성 시작
