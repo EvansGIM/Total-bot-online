@@ -3785,6 +3785,14 @@ async function handleCollectCoupangPrices(keyword, options = {}) {
     // 시크릿 모드로 열기 옵션
     if (options.incognito) {
       try {
+        // 먼저 시크릿 모드 허용 여부 확인
+        const isAllowedIncognito = await chrome.extension.isAllowedIncognitoAccess();
+        console.log('🔒 시크릿 모드 허용 여부:', isAllowedIncognito);
+
+        if (!isAllowedIncognito) {
+          throw new Error('시크릿 모드가 허용되지 않았습니다. 확장 프로그램 설정에서 "시크릿 모드에서 허용"을 켜주세요.');
+        }
+
         // 시크릿 윈도우 생성
         const newWindow = await chrome.windows.create({
           url: searchUrl,
@@ -3793,9 +3801,11 @@ async function handleCollectCoupangPrices(keyword, options = {}) {
           state: 'minimized'
         });
 
+        console.log('🔒 시크릿 윈도우 생성 결과:', newWindow);
+
         // window 자체가 null인지 확인
         if (!newWindow || !newWindow.id) {
-          throw new Error('시크릿 윈도우를 생성할 수 없습니다.');
+          throw new Error('시크릿 윈도우를 생성할 수 없습니다. (newWindow: ' + JSON.stringify(newWindow) + ')');
         }
 
         incognitoWindow = newWindow.id;
