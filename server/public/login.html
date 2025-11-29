@@ -383,9 +383,9 @@
 
         // 이미 로그인된 경우 리다이렉트
         document.addEventListener('DOMContentLoaded', function() {
-            const userInfo = localStorage.getItem('userInfo');
-            if (userInfo) {
-                window.location.href = 'order-list.html';
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                window.location.href = 'products.html';
             }
         });
 
@@ -404,31 +404,27 @@
             hideMessages();
 
             try {
-                const response = await fetch('/proxy/login', {
+                const response = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ username, password }),
-                    credentials: 'include'
+                    body: JSON.stringify({ username, password })
                 });
 
-                if (response.ok) {
-                    const data = await response.json();
+                const data = await response.json();
 
-                    localStorage.setItem('username', username);
-                    localStorage.setItem('password', password);
-
-                    await fetchUserInfo();
+                if (data.success && data.token) {
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('userInfo', JSON.stringify(data.user));
 
                     showSuccess('로그인 성공!');
 
                     setTimeout(() => {
-                        window.location.href = 'order-list.html';
+                        window.location.href = 'products.html';
                     }, 500);
                 } else {
-                    const errorData = await response.json().catch(() => ({}));
-                    showError(errorData.message || '로그인 실패: 아이디/비밀번호를 확인하세요.');
+                    showError(data.error || '로그인 실패: 아이디/비밀번호를 확인하세요.');
                 }
             } catch (error) {
                 console.error('Login error:', error);

@@ -1611,8 +1611,58 @@
 
   <script>
     // 버전 확인용 (브라우저 캐시 확인)
-    console.log('🔄 TotalBot Products 버전: 2025-11-27-v4-SIDEBAR (사이드바 추가)');
+    console.log('🔄 TotalBot Products 버전: 2025-11-29-v5-AUTH (인증 추가)');
     console.log('✅ 최신 버전이 로드되었습니다.');
+
+    // ===== 인증 관련 함수 =====
+    function getAuthToken() {
+      return localStorage.getItem('authToken');
+    }
+
+    function getUserInfo() {
+      const info = localStorage.getItem('userInfo');
+      return info ? JSON.parse(info) : null;
+    }
+
+    function checkAuth() {
+      const token = getAuthToken();
+      if (!token) {
+        // 로그인 페이지로 리다이렉트
+        window.location.href = '/login.html';
+        return false;
+      }
+      return true;
+    }
+
+    async function authFetch(url, options = {}) {
+      const token = getAuthToken();
+      if (!token) {
+        window.location.href = '/login.html';
+        throw new Error('로그인이 필요합니다.');
+      }
+
+      const headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`
+      };
+
+      const response = await fetch(url, { ...options, headers });
+
+      // 401 에러면 로그인 페이지로
+      if (response.status === 401) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userInfo');
+        window.location.href = '/login.html';
+        throw new Error('세션이 만료되었습니다.');
+      }
+
+      return response;
+    }
+
+    // 페이지 로드 시 인증 체크
+    if (!checkAuth()) {
+      throw new Error('인증 필요');
+    }
 
     // 사이드바 토글 함수
     function toggleSidebar() {
@@ -1657,7 +1707,7 @@
         showToast('승인 상태 확인 중...', 'info');
 
         // 업로드됨 상태의 상품 목록 가져오기
-        const response = await fetch('/api/products/list');
+        const response = await authFetch('/api/products/list');
         const data = await response.json();
 
         if (!data.success) {
@@ -2014,9 +2064,7 @@
     // 상품 목록 불러오기 (수집 상품만)
     async function loadProducts() {
       try {
-        const response = await fetch('/api/products/list', {
-          credentials: 'include'
-        });
+        const response = await authFetch('/api/products/list');
 
         if (!response.ok) {
           throw new Error('상품 목록을 불러올 수 없습니다.');
@@ -2232,9 +2280,8 @@
       }
 
       try {
-        const response = await fetch(`/api/products/${id}`, {
-          method: 'DELETE',
-          credentials: 'include'
+        const response = await authFetch(`/api/products/${id}`, {
+          method: 'DELETE'
         });
 
         if (response.ok) {
@@ -2261,10 +2308,9 @@
       }
 
       try {
-        const response = await fetch('/api/products/batch-delete', {
+        const response = await authFetch('/api/products/batch-delete', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({ ids: Array.from(selectedProducts) })
         });
 
@@ -2997,9 +3043,7 @@
 
         for (const productId of selectedProducts) {
           try {
-            const response = await fetch(`/api/products/${productId}`, {
-              credentials: 'include'
-            });
+            const response = await authFetch(`/api/products/${productId}`);
 
             if (response.ok) {
               const data = await response.json();
