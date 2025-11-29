@@ -2542,58 +2542,56 @@
       ]
     };
 
-    // 설정 로드 (서버 API에서 유저별 설정 가져오기)
+    // 설정 로드 (서버 + localStorage 혼합)
+    // - quotationMappings: 서버에서 유저별로 관리 (공유 컴퓨터에서도 유저별 분리)
+    // - coupangId, password 등: localStorage에서 관리 (보안상 서버 저장 X)
     async function loadSettings() {
-      // 기본값 백업 (settings 객체의 quotationMappings 기본값)
+      // 기본값 백업
       const defaultQuotationMappings = settings.quotationMappings;
 
-      // 1. 서버에서 유저별 설정 로드 시도
+      // 1. localStorage에서 기본 설정 로드 (coupangId, password, 가격설정 등)
+      const saved = localStorage.getItem('totalbotSettings');
+      if (saved) {
+        try {
+          const savedSettings = JSON.parse(saved);
+          // 기존 settings에 localStorage 값 병합
+          settings = { ...settings, ...savedSettings };
+          console.log('✅ Settings loaded from localStorage');
+        } catch (e) {
+          console.error('localStorage 설정 로드 실패:', e);
+        }
+      }
+
+      // 2. 서버에서 quotationMappings만 로드 (유저별 분리)
       try {
         const response = await authFetch('/api/settings');
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.settings) {
-            console.log('✅ Settings loaded from server API');
-
-            // 서버에서 가져온 견적서 매핑이 있으면 사용
+            // 서버에서 가져온 견적서 매핑이 있으면 사용 (localStorage 값 덮어쓰기)
             if (data.settings.quotationMappings && data.settings.quotationMappings.length > 0) {
               window.quotationMappings = data.settings.quotationMappings;
               settings.quotationMappings = data.settings.quotationMappings;
               console.log('📋 Loaded quotationMappings from server:', window.quotationMappings.length);
             } else {
-              window.quotationMappings = defaultQuotationMappings;
-              console.log('📋 Using default quotationMappings (server empty):', window.quotationMappings.length);
-            }
-
-            // 기타 설정도 병합
-            if (data.settings.priceSettings) {
-              settings.priceSettings = data.settings.priceSettings;
+              // 서버에 없으면 localStorage 또는 기본값 사용
+              window.quotationMappings = (settings.quotationMappings && settings.quotationMappings.length > 0)
+                ? settings.quotationMappings
+                : defaultQuotationMappings;
+              console.log('📋 Using quotationMappings from localStorage/default:', window.quotationMappings.length);
             }
             return;
           }
         }
       } catch (e) {
-        console.warn('서버 설정 로드 실패, localStorage fallback:', e);
+        console.warn('서버 설정 로드 실패:', e);
       }
 
-      // 2. Fallback to localStorage (오프라인 또는 서버 오류 시)
-      const saved = localStorage.getItem('totalbotSettings');
-      if (saved) {
-        try {
-          const savedSettings = JSON.parse(saved);
-          settings = { ...settings, ...savedSettings };
-          window.quotationMappings = (settings.quotationMappings && settings.quotationMappings.length > 0)
-            ? settings.quotationMappings
-            : defaultQuotationMappings;
-          console.log('📋 Loaded quotationMappings from localStorage:', window.quotationMappings.length);
-        } catch (e) {
-          console.error('설정 로드 실패:', e);
-          window.quotationMappings = defaultQuotationMappings;
-        }
-      } else {
-        window.quotationMappings = defaultQuotationMappings;
-        console.log('📋 Using default quotationMappings:', window.quotationMappings.length);
-      }
+      // 3. 서버 연결 실패 시 localStorage/기본값 사용
+      window.quotationMappings = (settings.quotationMappings && settings.quotationMappings.length > 0)
+        ? settings.quotationMappings
+        : defaultQuotationMappings;
+      console.log('📋 Using quotationMappings (fallback):', window.quotationMappings.length);
     }
 
     // 설정 저장 (서버 API + localStorage 백업)
