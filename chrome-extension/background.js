@@ -591,6 +591,45 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('📨 Background received internal message:', message.action);
 
+  // TotalBot 로그인
+  if (message.action === 'login') {
+    (async () => {
+      try {
+        const { username, password } = message.data;
+        const response = await fetch(`${SERVER_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.token) {
+          // 토큰 저장
+          await chrome.storage.local.set({
+            authToken: data.token,
+            userInfo: data.user
+          });
+          sendResponse({ success: true, user: data.user });
+        } else {
+          sendResponse({ success: false, error: data.message || '로그인 실패' });
+        }
+      } catch (error) {
+        console.error('로그인 오류:', error);
+        sendResponse({ success: false, error: '서버 연결 실패' });
+      }
+    })();
+    return true;
+  }
+
+  // TotalBot 로그아웃
+  if (message.action === 'logout') {
+    chrome.storage.local.remove(['authToken', 'userInfo'], () => {
+      sendResponse({ success: true });
+    });
+    return true;
+  }
+
   if (message.action === 'uploadToCoupang') {
     incrementCoupangOperation();
     handleCoupangUpload(message.data)
