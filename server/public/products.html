@@ -4486,5 +4486,161 @@
     </div>
   </div>
 
+  <!-- 필수 칸 입력 모달 -->
+  <div id="requiredFieldModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10005; align-items: center; justify-content: center;">
+    <div class="coupang-modal-content" style="max-width: 550px; max-height: 80vh; overflow-y: auto;">
+      <div class="coupang-modal-header" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white;">
+        <h2 style="margin: 0; color: white;">⚠️ 필수 항목 값 필요</h2>
+        <button class="coupang-modal-close" onclick="closeRequiredFieldModal()" style="color: white;">×</button>
+      </div>
+      <div class="coupang-modal-body" style="padding: 25px;">
+        <p style="margin: 0 0 20px; font-size: 14px; color: #666;">
+          다음 필수 항목에 값이 설정되지 않았습니다. 값을 입력하면 설정에 자동 저장됩니다.
+        </p>
+
+        <div id="requiredFieldsList" style="margin-bottom: 20px;">
+          <!-- 동적으로 필수 칸 목록 추가됨 -->
+        </div>
+
+        <div style="display: flex; gap: 12px;">
+          <button onclick="cancelRequiredFields()" style="flex: 1; padding: 14px; background: #e0e0e0; color: #333; border: none; border-radius: 8px; font-size: 15px; cursor: pointer;">
+            취소
+          </button>
+          <button onclick="saveRequiredFields()" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #4caf50 0%, #43a047 100%); color: white; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; font-weight: 600;">
+            ✓ 저장 및 계속
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== 필수 칸 입력 모달 관련 =====
+    let pendingRequiredFields = [];
+    let requiredFieldCallback = null;
+
+    function showRequiredFieldModal(fields, callback) {
+      pendingRequiredFields = fields;
+      requiredFieldCallback = callback;
+
+      const container = document.getElementById('requiredFieldsList');
+      container.innerHTML = '';
+
+      fields.forEach((field, index) => {
+        const fieldDiv = document.createElement('div');
+        fieldDiv.style.cssText = 'background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 16px; margin-bottom: 12px;';
+
+        fieldDiv.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span style="font-weight: 600; color: #333; font-size: 14px;">📋 ${field.header}</span>
+            <span style="font-size: 12px; color: #888;">열 ${field.column}</span>
+          </div>
+          <div style="display: flex; gap: 8px; margin-bottom: 12px; font-size: 12px;">
+            <div style="flex: 1; background: #fff; padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+              <span style="color: #888;">7행:</span> <span style="color: #333;">${field.row7Value || '(비어있음)'}</span>
+            </div>
+            <div style="flex: 1; background: #fff; padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+              <span style="color: #888;">8행:</span> <span style="color: #333;">${field.row8Value || '(비어있음)'}</span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <select id="requiredFieldType_${index}" onchange="toggleRequiredFieldInput(${index})" style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; min-width: 120px;">
+              <option value="fixed">고정값</option>
+              <option value="option1">옵션1 값</option>
+              <option value="option2">옵션2 값</option>
+            </select>
+            <input
+              type="text"
+              id="requiredFieldValue_${index}"
+              placeholder="값을 입력하세요"
+              style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px;"
+            >
+          </div>
+        `;
+
+        container.appendChild(fieldDiv);
+      });
+
+      document.getElementById('requiredFieldModal').style.display = 'flex';
+    }
+
+    function toggleRequiredFieldInput(index) {
+      const typeSelect = document.getElementById(`requiredFieldType_${index}`);
+      const valueInput = document.getElementById(`requiredFieldValue_${index}`);
+
+      if (typeSelect.value === 'fixed') {
+        valueInput.style.display = 'block';
+        valueInput.placeholder = '고정값을 입력하세요';
+      } else if (typeSelect.value === 'option1') {
+        valueInput.style.display = 'none';
+      } else if (typeSelect.value === 'option2') {
+        valueInput.style.display = 'none';
+      }
+    }
+
+    function closeRequiredFieldModal() {
+      document.getElementById('requiredFieldModal').style.display = 'none';
+    }
+
+    function cancelRequiredFields() {
+      closeRequiredFieldModal();
+      if (requiredFieldCallback) {
+        requiredFieldCallback({ cancelled: true });
+        requiredFieldCallback = null;
+      }
+    }
+
+    function saveRequiredFields() {
+      const results = [];
+
+      pendingRequiredFields.forEach((field, index) => {
+        const typeSelect = document.getElementById(`requiredFieldType_${index}`);
+        const valueInput = document.getElementById(`requiredFieldValue_${index}`);
+
+        const type = typeSelect.value;
+        const value = type === 'fixed' ? valueInput.value.trim() : '';
+
+        if (type === 'fixed' && !value) {
+          alert(`"${field.header}" 필드에 값을 입력해주세요.`);
+          return;
+        }
+
+        results.push({
+          header: field.header,
+          type: type,
+          value: value,
+          column: field.column
+        });
+      });
+
+      if (results.length !== pendingRequiredFields.length) {
+        return; // 유효성 검사 실패
+      }
+
+      closeRequiredFieldModal();
+
+      if (requiredFieldCallback) {
+        requiredFieldCallback({ cancelled: false, mappings: results });
+        requiredFieldCallback = null;
+      }
+    }
+
+    // Extension에서 필수 칸 입력 요청 수신
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'SHOW_REQUIRED_FIELD_MODAL') {
+        const { fields, messageId } = event.data;
+
+        showRequiredFieldModal(fields, (result) => {
+          // 결과를 Extension으로 전송
+          window.postMessage({
+            type: 'REQUIRED_FIELD_RESPONSE',
+            messageId: messageId,
+            result: result
+          }, '*');
+        });
+      }
+    });
+  </script>
+
 </body>
 </html>

@@ -23,6 +23,33 @@ console.log('✅ TotalbotExtensionReady 이벤트 발생됨');
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('📨 Content script received from background:', message);
 
+  // 필수 칸 입력 요청인 경우 특별 처리
+  if (message.action === 'showRequiredFieldModal') {
+    console.log('📋 필수 칸 입력 모달 요청:', message.fields);
+
+    const messageId = 'required_' + Date.now();
+
+    // 응답 대기 핸들러
+    const responseHandler = (event) => {
+      if (event.data && event.data.type === 'REQUIRED_FIELD_RESPONSE' && event.data.messageId === messageId) {
+        window.removeEventListener('message', responseHandler);
+        console.log('📋 필수 칸 입력 응답:', event.data.result);
+        sendResponse(event.data.result);
+      }
+    };
+
+    window.addEventListener('message', responseHandler);
+
+    // 페이지에 모달 표시 요청
+    window.postMessage({
+      type: 'SHOW_REQUIRED_FIELD_MODAL',
+      messageId: messageId,
+      fields: message.fields
+    }, '*');
+
+    return true; // 비동기 응답 대기
+  }
+
   // 페이지로 메시지 전달
   window.postMessage({
     source: 'totalbot-extension',

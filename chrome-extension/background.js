@@ -1368,27 +1368,34 @@ async function handleFillQuotationExcels(data) {
         console.log(`   🎨 색상 헤더 -> 열 ${headers['색상']}, 필수: ${headerRequiredStatus['색상']}, 전체열: ${headerAllColumns['색상'].join(', ')}`);
       }
 
-      // 6행에서 필수/선택 읽기, 7행에서 예시 값 읽기
+      // 6행에서 필수/선택 읽기, 7행/8행에서 예시 값 읽기
       const requiredFields = {};  // 헤더명 기준 (기존 호환용)
       const requiredByColumn = {};  // 열 번호 기준 (정확한 체크용)
       const exampleValues = {};
+      const exampleValuesRow7 = {};  // 7행 예시
+      const exampleValuesRow8 = {};  // 8행 예시
       for (let col = 1; col <= 100; col++) {
         const headerCellAddress = XLSX.utils.encode_cell({ r: 4, c: col - 1 }); // 5행
         const requiredCellAddress = XLSX.utils.encode_cell({ r: 5, c: col - 1 }); // 6행
-        const exampleCellAddress = XLSX.utils.encode_cell({ r: 6, c: col - 1 }); // 7행
+        const exampleCellAddress7 = XLSX.utils.encode_cell({ r: 6, c: col - 1 }); // 7행
+        const exampleCellAddress8 = XLSX.utils.encode_cell({ r: 7, c: col - 1 }); // 8행
 
         const headerCell = worksheet[headerCellAddress];
         const requiredCell = worksheet[requiredCellAddress];
-        const exampleCell = worksheet[exampleCellAddress];
+        const exampleCell7 = worksheet[exampleCellAddress7];
+        const exampleCell8 = worksheet[exampleCellAddress8];
 
         if (headerCell && headerCell.v) {
           const headerName = String(headerCell.v).trim().replace(/\n/g, ' ');
           const requiredValue = requiredCell && requiredCell.v ? String(requiredCell.v).trim() : '';
-          const exampleValue = exampleCell && exampleCell.v ? String(exampleCell.v).trim() : '';
+          const exampleValue7 = exampleCell7 && exampleCell7.v ? String(exampleCell7.v).trim() : '';
+          const exampleValue8 = exampleCell8 && exampleCell8.v ? String(exampleCell8.v).trim() : '';
 
           requiredFields[headerName] = requiredValue === '필수';
           requiredByColumn[col] = requiredValue === '필수';  // 열 번호로도 저장
-          exampleValues[headerName] = exampleValue;
+          exampleValues[headerName] = exampleValue7;
+          exampleValuesRow7[headerName] = exampleValue7;
+          exampleValuesRow8[headerName] = exampleValue8;
         }
       }
 
@@ -1590,7 +1597,7 @@ async function handleFillQuotationExcels(data) {
         console.log(`   ⚠️ 색상 매핑이 columnMappings에 없음!`);
       }
 
-      // 필수 칸 체크: 매핑되지 않은 필수 칸 찾기 (로깅용)
+      // 필수 칸 체크: 매핑되지 않은 필수 칸 찾기
       const missingRequiredFields = [];
       for (const [headerName, isRequired] of Object.entries(requiredFields)) {
         if (isRequired) {
@@ -1604,18 +1611,69 @@ async function handleFillQuotationExcels(data) {
           if (!hasMapping) {
             missingRequiredFields.push({
               header: headerName,
-              example: exampleValues[headerName] || '',
+              row7Value: exampleValuesRow7[headerName] || '',
+              row8Value: exampleValuesRow8[headerName] || '',
               column: headers[headerName]
             });
           }
         }
       }
 
-      // 필수 칸이 누락되었어도 계속 진행 (autoMappings에 정의되어 있으므로 자동 처리됨)
+      // 필수 칸이 누락된 경우 모달로 사용자에게 입력받기
       if (missingRequiredFields.length > 0) {
-        console.log(`   ℹ️  매핑되지 않은 필수 칸 ${missingRequiredFields.length}개:`,
+        console.log(`   ⚠️ 매핑되지 않은 필수 칸 ${missingRequiredFields.length}개:`,
           missingRequiredFields.map(f => f.header).join(', '));
-        console.log(`   → autoMappings로 자동 처리됩니다`);
+
+        // totalbot.cafe24.com 탭 찾기
+        const allTabs = await chrome.tabs.query({});
+        const totalbotTab = allTabs.find(tab => tab.url && tab.url.includes('totalbot.cafe24.com'));
+
+        if (totalbotTab) {
+          console.log('   📋 필수 칸 입력 모달 요청 중...');
+
+          try {
+            // Content script로 모달 표시 요청
+            const userResponse = await chrome.tabs.sendMessage(totalbotTab.id, {
+              action: 'showRequiredFieldModal',
+              fields: missingRequiredFields
+            });
+
+            if (userResponse && userResponse.cancelled) {
+              console.log('   ❌ 사용자가 취소함');
+              return { success: false, error: '사용자가 견적서 작성을 취소했습니다.' };
+            }
+
+            if (userResponse && userResponse.mappings) {
+              console.log('   ✅ 사용자 입력 수신:', userResponse.mappings.length, '개');
+
+              // 사용자가 입력한 매핑을 allMappings에 추가
+              for (const newMapping of userResponse.mappings) {
+                allMappings.push(newMapping);
+
+                // 설정에도 저장 (chrome.storage)
+                const storageResult = await chrome.storage.local.get(['quotationMappings']);
+                const savedMappings = storageResult.quotationMappings || [];
+                savedMappings.push(newMapping);
+                await chrome.storage.local.set({ quotationMappings: savedMappings });
+                console.log(`      💾 설정에 저장됨: ${newMapping.header} = ${newMapping.type === 'fixed' ? newMapping.value : newMapping.type}`);
+              }
+
+              // columnMappings 다시 계산
+              const newColumnMappings = userResponse.mappings.map(mapping => ({
+                ...mapping,
+                column: findColumnByHeader(mapping.header)
+              })).filter(m => m.column !== null);
+
+              // 기존 columnMappings에 추가
+              columnMappings.push(...newColumnMappings);
+            }
+          } catch (modalError) {
+            console.error('   ❌ 모달 표시 오류:', modalError);
+            // 오류가 나도 계속 진행 (기본값 사용)
+          }
+        } else {
+          console.log('   ⚠️ TotalBot 탭을 찾을 수 없어 모달 표시 불가');
+        }
       }
 
       // 9행부터 데이터 작성
