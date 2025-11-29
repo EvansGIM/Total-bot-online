@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TotalBot - 로그인</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .login-container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* 왼쪽 영역 - 브랜딩 */
+        .left-panel {
+            flex: 1;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .left-panel::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+            animation: pulse 15s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .brand-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .logo-icon {
+            font-size: 100px;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .logo-text {
+            color: white;
+            font-size: 56px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-desc {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 20px;
+            margin-bottom: 40px;
+        }
+
+        .features {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 40px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 16px;
+        }
+
+        .feature-item i {
+            color: #667eea;
+            font-size: 20px;
+        }
+
+        /* 오른쪽 영역 - 로그인 폼 */
+        .right-panel {
+            width: 500px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+        }
+
+        .login-form-wrapper {
+            width: 100%;
+            max-width: 360px;
+        }
+
+        .login-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+        }
+
+        .login-subtitle {
+            font-size: 15px;
+            color: #888;
+            margin-bottom: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+            font-size: 18px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 16px 16px 16px 48px;
+            font-size: 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            background-color: #f9fafb;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: #667eea;
+            background-color: white;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-login:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 30px 0;
+            color: #ccc;
+            font-size: 13px;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .divider span {
+            padding: 0 20px;
+            color: #999;
+        }
+
+        .btn-register {
+            width: 100%;
+            padding: 16px;
+            font-size: 15px;
+            font-weight: 600;
+            background-color: transparent;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-register:hover {
+            border-color: #667eea;
+            color: #667eea;
+            background-color: rgba(102, 126, 234, 0.05);
+        }
+
+        .message {
+            padding: 14px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .message.error {
+            background-color: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .message.success {
+            background-color: #f0fdf4;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+
+        /* 스피너 */
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 반응형 */
+        @media (max-width: 1024px) {
+            .left-panel {
+                display: none;
+            }
+
+            .right-panel {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .right-panel {
+                padding: 40px 24px;
+            }
+
+            .login-title {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <!-- 왼쪽 패널 - 브랜딩 -->
+        <div class="left-panel">
+            <div class="brand-content">
+                <span class="logo-icon">🤖</span>
+                <h1 class="logo-text">TotalBot</h1>
+                <p class="logo-desc">쿠팡 셀러를 위한 통합 자동화 솔루션</p>
+
+                <div class="features">
+                    <div class="feature-item">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>상품 자동 수집 및 등록</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>재고 관리 및 자동 발주</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>정산 및 수익 분석</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>실시간 주문 처리</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 오른쪽 패널 - 로그인 폼 -->
+        <div class="right-panel">
+            <div class="login-form-wrapper">
+                <h2 class="login-title">로그인</h2>
+                <p class="login-subtitle">계정에 로그인하여 서비스를 이용하세요</p>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="username">아이디</label>
+                        <div class="input-wrapper">
+                            <i class="bi bi-person"></i>
+                            <input type="text" class="form-control" id="username" placeholder="사용자 ID를 입력하세요" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">비밀번호</label>
+                        <div class="input-wrapper">
+                            <i class="bi bi-lock"></i>
+                            <input type="password" class="form-control" id="password" placeholder="비밀번호를 입력하세요" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-login" id="loginBtn">
+                        <span class="spinner" id="loginSpinner"></span>
+                        <span id="loginText">로그인</span>
+                    </button>
+
+                    <div class="divider"><span>또는</span></div>
+
+                    <button type="button" class="btn-register" onclick="location.href='register.html'">
+                        <i class="bi bi-person-plus"></i> 새 계정 만들기
+                    </button>
+
+                    <div class="message error" id="errorMessage"></div>
+                    <div class="message success" id="successMessage"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 프록시를 통해 API 호출 (CORS 우회)
+        const API_SERVER = '';  // 로컬 서버의 프록시 사용
+
+        // 이미 로그인된 경우 리다이렉트
+        document.addEventListener('DOMContentLoaded', function() {
+            const userInfo = localStorage.getItem('userInfo');
+            if (userInfo) {
+                window.location.href = 'order-list.html';
+            }
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showError('아이디와 비밀번호를 입력해주세요.');
+                return;
+            }
+
+            setLoading(true);
+            hideMessages();
+
+            try {
+                const response = await fetch('/proxy/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password }),
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    localStorage.setItem('username', username);
+                    localStorage.setItem('password', password);
+
+                    await fetchUserInfo();
+
+                    showSuccess('로그인 성공!');
+
+                    setTimeout(() => {
+                        window.location.href = 'order-list.html';
+                    }, 500);
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    showError(errorData.message || '로그인 실패: 아이디/비밀번호를 확인하세요.');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('서버에 연결할 수 없습니다.');
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        async function fetchUserInfo() {
+            try {
+                const response = await fetch('/proxy/user/info', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const userInfo = await response.json();
+                    localStorage.setItem('userInfo', JSON.stringify(userInfo));
+                    return userInfo;
+                }
+            } catch (error) {
+                console.error('Failed to fetch user info:', error);
+            }
+            return null;
+        }
+
+        function setLoading(loading) {
+            const btn = document.getElementById('loginBtn');
+            const spinner = document.getElementById('loginSpinner');
+            const text = document.getElementById('loginText');
+
+            if (loading) {
+                btn.disabled = true;
+                spinner.style.display = 'inline-block';
+                text.textContent = '로그인 중...';
+            } else {
+                btn.disabled = false;
+                spinner.style.display = 'none';
+                text.textContent = '로그인';
+            }
+        }
+
+        function showError(message) {
+            const el = document.getElementById('errorMessage');
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+
+        function showSuccess(message) {
+            const el = document.getElementById('successMessage');
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+
+        function hideMessages() {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

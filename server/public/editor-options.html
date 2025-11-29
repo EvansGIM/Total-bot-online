@@ -96,11 +96,55 @@
     }
 
     .product-name-section input {
-      width: 100%;
+      flex: 1;
       padding: 12px;
       border: 1px solid #ddd;
       border-radius: 6px;
       font-size: 15px;
+    }
+
+    .product-name-input-wrapper {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn-ai-title {
+      padding: 10px 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-ai-title:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-ai-title:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-ai-title .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
     }
 
     /* 메인 탭 */
@@ -305,6 +349,77 @@
       z-index: 15;
       backdrop-filter: blur(4px);
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    /* 옵션 이미지 삭제 버튼 */
+    .image-delete-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      border: none;
+      border-radius: 50%;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+    }
+
+    .image-item-container:hover .image-delete-btn {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .image-delete-btn:hover {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      transform: scale(1.1);
+    }
+
+    /* 옵션 이미지 교체 버튼 */
+    .image-replace-btn {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 50%;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+    }
+
+    .image-item-container:hover .image-replace-btn {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .image-replace-btn:hover {
+      background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+      transform: scale(1.1);
+    }
+
+    /* 숨겨진 파일 인풋 */
+    .hidden-file-input {
+      display: none;
     }
 
     /* 상세페이지 에디터 */
@@ -1256,67 +1371,813 @@
       color: #721c24;
     }
 
-    /* 일괄 편집 탭 스타일 */
+    /* 옵션 일괄 편집 - 모던 UI */
+    .options-toolbar {
+      background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 20px 24px;
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.08);
+      border: 1px solid rgba(102, 126, 234, 0.1);
+    }
+
+    .options-toolbar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .options-toolbar-header h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1a1a2e;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .options-toolbar-header h3::before {
+      content: '';
+      width: 4px;
+      height: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 2px;
+    }
+
     .edit-tabs {
       display: flex;
       gap: 8px;
-      margin-bottom: 15px;
-      border-bottom: 2px solid #e0e0e0;
-      padding-bottom: 5px;
+      background: white;
+      padding: 6px;
+      border-radius: 12px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.04);
     }
 
     .edit-tab {
       background: transparent;
       border: none;
-      padding: 8px 16px;
+      padding: 12px 20px;
       cursor: pointer;
       font-size: 14px;
-      font-weight: 500;
+      font-weight: 600;
       color: #666;
-      border-bottom: 3px solid transparent;
-      transition: all 0.2s;
+      border-radius: 8px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .edit-tab::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      opacity: 0;
+      transition: opacity 0.3s;
     }
 
     .edit-tab:hover {
       color: #333;
-      background: #f5f5f5;
+      background: rgba(102, 126, 234, 0.08);
     }
 
     .edit-tab.active {
-      color: #000;
+      color: white;
       font-weight: 700;
-      border-bottom-color: #000;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
     }
 
     .edit-tab-content {
       display: none;
-      animation: fadeIn 0.3s;
+      animation: fadeSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
 
     .edit-tab-content.active {
       display: block;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-5px); }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(-10px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
+    .edit-section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .edit-section-title .icon {
+      font-size: 16px;
+    }
+
+    .bulk-edit-group {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .bulk-edit-group input {
+      padding: 12px 16px;
+      border: 2px solid #e5e8eb;
+      border-radius: 10px;
+      font-size: 14px;
+      width: 180px;
+      transition: all 0.2s;
+      background: #f9fafb;
+    }
+
+    .bulk-edit-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      background: white;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .bulk-edit-group input::placeholder {
+      color: #aaa;
+    }
+
     .option-select {
-      padding: 6px 12px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
+      padding: 12px 16px;
+      border: 2px solid #e5e8eb;
+      border-radius: 10px;
+      font-size: 14px;
+      background: #f9fafb;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 130px;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+
+    .option-select:focus {
+      outline: none;
+      border-color: #667eea;
+      background-color: white;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .arrow-icon {
+      font-size: 20px;
+      color: #667eea;
+      font-weight: bold;
+    }
+
+    .btn-action {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-action-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+    }
+
+    .btn-action-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
+    }
+
+    .btn-action-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-action-ai {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(240, 147, 251, 0.25);
+    }
+
+    .btn-action-ai:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(240, 147, 251, 0.35);
+    }
+
+    .btn-action-secondary {
+      background: white;
+      color: #333;
+      border: 2px solid #e5e8eb;
+    }
+
+    .btn-action-secondary:hover {
+      border-color: #667eea;
+      color: #667eea;
+      background: rgba(102, 126, 234, 0.05);
+    }
+
+    .hint {
       font-size: 13px;
-      margin-right: 10px;
+      color: #888;
+      margin: 12px 0 0 0;
+      padding: 10px 14px;
+      background: #f9fafb;
+      border-radius: 8px;
+      border-left: 3px solid #667eea;
+    }
+
+    /* AI 옵션 변환 섹션 */
+    .ai-section {
+      background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
+      border: 2px solid rgba(240, 147, 251, 0.2);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+
+    .ai-section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .ai-badge {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .ai-section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+
+    .ai-description {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+
+    /* 가격 수집 섹션 */
+    .price-collect-section {
+      padding: 16px 0;
+    }
+
+    .price-result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .price-result-box {
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .price-result-box.rocket {
+      background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+      border-color: #fed7aa;
+    }
+
+    .price-result-box h4 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #374151;
+      margin: 0 0 12px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .price-result-box.rocket h4 {
+      color: #ea580c;
+      border-bottom-color: #fdba74;
+    }
+
+    .price-result-items {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .price-item {
+      background: white;
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+
+    .price-item:hover {
+      border-color: #667eea;
+      transform: translateY(-2px);
+    }
+
+    .price-item.selected {
+      border-color: #667eea;
+      background: #eef2ff;
+    }
+
+    .price-label {
+      display: block;
+      font-size: 11px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+
+    .price-value {
+      display: block;
+      font-size: 16px;
+      font-weight: 700;
+      color: #1f2937;
+    }
+
+    .price-count {
+      text-align: center;
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 12px;
+      padding-top: 8px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .price-result-box.rocket .price-count {
+      border-top-color: #fdba74;
+    }
+
+    .price-apply-section {
+      background: #f0fdf4;
+      border: 2px solid #86efac;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .price-apply-header {
+      font-size: 14px;
+      font-weight: 600;
+      color: #166534;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .price-apply-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .price-apply-group span {
+      font-size: 13px;
+      color: #374151;
+    }
+
+    /* 기준가 선택 버튼 */
+    .price-base-btn {
+      flex: 1;
+      min-width: 80px;
+      padding: 12px 8px;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      background: white;
+      cursor: pointer;
+      text-align: center;
+      font-size: 12px;
+      color: #64748b;
+      transition: all 0.2s;
+      line-height: 1.4;
+    }
+
+    .price-base-btn:hover {
+      border-color: #3b82f6;
+      background: #f0f9ff;
+    }
+
+    .price-base-btn.active {
+      border-color: #3b82f6;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+    }
+
+    .price-base-btn span {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .price-base-btn.active span {
+      color: white;
+    }
+
+    /* 빠른 조정 버튼 */
+    .quick-adjust-btn {
+      padding: 8px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      background: #f8fafc;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: #475569;
+      transition: all 0.15s;
+    }
+
+    .quick-adjust-btn:hover {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+
+    /* 슬라이더 스타일 */
+    #priceSlider {
+      -webkit-appearance: none;
+      appearance: none;
+      background: linear-gradient(to right, #ef4444 0%, #eab308 25%, #22c55e 50%, #eab308 75%, #ef4444 100%);
+      border-radius: 10px;
+    }
+
+    #priceSlider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: white;
+      border: 3px solid #3b82f6;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    #priceSlider::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: white;
+      border: 3px solid #3b82f6;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    /* 매핑 다이얼로그 개선 */
+    .mapping-dialog-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s;
+    }
+
+    .mapping-dialog-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .mapping-dialog-content {
+      background: white;
+      border-radius: 20px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      transform: scale(0.9) translateY(20px);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .mapping-dialog-overlay.active .mapping-dialog-content {
+      transform: scale(1) translateY(0);
+    }
+
+    .mapping-dialog-header {
+      padding: 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .mapping-dialog-header h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .mapping-dialog-header p {
+      font-size: 13px;
+      opacity: 0.9;
+      margin-top: 4px;
+    }
+
+    .mapping-dialog-body {
+      padding: 24px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .mapping-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: #f9fafb;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      transition: all 0.2s;
+    }
+
+    .mapping-item:hover {
+      background: #f0f4ff;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+    }
+
+    .mapping-item-number {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .mapping-item-original {
+      flex: 1;
+      font-size: 14px;
+      color: #666;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mapping-item-arrow {
+      color: #667eea;
+      font-size: 18px;
+    }
+
+    .mapping-item-input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 2px solid #e5e8eb;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .mapping-item-input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .mapping-dialog-footer {
+      padding: 20px 24px;
+      background: #f9fafb;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    /* 커스텀 AI 버튼 */
+    .btn-custom-ai {
+      margin-left: auto;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+      color: white;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3);
+    }
+
+    .btn-custom-ai:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+    }
+
+    /* 커스텀 AI 모달 */
+    .custom-ai-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 10001;
+      backdrop-filter: blur(4px);
+    }
+
+    .custom-ai-modal.active {
+      display: flex;
+    }
+
+    .custom-ai-content {
+      background: white;
+      border-radius: 20px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+      animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .custom-ai-header {
+      background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .custom-ai-header h3 {
+      color: white;
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .custom-ai-close {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .custom-ai-close:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .custom-ai-body {
+      padding: 24px;
+    }
+
+    .custom-ai-body label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 8px;
+    }
+
+    .custom-ai-textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 14px 16px;
+      border: 2px solid #e5e8eb;
+      border-radius: 12px;
+      font-size: 14px;
+      resize: vertical;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    .custom-ai-textarea:focus {
+      outline: none;
+      border-color: #a855f7;
+      box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.1);
+    }
+
+    .custom-ai-textarea::placeholder {
+      color: #aaa;
+    }
+
+    .custom-ai-select-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+      align-items: center;
+    }
+
+    .custom-ai-select-row label {
+      margin: 0;
+      white-space: nowrap;
+    }
+
+    .custom-ai-select {
+      flex: 1;
+      padding: 12px 16px;
+      border: 2px solid #e5e8eb;
+      border-radius: 10px;
+      font-size: 14px;
       background: white;
       cursor: pointer;
     }
 
-    .hint {
-      font-size: 12px;
-      color: #888;
-      margin: 10px 0 0 0;
-      font-style: italic;
+    .custom-ai-footer {
+      padding: 16px 24px 24px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn-custom-cancel {
+      flex: 1;
+      padding: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      background: #f5f5f5;
+      border: none;
+      border-radius: 10px;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-custom-cancel:hover {
+      background: #eee;
+    }
+
+    .btn-custom-apply {
+      flex: 2;
+      padding: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+      border: none;
+      border-radius: 10px;
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-custom-apply:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);
+    }
+
+    .btn-custom-apply:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
     }
 
     /* 매핑 다이얼로그 */
@@ -1689,7 +2550,13 @@
       <!-- 상품명 섹션 -->
       <div class="product-name-section">
         <h2>상품명</h2>
-        <input type="text" id="productTitle" placeholder="상품명을 입력하세요">
+        <div class="product-name-input-wrapper">
+          <input type="text" id="productTitle" placeholder="상품명을 입력하세요">
+          <button class="btn-ai-title" id="btnAiTitle" onclick="generateAITitle()">
+            <span class="spinner" id="aiTitleSpinner"></span>
+            <span id="aiTitleText">AI 작명</span>
+          </button>
+        </div>
       </div>
 
       <!-- 탭 메뉴 -->
@@ -1732,60 +2599,286 @@
 
       <!-- 옵션 탭 -->
       <div id="options-tab" class="main-tab-content active">
-        <!-- 일괄 편집 툴바 -->
-      <div class="toolbar">
-        <h3>옵션 일괄 편집</h3>
+        <!-- 모던 옵션 일괄 편집 툴바 -->
+        <div class="options-toolbar">
+          <div class="options-toolbar-header">
+            <h3>옵션 일괄 편집</h3>
+          </div>
 
-        <!-- 탭 선택 -->
-        <div class="edit-tabs">
-          <button class="edit-tab active" onclick="switchEditTab('find-replace')">찾기/바꾸기</button>
-          <button class="edit-tab" onclick="switchEditTab('mapping')">이름 매핑</button>
-          <button class="edit-tab" onclick="switchEditTab('numbering')">순번 부여</button>
-        </div>
+          <!-- 탭 선택 -->
+          <div class="edit-tabs">
+            <button class="edit-tab active" onclick="switchEditTab('find-replace')">찾기/바꾸기</button>
+            <button class="edit-tab" onclick="switchEditTab('mapping')">이름 매핑</button>
+            <button class="edit-tab" onclick="switchEditTab('numbering')">순번 부여</button>
+            <button class="edit-tab" onclick="switchEditTab('ai-rename')">AI 작명</button>
+            <button class="edit-tab" onclick="switchEditTab('price-collect')">가격 수집</button>
+          </div>
 
-        <!-- 찾기/바꾸기 탭 -->
-        <div id="find-replace-tab" class="edit-tab-content active">
-          <div class="bulk-edit-group">
-            <select id="replaceTargetOption" class="option-select">
-              <option value="optionName1">옵션1</option>
-              <option value="optionName2">옵션2</option>
-            </select>
-            <input type="text" id="findText" placeholder="찾을 텍스트 (빈 칸으로 빈 값 찾기)">
-            <span>→</span>
-            <input type="text" id="replaceText" placeholder="바꿀 텍스트">
-            <button class="btn btn-primary btn-sm" onclick="bulkReplace()">치환</button>
+          <!-- 찾기/바꾸기 탭 -->
+          <div id="find-replace-tab" class="edit-tab-content active">
+            <div class="edit-section-title">
+              <span class="icon">🔍</span>
+              텍스트 찾아 바꾸기
+            </div>
+            <div class="bulk-edit-group">
+              <select id="replaceTargetOption" class="option-select">
+                <option value="optionName1">옵션1</option>
+                <option value="optionName2">옵션2</option>
+              </select>
+              <input type="text" id="findText" placeholder="찾을 텍스트">
+              <span class="arrow-icon">→</span>
+              <input type="text" id="replaceText" placeholder="바꿀 텍스트">
+              <button class="btn-action btn-action-primary" onclick="bulkReplace()">
+                치환하기
+              </button>
+            </div>
+            <p class="hint">선택한 옵션의 모든 값에서 특정 텍스트를 찾아 일괄 변경합니다. 빈 칸으로 두면 해당 텍스트를 삭제합니다.</p>
+          </div>
+
+          <!-- 이름 매핑 탭 -->
+          <div id="mapping-tab" class="edit-tab-content">
+            <div class="edit-section-title">
+              <span class="icon">🏷️</span>
+              유니크 값 매핑
+            </div>
+            <div class="bulk-edit-group">
+              <select id="mappingTargetOption" class="option-select">
+                <option value="optionName1">옵션1</option>
+                <option value="optionName2">옵션2</option>
+              </select>
+              <button class="btn-action btn-action-primary" onclick="openMappingDialog()">
+                유니크 값 편집
+              </button>
+            </div>
+            <p class="hint">동일한 옵션 값들을 그룹으로 묶어 한 번에 새로운 이름으로 변경할 수 있습니다.</p>
+          </div>
+
+          <!-- 순번 부여 탭 -->
+          <div id="numbering-tab" class="edit-tab-content">
+            <div class="edit-section-title">
+              <span class="icon">🔢</span>
+              자동 순번 부여
+            </div>
+            <div class="bulk-edit-group">
+              <select id="numberingTargetOption" class="option-select">
+                <option value="optionName1">옵션1</option>
+                <option value="optionName2">옵션2</option>
+              </select>
+              <input type="text" id="numberingPrefix" placeholder="접두사 (예: 색상)" style="width: 150px;">
+              <select id="numberingType" class="option-select" style="min-width: 150px;">
+                <option value="number">숫자 (1, 2, 3...)</option>
+                <option value="letter">알파벳 (A, B, C...)</option>
+              </select>
+              <button class="btn-action btn-action-primary" onclick="applyNumbering()">
+                순번 부여
+              </button>
+            </div>
+            <p class="hint">유니크한 옵션 값에 순차적으로 번호를 부여합니다. 예: "색상1", "색상2" 또는 "색상A", "색상B"</p>
+          </div>
+
+          <!-- AI 작명 탭 (새로 추가) -->
+          <div id="ai-rename-tab" class="edit-tab-content">
+            <div class="ai-section">
+              <div class="ai-section-header">
+                <span class="ai-badge">AI POWERED</span>
+                <span class="ai-section-title">중국어 → 한국어 자동 변환</span>
+                <button class="btn-custom-ai" onclick="openCustomAIModal()">
+                  <span>🎨</span> 커스텀
+                </button>
+              </div>
+              <p class="ai-description">
+                AI가 중국어 옵션명을 자연스러운 한국어로 변환합니다. 색상, 사이즈 등을 자동으로 인식하여 쇼핑몰에 적합한 형태로 변환해드립니다.
+              </p>
+              <div class="bulk-edit-group">
+                <select id="aiTargetOption" class="option-select">
+                  <option value="all" selected>전체 (옵션1+옵션2)</option>
+                  <option value="optionName1">옵션1</option>
+                  <option value="optionName2">옵션2</option>
+                </select>
+                <button class="btn-action btn-action-ai" onclick="applyAIRename()" id="aiRenameBtn">
+                  <span id="aiRenameIcon">✨</span>
+                  <span id="aiRenameText">AI 변환 시작</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 가격 수집 탭 -->
+          <div id="price-collect-tab" class="edit-tab-content">
+            <div class="price-collect-section">
+              <div class="edit-section-title">
+                <span class="icon">💰</span>
+                쿠팡 가격 비교
+              </div>
+              <p class="hint" style="margin-bottom: 15px;">쿠팡에서 경쟁 상품 가격을 수집하고 내 판매가와 비교합니다.</p>
+
+              <div class="bulk-edit-group" style="margin-bottom: 10px;">
+                <input type="text" id="priceCollectKeyword" placeholder="검색 키워드 입력 (예: 자켓, 원피스)" style="flex: 1; min-width: 200px;">
+                <button class="btn-action btn-action-primary" onclick="collectCoupangPrices()" id="priceCollectBtn">
+                  <span id="priceCollectIcon">🔍</span>
+                  <span id="priceCollectText">가격 수집</span>
+                </button>
+              </div>
+              <div style="margin-bottom: 15px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #666; cursor: pointer;">
+                  <input type="checkbox" id="useIncognitoMode" style="width: 16px; height: 16px; cursor: pointer;">
+                  <span>🔒 시크릿 모드로 검색</span>
+                  <span style="color: #999; font-size: 11px;">(개인화 검색 제외)</span>
+                </label>
+              </div>
+
+              <!-- 수집 결과 영역 -->
+              <div id="priceCollectResult" style="display: none;">
+                <!-- 가격 비교 테이블 -->
+                <div class="price-comparison-container" style="margin-bottom: 20px;">
+                  <table class="price-comparison-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <thead>
+                      <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                        <th style="padding: 12px; text-align: center; width: 100px;"></th>
+                        <th style="padding: 12px; text-align: center;">최저가</th>
+                        <th style="padding: 12px; text-align: center;">평균가</th>
+                        <th style="padding: 12px; text-align: center;">중간가</th>
+                        <th style="padding: 12px; text-align: center;">최고가</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- 쿠팡 시장가 -->
+                      <tr style="background: #f8f9ff;">
+                        <td style="padding: 12px; font-weight: 600; color: #667eea;">
+                          <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="font-size: 16px;">🛒</span>
+                            쿠팡 시장가
+                          </div>
+                        </td>
+                        <td style="padding: 12px; text-align: center; font-weight: 600;" id="allMinPrice">-</td>
+                        <td style="padding: 12px; text-align: center; font-weight: 600;" id="allAvgPrice">-</td>
+                        <td style="padding: 12px; text-align: center; font-weight: 600;" id="allMidPrice">-</td>
+                        <td style="padding: 12px; text-align: center; font-weight: 600;" id="allMaxPrice">-</td>
+                      </tr>
+                      <!-- 내 판매가 -->
+                      <tr style="background: #f0fff4;">
+                        <td style="padding: 12px; font-weight: 600; color: #38a169;">
+                          <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="font-size: 16px;">💵</span>
+                            내 판매가
+                          </div>
+                        </td>
+                        <td style="padding: 12px; text-align: center; font-weight: 600;" id="myMinPrice">-</td>
+                        <td style="padding: 12px; text-align: center; font-weight: 600;" id="myAvgPrice">-</td>
+                        <td style="padding: 12px; text-align: center; font-weight: 600;" id="myMidPrice">-</td>
+                        <td style="padding: 12px; text-align: center; font-weight: 600;" id="myMaxPrice">-</td>
+                      </tr>
+                      <!-- 예상 마진 -->
+                      <tr style="background: #fff5f5;" id="marginRow">
+                        <td style="padding: 12px; font-weight: 600; color: #e53e3e;">
+                          <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="font-size: 16px;">📊</span>
+                            예상 마진
+                          </div>
+                        </td>
+                        <td style="padding: 12px; text-align: center;" id="marginMin">-</td>
+                        <td style="padding: 12px; text-align: center;" id="marginAvg">-</td>
+                        <td style="padding: 12px; text-align: center;" id="marginMid">-</td>
+                        <td style="padding: 12px; text-align: center;" id="marginMax">-</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div style="text-align: right; margin-top: 8px; color: #666; font-size: 12px;">
+                    수집된 상품: <span id="allCount" style="font-weight: 600;">0</span>개
+                  </div>
+                </div>
+
+                <!-- 경쟁력 분석 -->
+                <div id="competitiveAnalysis" style="display: none; background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                    <span style="font-size: 20px;" id="competitiveIcon">📈</span>
+                    <span style="font-weight: 600; font-size: 14px;" id="competitiveTitle">경쟁력 분석</span>
+                  </div>
+                  <div id="competitiveMessage" style="font-size: 13px; color: #333; line-height: 1.6;"></div>
+                </div>
+
+                <!-- 가격 적용 영역 - 직관적 UI -->
+                <div class="price-apply-section" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);">
+                  <div class="price-apply-header" style="margin-bottom: 20px;">
+                    <span class="icon">💰</span>
+                    <span style="font-weight: 600;">판매가 설정 도우미</span>
+                  </div>
+
+                  <!-- 기준가 선택 -->
+                  <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <button type="button" class="price-base-btn active" data-base="min" onclick="selectPriceBase('min')">
+                      최저가<br><span id="basePriceMin">-</span>
+                    </button>
+                    <button type="button" class="price-base-btn" data-base="avg" onclick="selectPriceBase('avg')">
+                      평균가<br><span id="basePriceAvg">-</span>
+                    </button>
+                    <button type="button" class="price-base-btn" data-base="mid" onclick="selectPriceBase('mid')">
+                      중간가<br><span id="basePriceMid">-</span>
+                    </button>
+                    <button type="button" class="price-base-btn" data-base="max" onclick="selectPriceBase('max')">
+                      최고가<br><span id="basePriceMax">-</span>
+                    </button>
+                  </div>
+
+                  <!-- 슬라이더와 미리보기 -->
+                  <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                      <span style="font-size: 13px; color: #666; min-width: 60px;">가격 조정</span>
+                      <input type="range" id="priceSlider" min="-50" max="50" value="0"
+                             style="flex: 1; height: 8px; cursor: pointer;"
+                             oninput="updatePricePreview()">
+                      <div style="display: flex; align-items: center; gap: 5px;">
+                        <input type="number" id="priceAdjustPercent" value="0"
+                               style="width: 60px; text-align: center; font-weight: 600; font-size: 16px; border: 2px solid #ddd; border-radius: 8px; padding: 8px;"
+                               oninput="syncSlider()">
+                        <span style="font-weight: 600;">%</span>
+                      </div>
+                    </div>
+
+                    <!-- 빠른 조정 버튼 -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+                      <button type="button" class="quick-adjust-btn" onclick="quickAdjust(-20)">-20%</button>
+                      <button type="button" class="quick-adjust-btn" onclick="quickAdjust(-10)">-10%</button>
+                      <button type="button" class="quick-adjust-btn" onclick="quickAdjust(-5)">-5%</button>
+                      <button type="button" class="quick-adjust-btn" onclick="quickAdjust(0)">0%</button>
+                      <button type="button" class="quick-adjust-btn" onclick="quickAdjust(5)">+5%</button>
+                      <button type="button" class="quick-adjust-btn" onclick="quickAdjust(10)">+10%</button>
+                      <button type="button" class="quick-adjust-btn" onclick="quickAdjust(20)">+20%</button>
+                    </div>
+
+                    <!-- 예상 결과 미리보기 -->
+                    <div id="pricePreviewBox" style="background: #f8fafc; border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+                      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center;">
+                        <div>
+                          <div style="font-size: 12px; color: #666; margin-bottom: 5px;">예상 판매가</div>
+                          <div id="previewPrice" style="font-size: 20px; font-weight: 700; color: #2563eb;">-</div>
+                        </div>
+                        <div>
+                          <div style="font-size: 12px; color: #666; margin-bottom: 5px;">예상 마진</div>
+                          <div id="previewMargin" style="font-size: 20px; font-weight: 700; color: #059669;">-</div>
+                        </div>
+                        <div>
+                          <div style="font-size: 12px; color: #666; margin-bottom: 5px;">마진율</div>
+                          <div id="previewMarginRate" style="font-size: 20px; font-weight: 700; color: #7c3aed;">-</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- 적용 버튼 -->
+                    <button class="btn-action btn-action-primary" onclick="applyCollectedPrice()"
+                            style="width: 100%; padding: 15px; font-size: 16px; font-weight: 600;">
+                      이 가격으로 모든 옵션에 적용
+                    </button>
+                  </div>
+
+                  <p class="hint" style="margin-top: 15px; text-align: center;">
+                    기준가 선택 후 슬라이더로 조정하면 실시간 미리보기가 표시됩니다
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-
-        <!-- 이름 매핑 탭 -->
-        <div id="mapping-tab" class="edit-tab-content">
-          <div class="bulk-edit-group">
-            <select id="mappingTargetOption" class="option-select">
-              <option value="optionName1">옵션1</option>
-              <option value="optionName2">옵션2</option>
-            </select>
-            <button class="btn btn-primary btn-sm" onclick="openMappingDialog()">유니크 값 편집</button>
-          </div>
-          <p class="hint">동일한 옵션 값들을 한 번에 변경할 수 있습니다.</p>
-        </div>
-
-        <!-- 순번 부여 탭 -->
-        <div id="numbering-tab" class="edit-tab-content">
-          <div class="bulk-edit-group">
-            <select id="numberingTargetOption" class="option-select">
-              <option value="optionName1">옵션1</option>
-              <option value="optionName2">옵션2</option>
-            </select>
-            <input type="text" id="numberingPrefix" placeholder="접두사 (선택)" style="width: 150px;">
-            <select id="numberingType" class="option-select" style="width: 120px;">
-              <option value="number">숫자 (1, 2, 3...)</option>
-              <option value="letter">알파벳 (A, B, C...)</option>
-            </select>
-            <button class="btn btn-primary btn-sm" onclick="applyNumbering()">순번 부여</button>
-          </div>
-          <p class="hint">유니크한 옵션 값에 순차적으로 번호를 부여합니다.</p>
-        </div>
-      </div>
 
       <!-- 옵션 테이블 -->
       <div class="options-table-container">
@@ -2378,8 +3471,36 @@
 
   <script>
     // 버전 확인용 (브라우저 캐시 확인)
-    console.log('🔄 TotalBot Editor 버전: 2025-11-15-v2 (설정 탭 추가)');
+    console.log('🔄 TotalBot Editor 버전: 2025-11-29-v1 (확장프로그램 가격수집)');
     console.log('✅ 최신 버전이 로드되었습니다. 설정 모달에 3개의 탭이 표시되어야 합니다.');
+
+    // Chrome 확장 프로그램 통신 함수
+    async function sendMessageToExtension(message, timeout = 60000) {
+      return new Promise((resolve, reject) => {
+        const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+        const handler = (event) => {
+          if (event.data && event.data.type === 'TOTALBOT_RESPONSE' && event.data.messageId === messageId) {
+            window.removeEventListener('message', handler);
+            resolve(event.data.response);
+          }
+        };
+
+        window.addEventListener('message', handler);
+
+        window.postMessage({
+          type: 'TOTALBOT_REQUEST',
+          messageId: messageId,
+          message: message
+        }, '*');
+
+        // 타임아웃
+        setTimeout(() => {
+          window.removeEventListener('message', handler);
+          reject(new Error('Extension 응답 타임아웃'));
+        }, timeout);
+      });
+    }
 
     let productId = null;
     let productData = {
@@ -2951,6 +4072,16 @@
           this.parentElement.innerHTML = '<div style="padding: 20px; background: #f5f5f5; text-align: center; border-radius: 6px;">📷</div>';
         };
 
+        // 삭제 버튼 (우측 상단)
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'image-delete-btn';
+        deleteBtn.innerHTML = '×';
+        deleteBtn.title = `이 이미지를 사용하는 ${imageInfo.count}개 옵션 삭제`;
+        deleteBtn.onclick = (e) => {
+          e.stopPropagation();
+          deleteOptionsByImage(imgSrc, imageInfo.optionIndexes);
+        };
+
         // 편집 버튼
         const editBtn = document.createElement('button');
         editBtn.className = 'image-edit-btn';
@@ -2960,15 +4091,94 @@
           openMagicBrush(imgSrc, imageInfo.optionIndexes);
         };
 
+        // 교체 버튼 (우측 하단)
+        const replaceBtn = document.createElement('button');
+        replaceBtn.className = 'image-replace-btn';
+        replaceBtn.innerHTML = '🔄';
+        replaceBtn.title = '이미지 교체';
+        replaceBtn.onclick = (e) => {
+          e.stopPropagation();
+          triggerImageReplace(imgSrc, imageInfo.optionIndexes);
+        };
+
         const countLabel = document.createElement('div');
         countLabel.className = 'option-image-count';
         countLabel.textContent = `${imageInfo.count}개 옵션`;
 
         container.appendChild(img);
+        container.appendChild(deleteBtn);
         container.appendChild(editBtn);
+        container.appendChild(replaceBtn);
         container.appendChild(countLabel);
         optionImagesGrid.appendChild(container);
       });
+    }
+
+    // 이미지를 사용하는 옵션들 삭제
+    function deleteOptionsByImage(imgSrc, optionIndexes) {
+      const count = optionIndexes.length;
+      if (!confirm(`이 이미지를 사용하는 ${count}개 옵션을 삭제하시겠습니까?\n\n삭제된 옵션은 복구할 수 없습니다.`)) {
+        return;
+      }
+
+      // 인덱스가 큰 것부터 삭제해야 인덱스가 밀리지 않음
+      const sortedIndexes = [...optionIndexes].sort((a, b) => b - a);
+      sortedIndexes.forEach(index => {
+        productData.results.splice(index, 1);
+      });
+
+      // UI 업데이트
+      renderOptions();
+      renderUniqueOptionImages();
+      scheduleAutoSave();
+
+      showAlert(`${count}개 옵션이 삭제되었습니다.`, 'success');
+    }
+
+    // 이미지 교체 트리거
+    function triggerImageReplace(oldImgSrc, optionIndexes) {
+      // 숨겨진 파일 인풋 생성
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*';
+      fileInput.className = 'hidden-file-input';
+
+      fileInput.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+          // 파일을 Base64로 변환
+          const reader = new FileReader();
+          reader.onload = async (event) => {
+            const newImgSrc = event.target.result;
+
+            // 해당 이미지를 사용하는 모든 옵션의 이미지 교체
+            optionIndexes.forEach(index => {
+              if (productData.results[index]) {
+                productData.results[index].imageLink = newImgSrc;
+                if (productData.results[index].titleImage) {
+                  productData.results[index].titleImage[0] = newImgSrc;
+                }
+              }
+            });
+
+            // UI 업데이트
+            renderOptions();
+            renderUniqueOptionImages();
+            scheduleAutoSave();
+
+            showAlert(`${optionIndexes.length}개 옵션의 이미지가 교체되었습니다.`, 'success');
+          };
+          reader.readAsDataURL(file);
+        } catch (error) {
+          console.error('이미지 교체 오류:', error);
+          showAlert('이미지 교체에 실패했습니다.', 'error');
+        }
+      };
+
+      // 파일 선택 다이얼로그 열기
+      fileInput.click();
     }
 
     async function loadProduct(id) {
@@ -4788,9 +5998,9 @@
 
         // 마진 계산
         const supplyMargin = supplyPrice - costKRW;
-        const supplyMarginPercent = costKRW > 0 ? ((supplyMargin / costKRW) * 100).toFixed(1) : 0;
+        const supplyMarginPercent = costKRW > 0 ? Math.round((supplyMargin / costKRW) * 100) : 0;
         const saleMargin = sellPrice - supplyPrice;
-        const saleMarginPercent = supplyPrice > 0 ? ((saleMargin / supplyPrice) * 100).toFixed(1) : 0;
+        const saleMarginPercent = supplyPrice > 0 ? Math.round((saleMargin / supplyPrice) * 100) : 0;
 
         // 마진 색상 결정
         const supplyMarginClass = supplyMargin > 0 ? 'profit-positive' : 'profit-warning';
@@ -4840,6 +6050,7 @@
       }
 
       renderOptions();
+      scheduleAutoSave();
     }
 
     // 판매가 업데이트
@@ -4847,6 +6058,7 @@
       const sellPrice = parseFloat(value) || 0;
       productData.results[index].sellPrice = sellPrice;
       renderOptions();
+      scheduleAutoSave();
     }
 
     // 가격 계산 함수 (마진% 포함)
@@ -4914,6 +6126,45 @@
     // 옵션 업데이트
     function updateOption(index, field, value) {
       productData.results[index][field] = value;
+      scheduleAutoSave();
+    }
+
+    // 자동 저장 (debounce)
+    let autoSaveTimeout = null;
+    function scheduleAutoSave() {
+      if (autoSaveTimeout) {
+        clearTimeout(autoSaveTimeout);
+      }
+      autoSaveTimeout = setTimeout(() => {
+        autoSaveProduct();
+      }, 1500); // 1.5초 후 자동 저장
+    }
+
+    // 자동 저장 실행 (알림 없이)
+    async function autoSaveProduct() {
+      if (!productId) return; // 새 상품은 자동 저장 안 함
+
+      productData.title = document.getElementById('productTitle').value;
+      productData.detailPageItems = detailPageItems;
+
+      if (detailPageItems && detailPageItems.length > 0) {
+        productData.detailHtml = generateDetailPageHtml(detailPageItems);
+      }
+
+      try {
+        const response = await fetch(`/api/products/${productId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(productData)
+        });
+
+        if (response.ok) {
+          console.log('[AutoSave] 자동 저장 완료');
+        }
+      } catch (error) {
+        console.error('[AutoSave] 자동 저장 실패:', error);
+      }
     }
 
     // 탭 전환
@@ -4963,6 +6214,7 @@
       }
 
       renderOptions();
+      scheduleAutoSave();
     }
 
     // 이름 매핑 다이얼로그 열기
@@ -5032,6 +6284,7 @@
 
       renderOptions();
       closeMappingDialog();
+      scheduleAutoSave();
 
       showAlert(`${count}개 항목이 변경되었습니다.`, 'success');
     }
@@ -5083,6 +6336,7 @@
       });
 
       renderOptions();
+      scheduleAutoSave();
       showAlert(`${count}개 항목에 순번이 부여되었습니다.`, 'success');
     }
 
@@ -5099,6 +6353,815 @@
 
       return result;
     }
+
+    // ========== AI 상품명 작명 기능 ==========
+
+    // AI 상품명 생성
+    async function generateAITitle() {
+      const btn = document.getElementById('btnAiTitle');
+      const spinner = document.getElementById('aiTitleSpinner');
+      const text = document.getElementById('aiTitleText');
+      const titleInput = document.getElementById('productTitle');
+
+      const currentTitle = titleInput.value.trim();
+
+      if (!currentTitle) {
+        showAlert('현재 상품명이 없습니다.', 'error');
+        return;
+      }
+
+      // 버튼 상태 변경
+      btn.disabled = true;
+      spinner.style.display = 'inline-block';
+      text.textContent = '생성중...';
+
+      try {
+        const response = await fetch('/api/gemini/generate-title', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            originalTitle: currentTitle,
+            titleCn: productData.titleCn || ''
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success && result.title) {
+          titleInput.value = result.title;
+          productData.title = result.title;
+          showAlert('상품명이 AI로 생성되었습니다!', 'success');
+          scheduleAutoSave();
+        } else {
+          showAlert(result.message || 'AI 상품명 생성 실패', 'error');
+        }
+      } catch (error) {
+        console.error('AI 상품명 생성 오류:', error);
+        showAlert('AI 상품명 생성 중 오류가 발생했습니다.', 'error');
+      } finally {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        text.textContent = 'AI 작명';
+      }
+    }
+
+    // ========== 쿠팡 가격 수집 기능 ==========
+
+    // 수집된 가격 데이터 저장
+    let collectedPriceData = {
+      all: null,
+      rocket: null
+    };
+
+    // 안전하게 요소에 텍스트 설정 (전역)
+    function setTextSafe(id, text, style = null) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.textContent = text;
+        if (style) {
+          Object.assign(el.style, style);
+        }
+      }
+    }
+
+    // 쿠팡 가격 수집 (Chrome 확장 프로그램 사용)
+    async function collectCoupangPrices() {
+      const keyword = document.getElementById('priceCollectKeyword').value.trim();
+      const btn = document.getElementById('priceCollectBtn');
+      const icon = document.getElementById('priceCollectIcon');
+      const text = document.getElementById('priceCollectText');
+      const useIncognito = document.getElementById('useIncognitoMode')?.checked || false;
+
+      if (!keyword) {
+        showAlert('검색 키워드를 입력해주세요.', 'error');
+        return;
+      }
+
+      // 버튼 상태 변경
+      btn.disabled = true;
+      icon.textContent = '⏳';
+      text.textContent = useIncognito ? '시크릿 모드 수집중...' : '수집중...';
+
+      try {
+        // Chrome 확장 프로그램으로 가격 수집 요청
+        const result = await sendMessageToExtension({
+          action: 'collectCoupangPrices',
+          keyword: keyword,
+          options: { incognito: useIncognito }
+        });
+
+        console.log('가격 수집 결과:', result);
+
+        if (result && result.found) {
+          // 새로운 응답 형식 처리 (result.all 객체에 직접 데이터가 있는 경우)
+          let priceData;
+
+          if (result.all && result.all.status === 'success') {
+            // 새 형식: result.all에 직접 데이터가 있음
+            priceData = {
+              all: result.all,
+              rocket: result.rocket || null
+            };
+          } else {
+            // 기존 형식: result에 minPrice, maxPrice 등이 있음
+            priceData = {
+              all: {
+                status: 'success',
+                min: result.minPrice,
+                max: result.maxPrice,
+                average: result.avgPrice,
+                median: result.medianPrice,
+                totalItems: result.count
+              },
+              rocket: null
+            };
+          }
+
+          collectedPriceData.all = priceData.all;
+          collectedPriceData.rocket = priceData.rocket;
+
+          // 결과 표시
+          displayPriceResults(priceData);
+          document.getElementById('priceCollectResult').style.display = 'block';
+
+          const itemCount = priceData.all.totalItems || result.rawCount || result.count || 0;
+          showAlert(`가격 수집 완료! ${itemCount}개 상품 가격 수집됨`, 'success');
+        } else {
+          showAlert(result?.error || '가격 수집 실패 - 검색 결과가 없거나 확장 프로그램이 연결되지 않았습니다.', 'error');
+        }
+      } catch (error) {
+        console.error('가격 수집 오류:', error);
+        showAlert('가격 수집 중 오류가 발생했습니다. Chrome 확장 프로그램이 설치되어 있는지 확인해주세요.', 'error');
+      } finally {
+        btn.disabled = false;
+        icon.textContent = '🔍';
+        text.textContent = '가격 수집 시작';
+      }
+    }
+
+    // 가격 결과 표시 및 마진 계산
+    function displayPriceResults(data) {
+      const formatPrice = (price) => price ? `${price.toLocaleString()}원` : '-';
+
+      // 안전하게 요소에 텍스트 설정
+      const setTextSafe = (id, text, style = null) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.textContent = text;
+          if (style) {
+            Object.assign(el.style, style);
+          }
+        }
+      };
+
+      // 안전하게 innerHTML 설정
+      const setHtmlSafe = (id, html) => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
+      };
+
+      // 쿠팡 시장가 표시
+      if (data.all && data.all.status === 'success') {
+        setTextSafe('allMinPrice', formatPrice(data.all.min));
+        setTextSafe('allAvgPrice', formatPrice(data.all.average));
+        setTextSafe('allMidPrice', formatPrice(data.all.median));
+        setTextSafe('allMaxPrice', formatPrice(data.all.max));
+        setTextSafe('allCount', data.all.totalItems);
+      } else {
+        setTextSafe('allMinPrice', '-');
+        setTextSafe('allAvgPrice', '-');
+        setTextSafe('allMidPrice', '-');
+        setTextSafe('allMaxPrice', '-');
+        setTextSafe('allCount', '0');
+      }
+
+      // 내 판매가 통계 계산
+      const myPrices = getMyPriceStats();
+      setTextSafe('myMinPrice', formatPrice(myPrices.min));
+      setTextSafe('myAvgPrice', formatPrice(myPrices.avg));
+      setTextSafe('myMidPrice', formatPrice(myPrices.median));
+      setTextSafe('myMaxPrice', formatPrice(myPrices.max));
+
+      // 마진 계산 및 표시
+      if (data.all && data.all.status === 'success' && myPrices.min > 0) {
+        displayMarginComparison(data.all, myPrices);
+      } else {
+        setTextSafe('marginMin', '-');
+        setTextSafe('marginAvg', '-');
+        setTextSafe('marginMid', '-');
+        setTextSafe('marginMax', '-');
+      }
+
+      // 기준가 버튼 업데이트
+      updateBasePriceButtons();
+    }
+
+    // 내 판매가 통계 계산 (sellPrice가 KRW 판매가, price는 CNY 원가)
+    function getMyPriceStats() {
+      const prices = productData.results
+        .map(opt => parseFloat(opt.sellPrice) || 0)  // sellPrice가 KRW 판매가
+        .filter(p => p > 0);
+
+      if (prices.length === 0) {
+        return { min: 0, max: 0, avg: 0, median: 0 };
+      }
+
+      const sorted = [...prices].sort((a, b) => a - b);
+      const min = sorted[0];
+      const max = sorted[sorted.length - 1];
+      const avg = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
+      const mid = Math.floor(sorted.length / 2);
+      const median = sorted.length % 2 !== 0
+        ? sorted[mid]
+        : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+
+      return { min, max, avg, median };
+    }
+
+    // 마진 비교 표시
+    function displayMarginComparison(marketData, myPrices) {
+      // 마진 계산: 내 판매가 - 쿠팡 시장가
+      const margins = {
+        min: myPrices.min - marketData.min,
+        avg: myPrices.avg - marketData.average,
+        mid: myPrices.median - marketData.median,
+        max: myPrices.max - marketData.max
+      };
+
+      // 마진율 계산 (소수점 제거)
+      const marginRates = {
+        min: marketData.min > 0 ? Math.round((myPrices.min - marketData.min) / marketData.min * 100) : 0,
+        avg: marketData.average > 0 ? Math.round((myPrices.avg - marketData.average) / marketData.average * 100) : 0,
+        mid: marketData.median > 0 ? Math.round((myPrices.median - marketData.median) / marketData.median * 100) : 0,
+        max: marketData.max > 0 ? Math.round((myPrices.max - marketData.max) / marketData.max * 100) : 0
+      };
+
+      // 마진 표시 함수
+      const formatMargin = (margin, rate) => {
+        const color = margin >= 0 ? '#38a169' : '#e53e3e';
+        const sign = margin >= 0 ? '+' : '';
+        const rateSign = parseFloat(rate) >= 0 ? '+' : '';
+        return `<span style="color: ${color}; font-weight: 600;">${sign}${margin.toLocaleString()}원</span><br><span style="color: ${color}; font-size: 11px;">(${rateSign}${rate}%)</span>`;
+      };
+
+      // 각 셀에 마진 표시
+      const setHtmlSafe = (id, html) => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
+      };
+
+      setHtmlSafe('marginMin', formatMargin(margins.min, marginRates.min));
+      setHtmlSafe('marginAvg', formatMargin(margins.avg, marginRates.avg));
+      setHtmlSafe('marginMid', formatMargin(margins.mid, marginRates.mid));
+      setHtmlSafe('marginMax', formatMargin(margins.max, marginRates.max));
+
+      // 경쟁력 분석 표시
+      displayCompetitiveAnalysis(marketData, myPrices, margins, marginRates);
+    }
+
+    // 경쟁력 분석 표시
+    function displayCompetitiveAnalysis(marketData, myPrices, margins, marginRates) {
+      const analysisEl = document.getElementById('competitiveAnalysis');
+      const iconEl = document.getElementById('competitiveIcon');
+      const titleEl = document.getElementById('competitiveTitle');
+      const messageEl = document.getElementById('competitiveMessage');
+
+      if (!analysisEl) return;
+
+      analysisEl.style.display = 'block';
+
+      // 중간가 기준으로 경쟁력 판단
+      const midDiff = parseFloat(marginRates.mid);
+      let bgColor, icon, title, message;
+
+      if (midDiff <= -20) {
+        // 매우 저렴 (시장가보다 20% 이상 저렴)
+        bgColor = 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)';
+        icon = '🏆';
+        title = '가격 경쟁력 우수!';
+        message = `내 판매가가 시장 중간가보다 <strong>${Math.abs(midDiff)}% 저렴</strong>합니다.<br>
+          가격 경쟁력이 높아 판매에 유리합니다. 마진 확보 여부를 확인해보세요.`;
+      } else if (midDiff <= -5) {
+        // 약간 저렴
+        bgColor = 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)';
+        icon = '✅';
+        title = '적정 가격대';
+        message = `내 판매가가 시장 중간가보다 <strong>${Math.abs(midDiff)}% 저렴</strong>합니다.<br>
+          경쟁력 있는 가격으로 설정되어 있습니다.`;
+      } else if (midDiff <= 5) {
+        // 비슷한 가격
+        bgColor = 'linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%)';
+        icon = '⚖️';
+        title = '시장 평균 가격';
+        message = `내 판매가가 시장 중간가와 <strong>유사</strong>합니다 (${midDiff > 0 ? '+' : ''}${midDiff}%).<br>
+          차별화 포인트(빠른 배송, 품질 등)로 경쟁해보세요.`;
+      } else if (midDiff <= 20) {
+        // 약간 비쌈
+        bgColor = 'linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%)';
+        icon = '⚠️';
+        title = '가격이 다소 높음';
+        message = `내 판매가가 시장 중간가보다 <strong>${midDiff}% 비쌉</strong>니다.<br>
+          가격 조정을 고려하거나, 프리미엄 제품으로 포지셔닝하세요.`;
+      } else {
+        // 매우 비쌈
+        bgColor = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+        icon = '🚨';
+        title = '가격 조정 필요';
+        message = `내 판매가가 시장 중간가보다 <strong>${midDiff}% 비쌉</strong>니다.<br>
+          경쟁력 확보를 위해 가격 조정을 강력히 권장합니다.`;
+      }
+
+      analysisEl.style.background = bgColor;
+      if (iconEl) iconEl.textContent = icon;
+      if (titleEl) titleEl.textContent = title;
+      if (messageEl) messageEl.innerHTML = message;
+
+      // 옵션별 역마진 경고 표시
+      displayNegativeMarginWarning(marketData);
+    }
+
+    // 옵션별 역마진 경고 표시
+    function displayNegativeMarginWarning(marketData) {
+      // 기존 경고 제거
+      const existingWarning = document.getElementById('negativeMarginWarning');
+      if (existingWarning) existingWarning.remove();
+
+      if (!collectedPriceData.all || !marketData) return;
+
+      const marketMedian = marketData.median || 0;
+      if (marketMedian <= 0) return;
+
+      // 각 옵션의 판매가와 시장가 비교
+      let negativeCount = 0;
+      let lowMarginCount = 0;  // 마진 10% 미만
+      const negativeOptions = [];
+      const lowMarginOptions = [];
+
+      productData.results.forEach((opt, idx) => {
+        const sellPrice = parseFloat(opt.sellPrice) || 0;
+        if (sellPrice <= 0) return;
+
+        const margin = sellPrice - marketMedian;
+        const marginRate = Math.round((margin / marketMedian) * 100);
+
+        if (sellPrice < marketMedian) {
+          // 역마진 (시장가보다 내 판매가가 낮음)
+          negativeCount++;
+          const optName = opt.optionName1 || opt.optionName1Cn || `옵션${idx + 1}`;
+          negativeOptions.push({
+            name: optName.substring(0, 20),
+            price: sellPrice,
+            margin: margin,
+            marginRate: marginRate
+          });
+        } else if (marginRate < 10 && marginRate >= 0) {
+          // 저마진
+          lowMarginCount++;
+          const optName = opt.optionName1 || opt.optionName1Cn || `옵션${idx + 1}`;
+          lowMarginOptions.push({
+            name: optName.substring(0, 20),
+            price: sellPrice,
+            margin: margin,
+            marginRate: marginRate
+          });
+        }
+      });
+
+      // 경고가 없으면 종료
+      if (negativeCount === 0 && lowMarginCount === 0) return;
+
+      // 경고 UI 생성
+      const warningDiv = document.createElement('div');
+      warningDiv.id = 'negativeMarginWarning';
+      warningDiv.style.cssText = `
+        margin-top: 15px;
+        padding: 12px 15px;
+        border-radius: 8px;
+        font-size: 13px;
+      `;
+
+      let warningHtml = '';
+
+      if (negativeCount > 0) {
+        warningDiv.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+        warningDiv.style.border = '1px solid #f87171';
+        warningHtml = `
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span style="font-size: 18px;">🚨</span>
+            <strong style="color: #dc2626;">역마진 경고! ${negativeCount}개 옵션</strong>
+          </div>
+          <div style="color: #991b1b; font-size: 12px;">
+            다음 옵션의 판매가가 시장 중간가(${marketMedian.toLocaleString()}원)보다 낮습니다:
+          </div>
+          <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;">
+            ${negativeOptions.slice(0, 5).map(opt => `
+              <span style="background: #fecaca; padding: 3px 8px; border-radius: 4px; font-size: 11px; color: #991b1b;">
+                ${opt.name}: ${opt.price.toLocaleString()}원 (${opt.marginRate}%)
+              </span>
+            `).join('')}
+            ${negativeCount > 5 ? `<span style="color: #991b1b; font-size: 11px;">외 ${negativeCount - 5}개</span>` : ''}
+          </div>
+        `;
+      } else if (lowMarginCount > 0) {
+        warningDiv.style.background = 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
+        warningDiv.style.border = '1px solid #f59e0b';
+        warningHtml = `
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span style="font-size: 18px;">⚠️</span>
+            <strong style="color: #d97706;">저마진 주의! ${lowMarginCount}개 옵션</strong>
+          </div>
+          <div style="color: #92400e; font-size: 12px;">
+            다음 옵션의 마진율이 10% 미만입니다 (시장 중간가: ${marketMedian.toLocaleString()}원):
+          </div>
+          <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;">
+            ${lowMarginOptions.slice(0, 5).map(opt => `
+              <span style="background: #fde68a; padding: 3px 8px; border-radius: 4px; font-size: 11px; color: #92400e;">
+                ${opt.name}: ${opt.price.toLocaleString()}원 (+${opt.marginRate}%)
+              </span>
+            `).join('')}
+            ${lowMarginCount > 5 ? `<span style="color: #92400e; font-size: 11px;">외 ${lowMarginCount - 5}개</span>` : ''}
+          </div>
+        `;
+      }
+
+      warningDiv.innerHTML = warningHtml;
+
+      // competitiveAnalysis 뒤에 삽입
+      const analysisEl = document.getElementById('competitiveAnalysis');
+      if (analysisEl && analysisEl.parentNode) {
+        analysisEl.parentNode.insertBefore(warningDiv, analysisEl.nextSibling);
+      }
+    }
+
+    // 현재 선택된 기준가 타입
+    let selectedPriceBase = 'min';
+
+    // 기준가 선택
+    function selectPriceBase(baseType) {
+      selectedPriceBase = baseType;
+
+      // 버튼 활성화 상태 변경
+      document.querySelectorAll('.price-base-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.base === baseType) {
+          btn.classList.add('active');
+        }
+      });
+
+      updatePricePreview();
+    }
+
+    // 빠른 조정
+    function quickAdjust(percent) {
+      document.getElementById('priceAdjustPercent').value = percent;
+      document.getElementById('priceSlider').value = percent;
+      updatePricePreview();
+    }
+
+    // 슬라이더와 입력 동기화
+    function syncSlider() {
+      const value = parseFloat(document.getElementById('priceAdjustPercent').value) || 0;
+      document.getElementById('priceSlider').value = Math.max(-50, Math.min(50, value));
+      updatePricePreview();
+    }
+
+    // 가격 미리보기 업데이트
+    function updatePricePreview() {
+      const adjustPercent = parseFloat(document.getElementById('priceSlider').value) || 0;
+      document.getElementById('priceAdjustPercent').value = adjustPercent;
+
+      const source = collectedPriceData.all;
+      if (!source || source.status !== 'success') {
+        setTextSafe('previewPrice', '-');
+        setTextSafe('previewMargin', '-');
+        setTextSafe('previewMarginRate', '-');
+        return;
+      }
+
+      // 기준 가격 가져오기
+      let basePrice = 0;
+      switch (selectedPriceBase) {
+        case 'min': basePrice = source.min; break;
+        case 'avg': basePrice = source.average; break;
+        case 'mid': basePrice = source.median; break;
+        case 'max': basePrice = source.max; break;
+      }
+
+      if (!basePrice) return;
+
+      // 예상 판매가
+      const expectedPrice = Math.round(basePrice * (1 + adjustPercent / 100));
+
+      // 평균 원가 계산 (공급가 기준)
+      const avgCost = getAverageCost();
+
+      // 마진 계산
+      const margin = expectedPrice - avgCost;
+      const marginRate = avgCost > 0 ? ((margin / expectedPrice) * 100) : 0;
+
+      // 표시
+      const priceEl = document.getElementById('previewPrice');
+      const marginEl = document.getElementById('previewMargin');
+      const marginRateEl = document.getElementById('previewMarginRate');
+
+      if (priceEl) priceEl.textContent = expectedPrice.toLocaleString() + '원';
+
+      if (marginEl) {
+        marginEl.textContent = (margin >= 0 ? '+' : '') + margin.toLocaleString() + '원';
+        marginEl.style.color = margin >= 0 ? '#059669' : '#dc2626';
+      }
+
+      if (marginRateEl) {
+        marginRateEl.textContent = Math.round(marginRate) + '%';
+        marginRateEl.style.color = marginRate >= 20 ? '#059669' : (marginRate >= 10 ? '#d97706' : '#dc2626');
+      }
+
+      // 슬라이더 조정 시 역마진 경고도 실시간 업데이트
+      if (collectedPriceData.all && collectedPriceData.all.status === 'success') {
+        updateNegativeMarginWarningWithPreview(expectedPrice);
+      }
+    }
+
+    // 슬라이더 조정 시 역마진 경고 실시간 업데이트
+    function updateNegativeMarginWarningWithPreview(expectedPrice) {
+      // 기존 경고 제거
+      const existingWarning = document.getElementById('negativeMarginWarning');
+      if (existingWarning) existingWarning.remove();
+
+      if (!collectedPriceData.all) return;
+
+      const marketMedian = collectedPriceData.all.median || 0;
+      if (marketMedian <= 0 || !expectedPrice) return;
+
+      // 예상 판매가와 시장가 비교
+      let negativeCount = 0;
+      let lowMarginCount = 0;
+      const negativeOptions = [];
+      const lowMarginOptions = [];
+
+      productData.results.forEach((opt, idx) => {
+        // 현재 슬라이더로 조정된 예상 판매가 사용
+        const margin = expectedPrice - marketMedian;
+        const marginRate = Math.round((margin / marketMedian) * 100);
+
+        if (expectedPrice < marketMedian) {
+          negativeCount++;
+          const optName = opt.optionName1 || opt.optionName1Cn || `옵션${idx + 1}`;
+          if (negativeOptions.length < 5) {
+            negativeOptions.push({
+              name: optName.substring(0, 20),
+              price: expectedPrice,
+              marginRate: marginRate
+            });
+          }
+        } else if (marginRate < 10 && marginRate >= 0) {
+          lowMarginCount++;
+          const optName = opt.optionName1 || opt.optionName1Cn || `옵션${idx + 1}`;
+          if (lowMarginOptions.length < 5) {
+            lowMarginOptions.push({
+              name: optName.substring(0, 20),
+              price: expectedPrice,
+              marginRate: marginRate
+            });
+          }
+        }
+      });
+
+      // 경고가 없으면 종료
+      if (negativeCount === 0 && lowMarginCount === 0) return;
+
+      // 경고 UI 생성
+      const warningDiv = document.createElement('div');
+      warningDiv.id = 'negativeMarginWarning';
+      warningDiv.style.cssText = `
+        margin-top: 15px;
+        padding: 12px 15px;
+        border-radius: 8px;
+        font-size: 13px;
+      `;
+
+      let warningHtml = '';
+      const optionCount = productData.results.length;
+
+      if (negativeCount > 0) {
+        warningDiv.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+        warningDiv.style.border = '1px solid #f87171';
+        warningHtml = `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 18px;">🚨</span>
+            <strong style="color: #dc2626;">역마진 경고!</strong>
+            <span style="color: #991b1b; font-size: 12px;">
+              예상 판매가(${expectedPrice.toLocaleString()}원)가 시장 중간가(${marketMedian.toLocaleString()}원)보다 낮습니다
+            </span>
+          </div>
+        `;
+      } else if (lowMarginCount > 0) {
+        warningDiv.style.background = 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
+        warningDiv.style.border = '1px solid #f59e0b';
+        const marginRate = Math.round((expectedPrice - marketMedian) / marketMedian * 100);
+        warningHtml = `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 18px;">⚠️</span>
+            <strong style="color: #d97706;">저마진 주의!</strong>
+            <span style="color: #92400e; font-size: 12px;">
+              마진율 ${marginRate}% (시장 중간가 대비)
+            </span>
+          </div>
+        `;
+      }
+
+      warningDiv.innerHTML = warningHtml;
+
+      // competitiveAnalysis 뒤에 삽입
+      const analysisEl = document.getElementById('competitiveAnalysis');
+      if (analysisEl && analysisEl.parentNode) {
+        analysisEl.parentNode.insertBefore(warningDiv, analysisEl.nextSibling);
+      }
+    }
+
+    // 평균 원가 계산
+    function getAverageCost() {
+      if (!productData.results || productData.results.length === 0) return 0;
+
+      const costs = productData.results
+        .map(opt => parseFloat(opt.supplyPrice) || parseFloat(opt.costPrice) || 0)
+        .filter(c => c > 0);
+
+      if (costs.length === 0) return 0;
+      return costs.reduce((a, b) => a + b, 0) / costs.length;
+    }
+
+    // 기준가 버튼에 가격 표시
+    function updateBasePriceButtons() {
+      const source = collectedPriceData.all;
+      if (!source || source.status !== 'success') return;
+
+      setTextSafe('basePriceMin', source.min ? source.min.toLocaleString() + '원' : '-');
+      setTextSafe('basePriceAvg', source.average ? Math.round(source.average).toLocaleString() + '원' : '-');
+      setTextSafe('basePriceMid', source.median ? source.median.toLocaleString() + '원' : '-');
+      setTextSafe('basePriceMax', source.max ? source.max.toLocaleString() + '원' : '-');
+
+      updatePricePreview();
+    }
+
+    // 수집된 가격으로 판매가 적용
+    function applyCollectedPrice() {
+      const adjustPercent = parseFloat(document.getElementById('priceAdjustPercent').value) || 0;
+
+      const source = collectedPriceData.all;
+      if (!source || source.status !== 'success') {
+        showAlert('가격 데이터가 없습니다. 먼저 가격을 수집해주세요.', 'error');
+        return;
+      }
+
+      // 기준 가격 가져오기
+      let basePrice = 0;
+      let baseName = '';
+      switch (selectedPriceBase) {
+        case 'min': basePrice = source.min; baseName = '최저가'; break;
+        case 'avg': basePrice = source.average; baseName = '평균가'; break;
+        case 'mid': basePrice = source.median; baseName = '중간가'; break;
+        case 'max': basePrice = source.max; baseName = '최고가'; break;
+      }
+
+      if (!basePrice) {
+        showAlert('기준 가격을 찾을 수 없습니다.', 'error');
+        return;
+      }
+
+      // 조정된 가격 계산
+      const adjustedPrice = Math.round(basePrice * (1 + adjustPercent / 100));
+      const avgCost = getAverageCost();
+      const margin = adjustedPrice - avgCost;
+      const marginRate = avgCost > 0 ? ((margin / adjustedPrice) * 100) : 0;
+
+      // 확인
+      const confirmMsg = `쿠팡 ${baseName}: ${Math.round(basePrice).toLocaleString()}원
+조정: ${adjustPercent >= 0 ? '+' : ''}${adjustPercent}%
+적용 판매가: ${adjustedPrice.toLocaleString()}원
+예상 마진: ${margin.toLocaleString()}원 (${Math.round(marginRate)}%)
+
+모든 옵션의 판매가를 변경하시겠습니까?`;
+
+      if (!confirm(confirmMsg)) return;
+
+      // 모든 옵션의 판매가 및 공급가 변경
+      let updatedCount = 0;
+      productData.results.forEach(opt => {
+        // 판매가 설정
+        opt.price = adjustedPrice;
+        opt.sellPrice = adjustedPrice;
+
+        // 공급가 역산: 판매가에서 판매마진율을 적용해서 공급가 계산
+        // 판매가 = 공급가 / (1 - 판매마진%)  =>  공급가 = 판매가 * (1 - 판매마진%)
+        const saleMarginPercent = getSaleMarginPercent(adjustedPrice);
+        const newSupplyPrice = Math.round(adjustedPrice * (1 - saleMarginPercent / 100));
+        opt.supplyPrice = newSupplyPrice;
+
+        updatedCount++;
+      });
+
+      // UI 업데이트
+      renderOptions();
+      scheduleAutoSave();
+
+      showAlert(`${updatedCount}개 옵션의 판매가가 ${adjustedPrice.toLocaleString()}원으로 변경되었습니다.`, 'success');
+    }
+
+    // 판매가 구간별 마진율 조회
+    function getSaleMarginPercent(sellPrice) {
+      for (const tier of settings.saleMargins) {
+        if (sellPrice <= tier.amount) {
+          return tier.percent;
+        }
+      }
+      // 마지막 구간 반환
+      return settings.saleMargins[settings.saleMargins.length - 1].percent;
+    }
+
+    // ========== AI 옵션명 변환 기능 ==========
+
+    // AI 옵션명 자동 변환 (중국어 → 한국어)
+    async function applyAIRename() {
+      const targetOption = document.getElementById('aiTargetOption').value;
+      const btn = document.getElementById('aiRenameBtn');
+      const icon = document.getElementById('aiRenameIcon');
+      const text = document.getElementById('aiRenameText');
+
+      // 대상 옵션 필드 결정
+      const targetFields = targetOption === 'all'
+        ? ['optionName1', 'optionName2']
+        : [targetOption];
+
+      // 유니크한 옵션 값 수집 (전체 옵션인 경우 옵션1, 옵션2 모두 수집)
+      const uniqueValues = [];
+      const seen = new Set();
+
+      productData.results.forEach(opt => {
+        targetFields.forEach(field => {
+          const value = opt[field] || '';
+          if (value && !seen.has(value)) {
+            uniqueValues.push(value);
+            seen.add(value);
+          }
+        });
+      });
+
+      if (uniqueValues.length === 0) {
+        showAlert('변환할 옵션 값이 없습니다.', 'warning');
+        return;
+      }
+
+      // 로딩 상태
+      btn.disabled = true;
+      icon.textContent = '⏳';
+      text.textContent = 'AI 변환 중...';
+
+      try {
+        const response = await fetch('/api/gemini/rename-options', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            optionValues: uniqueValues,
+            mode: 'auto'
+          })
+        });
+
+        if (!response.ok) throw new Error('AI 변환 실패');
+
+        const data = await response.json();
+        const mapping = data.mapping || {};
+
+        // 매핑 적용 (실제로 값이 변경된 경우만 카운트)
+        let changedCount = 0;
+        productData.results.forEach(opt => {
+          targetFields.forEach(field => {
+            const currentValue = opt[field] || '';
+            if (mapping[currentValue] && mapping[currentValue] !== currentValue) {
+              opt[field] = mapping[currentValue];
+              changedCount++;
+            }
+          });
+        });
+
+        renderOptions();
+        if (changedCount > 0) {
+          showAlert(`AI가 ${changedCount}개 옵션을 변환했습니다.`, 'success');
+          scheduleAutoSave();
+        } else {
+          showAlert('변환할 중국어 옵션이 없거나 이미 변환되었습니다.', 'info');
+        }
+      } catch (error) {
+        console.error('AI 변환 오류:', error);
+        showAlert('AI 변환에 실패했습니다. 다시 시도해주세요.', 'error');
+      } finally {
+        btn.disabled = false;
+        icon.textContent = '✨';
+        text.textContent = 'AI 변환 시작';
+      }
+    }
+
+    // ========== END AI 기능 ==========
 
     // 자동 번역
     // silent: true일 경우 확인창 및 알림 없이 자동 실행 (로드시 사용)
@@ -6324,6 +8387,126 @@
         reader.readAsDataURL(blob);
       });
     }
+
+    // ========== 커스텀 AI 모달 ==========
+    function openCustomAIModal() {
+      document.getElementById('customAIModal').classList.add('active');
+    }
+
+    function closeCustomAIModal() {
+      document.getElementById('customAIModal').classList.remove('active');
+    }
+
+    async function applyCustomAIFromModal() {
+      const targetOption = document.getElementById('customAiTargetOption').value;
+      const customPrompt = document.getElementById('customAiPrompt').value.trim();
+      const btn = document.getElementById('customAiApplyBtn');
+      const btnText = document.getElementById('customAiBtnText');
+
+      if (!customPrompt) {
+        showAlert('AI에게 전달할 프롬프트를 입력해주세요.', 'warning');
+        return;
+      }
+
+      // 대상 옵션 필드 결정
+      const targetFields = targetOption === 'all'
+        ? ['optionName1', 'optionName2']
+        : [targetOption];
+
+      // 유니크한 옵션 값 수집 (전체 옵션인 경우 옵션1, 옵션2 모두 수집)
+      const uniqueValues = [];
+      const seen = new Set();
+
+      productData.results.forEach(opt => {
+        targetFields.forEach(field => {
+          const value = opt[field] || '';
+          if (value && !seen.has(value)) {
+            uniqueValues.push(value);
+            seen.add(value);
+          }
+        });
+      });
+
+      if (uniqueValues.length === 0) {
+        showAlert('변환할 옵션 값이 없습니다.', 'warning');
+        return;
+      }
+
+      // 로딩 상태
+      btn.disabled = true;
+      btnText.textContent = 'AI 변환 중...';
+
+      try {
+        const response = await fetch('/api/gemini/rename-options', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            optionValues: uniqueValues,
+            mode: 'custom',
+            customPrompt: customPrompt
+          })
+        });
+
+        if (!response.ok) throw new Error('AI 변환 실패');
+
+        const data = await response.json();
+        const mapping = data.mapping || {};
+
+        // 매핑 적용
+        let count = 0;
+        productData.results.forEach(opt => {
+          targetFields.forEach(field => {
+            const currentValue = opt[field] || '';
+            if (mapping[currentValue] && mapping[currentValue] !== currentValue) {
+              opt[field] = mapping[currentValue];
+              count++;
+            }
+          });
+        });
+
+        renderOptions();
+        closeCustomAIModal();
+        showAlert(`AI가 ${count}개 옵션을 변환했습니다.`, 'success');
+        if (count > 0) {
+          scheduleAutoSave();
+        }
+      } catch (error) {
+        console.error('커스텀 AI 변환 오류:', error);
+        showAlert('AI 변환에 실패했습니다. 다시 시도해주세요.', 'error');
+      } finally {
+        btn.disabled = false;
+        btnText.textContent = 'AI 변환 적용';
+      }
+    }
   </script>
+
+  <!-- 커스텀 AI 모달 -->
+  <div id="customAIModal" class="custom-ai-modal" onclick="if(event.target === this) closeCustomAIModal()">
+    <div class="custom-ai-content">
+      <div class="custom-ai-header">
+        <h3><span>🎨</span> 커스텀 AI 변환</h3>
+        <button class="custom-ai-close" onclick="closeCustomAIModal()">&times;</button>
+      </div>
+      <div class="custom-ai-body">
+        <label for="customAiPrompt">AI에게 전달할 지시사항</label>
+        <textarea id="customAiPrompt" class="custom-ai-textarea" placeholder="예: 모든 옵션명을 간단한 한글로 변환해주세요. 색상은 '빨강', '파랑' 등 기본 색상명으로 변환하고, 사이즈는 'S', 'M', 'L'로 통일해주세요."></textarea>
+        <div class="custom-ai-select-row">
+          <label>대상 옵션:</label>
+          <select id="customAiTargetOption" class="custom-ai-select">
+            <option value="all" selected>전체 (옵션1+옵션2)</option>
+            <option value="optionName1">옵션1</option>
+            <option value="optionName2">옵션2</option>
+          </select>
+        </div>
+      </div>
+      <div class="custom-ai-footer">
+        <button class="btn-custom-cancel" onclick="closeCustomAIModal()">취소</button>
+        <button id="customAiApplyBtn" class="btn-custom-apply" onclick="applyCustomAIFromModal()">
+          <span>✨</span>
+          <span id="customAiBtnText">AI 변환 적용</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

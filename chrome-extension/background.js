@@ -775,6 +775,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ pong: true });
     return true;
   }
+
+  // 쿠팡 가격 수집 (content script에서 호출)
+  if (message.action === 'collectCoupangPrices') {
+    console.log('💰 [내부] 쿠팡 가격 수집 요청:', message.keyword);
+    handleCollectCoupangPrices(message.keyword, message.options || {})
+      .then(result => sendResponse(result))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
 });
 
 // 외부 메시지 리스너 (externally_connectable로 허용된 웹페이지에서 오는 메시지)
@@ -865,6 +874,14 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
   // 견적서 자동 작성 (확장 프로그램에서 직접 처리)
   if (message.action === 'fillQuotations') {
     handleFillQuotations(message)
+      .then(result => sendResponse(result))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+
+  // 쿠팡 가격 수집 (브라우저 탭에서 직접 처리)
+  if (message.action === 'collectCoupangPrices') {
+    handleCollectCoupangPrices(message.keyword, message.options || {})
       .then(result => sendResponse(result))
       .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
@@ -3672,4 +3689,427 @@ function waitForTabLoad(tabId, timeout = 30000) {
       resolve();
     }, timeout);
   });
+}
+
+/**
+ * 쿠팡 가격 수집 처리
+ * 브라우저 탭을 열어서 직접 검색 결과를 파싱
+ * options.incognito: true면 시크릿 모드로 검색
+ */
+async function handleCollectCoupangPrices(keyword, options = {}) {
+  console.log('💰 쿠팡 가격 수집 시작:', keyword, options.incognito ? '(시크릿 모드)' : '');
+
+  if (!keyword || keyword.trim() === '') {
+    return { success: false, error: '검색 키워드가 필요합니다.' };
+  }
+
+  let priceTab = null;
+  let incognitoWindow = null;
+
+  try {
+    // 쿠팡 검색 URL 생성
+    const searchUrl = `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(keyword)}&channel=user`;
+
+    // 시크릿 모드로 열기 옵션
+    if (options.incognito) {
+      try {
+        // 시크릿 윈도우 생성
+        const newWindow = await chrome.windows.create({
+          url: searchUrl,
+          incognito: true,
+          focused: false,
+          state: 'minimized'
+        });
+
+        // window 자체가 null인지 확인
+        if (!newWindow || !newWindow.id) {
+          throw new Error('시크릿 윈도우를 생성할 수 없습니다.');
+        }
+
+        incognitoWindow = newWindow.id;
+
+        // 탭 정보가 바로 안 올 수 있으므로 확인
+        if (newWindow.tabs && newWindow.tabs.length > 0 && newWindow.tabs[0] && newWindow.tabs[0].id) {
+          priceTab = newWindow.tabs[0].id;
+        } else {
+          // 탭이 없으면 잠시 대기 후 윈도우의 탭을 조회
+          await new Promise(resolve => setTimeout(resolve, 500));
+          const tabs = await chrome.tabs.query({ windowId: incognitoWindow });
+          if (tabs && tabs.length > 0 && tabs[0].id) {
+            priceTab = tabs[0].id;
+          } else {
+            throw new Error('시크릿 모드에서 탭을 생성할 수 없습니다. 확장 프로그램 설정에서 "시크릿 모드에서 허용"을 체크해주세요.');
+          }
+        }
+        console.log('🔒 시크릿 모드 쿠팡 검색 탭 열림:', priceTab);
+      } catch (incognitoError) {
+        console.error('시크릿 모드 오류:', incognitoError);
+        // 시크릿 모드 실패 시 일반 모드로 폴백
+        console.log('⚠️ 시크릿 모드 실패, 일반 모드로 전환');
+
+        // 실패한 시크릿 윈도우 정리
+        if (incognitoWindow) {
+          try { await chrome.windows.remove(incognitoWindow); } catch(e) {}
+        }
+        incognitoWindow = null;
+
+        const tab = await chrome.tabs.create({
+          url: searchUrl,
+          active: false
+        });
+        priceTab = tab.id;
+        console.log('🌐 쿠팡 검색 탭 열림 (폴백):', priceTab);
+      }
+    } else {
+      // 일반 탭 열기
+      const tab = await chrome.tabs.create({
+        url: searchUrl,
+        active: false // 백그라운드에서 열기
+      });
+      priceTab = tab.id;
+      console.log('🌐 쿠팡 검색 탭 열림:', priceTab);
+    }
+
+    // 페이지 로딩 완료 대기
+    await waitForTabLoad(priceTab, 15000);
+
+    // 동적 콘텐츠 로딩 대기 - 쿠팡은 JavaScript로 상품을 로드하므로 충분히 기다림
+    console.log('⏳ 동적 콘텐츠 로딩 대기 중...');
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    // 페이지 내용 확인 (디버깅용)
+    const pageCheck = await chrome.scripting.executeScript({
+      target: { tabId: priceTab },
+      func: () => {
+        return {
+          url: window.location.href,
+          title: document.title,
+          bodyLength: document.body ? document.body.innerHTML.length : 0,
+          hasSearchResults: document.querySelector('.search-product-list') !== null ||
+                           document.querySelector('[class*="search-product"]') !== null ||
+                           document.querySelector('[data-product-id]') !== null,
+          productCount: document.querySelectorAll('li.search-product, [class*="search-product"], [data-product-id]').length
+        };
+      }
+    });
+
+    if (pageCheck && pageCheck[0] && pageCheck[0].result) {
+      console.log('📋 페이지 상태:', pageCheck[0].result);
+
+      // 검색 결과가 아직 없으면 추가 대기
+      if (!pageCheck[0].result.hasSearchResults && pageCheck[0].result.productCount === 0) {
+        console.log('⏳ 검색 결과 로딩 추가 대기...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+    }
+
+    // 가격 정보 추출 스크립트 실행
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: priceTab },
+      func: extractCoupangPrices
+    });
+
+    // 시크릿 윈도우면 윈도우 전체 닫기, 아니면 탭만 닫기
+    if (incognitoWindow) {
+      try {
+        await chrome.windows.remove(incognitoWindow);
+        console.log('🗑️ 시크릿 윈도우 닫힘:', incognitoWindow);
+      } catch (e) {
+        console.error('시크릿 윈도우 닫기 실패:', e);
+      }
+      incognitoWindow = null;
+    } else if (priceTab) {
+      try {
+        await chrome.tabs.remove(priceTab);
+        console.log('🗑️ 가격 수집 탭 닫힘:', priceTab);
+      } catch (e) {
+        console.error('탭 닫기 실패:', e);
+      }
+    }
+    priceTab = null;
+
+    if (results && results[0] && results[0].result) {
+      const priceData = results[0].result;
+      console.log('✅ 가격 수집 완료:', priceData);
+      return {
+        success: true,
+        keyword: keyword,
+        ...priceData
+      };
+    } else {
+      return {
+        success: false,
+        error: '가격 정보를 추출할 수 없습니다.'
+      };
+    }
+
+  } catch (error) {
+    console.error('❌ 가격 수집 오류:', error);
+
+    // 오류 발생 시 정리
+    if (incognitoWindow) {
+      try {
+        await chrome.windows.remove(incognitoWindow);
+      } catch (e) {
+        // 윈도우가 이미 닫혔을 수 있음
+      }
+    } else if (priceTab) {
+      try {
+        await chrome.tabs.remove(priceTab);
+      } catch (e) {
+        // 탭이 이미 닫혔을 수 있음
+      }
+    }
+
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 쿠팡 검색 결과 페이지에서 가격 추출 (개선된 버전)
+ * - 배송 타입별 분류
+ * - IQR 방법으로 이상치 제거
+ * (chrome.scripting.executeScript에서 실행됨)
+ */
+function extractCoupangPrices() {
+  const products = [];
+
+  // 디버깅: 페이지 상태 확인
+  console.log('🔍 페이지 URL:', window.location.href);
+  console.log('🔍 페이지 타이틀:', document.title);
+  console.log('🔍 body 길이:', document.body ? document.body.innerHTML.length : 0);
+
+  // 검색 결과에서 상품 요소들 찾기 (여러 셀렉터 시도)
+  const selectors = [
+    '.search-product-list li[class*="search-product"]',
+    '#productList li.search-product',
+    'ul.search-product-list > li',
+    '[class*="search-product"]',
+    '[data-product-id]',
+    '.baby-product, .product-item, [class*="ProductItem"]',
+    'li.search-product',
+    'a[href*="/products/"]',
+    // 새로운 쿠팡 UI 셀렉터
+    '[class*="SearchResult"] li',
+    '[class*="productList"] li',
+    '.search-content li'
+  ];
+
+  let productElements = [];
+
+  for (const selector of selectors) {
+    const elements = document.querySelectorAll(selector);
+    console.log(`🔍 셀렉터 "${selector}": ${elements.length}개`);
+    if (elements.length > 0 && productElements.length === 0) {
+      productElements = elements;
+    }
+  }
+
+  console.log('🔍 최종 선택된 상품 수:', productElements.length);
+
+  productElements.forEach((product, index) => {
+    if (index >= 50) return; // 최대 50개 수집
+
+    try {
+      // 가격 추출 (여러 셀렉터 시도)
+      let priceNum = 0;
+      const priceSelectors = [
+        '.price-value',
+        'strong.price-value',
+        '.base-price',
+        '.price em',
+        '.discount-price strong',
+        '[class*="price"] strong',
+        '[data-log-actionid-label="price"] strong'
+      ];
+
+      for (const selector of priceSelectors) {
+        const priceEl = product.querySelector(selector);
+        if (priceEl) {
+          const priceText = priceEl.textContent.replace(/[^0-9]/g, '');
+          priceNum = parseInt(priceText, 10);
+          if (priceNum > 0) break;
+        }
+      }
+
+      // 가격이 없거나 비정상적인 경우 스킵
+      if (priceNum < 1000 || priceNum > 50000000) return;
+
+      // 배송 타입 확인
+      let deliveryType = 'general'; // 기본: 일반배송
+      const deliveryBadge = product.querySelector('.badge-delivery, [class*="rocket"], [class*="Rocket"]');
+      const badgeImg = product.querySelector('img[src*="rocket"], img[alt*="로켓"]');
+
+      if (badgeImg) {
+        const src = badgeImg.src || '';
+        const alt = badgeImg.alt || '';
+        if (src.includes('rocket_logo') || alt.includes('로켓배송')) {
+          deliveryType = 'rocket';
+        } else if (src.includes('rocket_wow') || alt.includes('로켓와우')) {
+          deliveryType = 'rocketWow';
+        } else if (src.includes('global') || alt.includes('직구')) {
+          deliveryType = 'global';
+        } else if (src.includes('seller') || alt.includes('판매자')) {
+          deliveryType = 'sellerRocket';
+        }
+      }
+
+      // 광고 여부 확인
+      const isAd = product.querySelector('[class*="ad-badge"], [class*="adBadge"]') !== null ||
+                   product.querySelector('span.ad-label') !== null;
+
+      products.push({
+        price: priceNum,
+        deliveryType: deliveryType,
+        isAd: isAd
+      });
+
+    } catch (e) {
+      console.error('상품 파싱 오류:', e);
+    }
+  });
+
+  console.log('📦 파싱된 상품:', products.length);
+
+  // 상품을 못 찾은 경우 직접 가격 텍스트 스캔
+  if (products.length === 0) {
+    console.log('⚠️ 상품 요소 못 찾음, 가격 텍스트 직접 스캔...');
+
+    // 디버깅: HTML 구조 일부 출력
+    const bodySnippet = document.body ? document.body.innerHTML.substring(0, 2000) : '';
+    console.log('🔍 HTML 미리보기:', bodySnippet);
+
+    // 페이지 전체에서 가격 패턴 찾기 - 더 넓은 범위
+    const priceSelectors = [
+      '[class*="price"]', '[class*="Price"]',
+      '[class*="amount"]', '[class*="Amount"]',
+      '[class*="cost"]', '[class*="Cost"]',
+      'strong', 'em', 'span'
+    ];
+
+    let allPriceElements = [];
+    for (const sel of priceSelectors) {
+      const els = document.querySelectorAll(sel);
+      if (els.length > 0) {
+        allPriceElements = [...allPriceElements, ...els];
+      }
+    }
+    console.log('🔍 가격 관련 요소:', allPriceElements.length);
+
+    const seenPrices = new Set();
+    allPriceElements.forEach((el, idx) => {
+      if (idx >= 500) return;
+      const text = el.textContent || '';
+      // 가격 패턴: 숫자,숫자원 또는 숫자,숫자 (한국 원화)
+      const matches = text.match(/(\d{1,3}(,\d{3})+|\d{4,})\s*원?/g);
+      if (matches) {
+        matches.forEach(match => {
+          const priceNum = parseInt(match.replace(/[^0-9]/g, ''), 10);
+          // 합리적인 가격 범위
+          if (priceNum >= 1000 && priceNum <= 50000000) {
+            // 중복 방지
+            if (!seenPrices.has(priceNum)) {
+              seenPrices.add(priceNum);
+              products.push({
+                price: priceNum,
+                deliveryType: 'general',
+                isAd: false
+              });
+            }
+          }
+        });
+      }
+    });
+
+    console.log('📦 텍스트 스캔으로 찾은 가격:', products.length);
+  }
+
+  if (products.length === 0) {
+    // 최후의 디버깅 정보
+    console.log('❌ 가격을 찾을 수 없음');
+    console.log('🔍 body 존재:', !!document.body);
+    console.log('🔍 검색 결과 영역:', document.querySelector('#searchResults, .search-results, [class*="search"]'));
+    console.log('🔍 로딩 인디케이터:', document.querySelector('[class*="loading"], [class*="spinner"]'));
+
+    return {
+      found: false,
+      all: { status: 'no_data', totalItems: 0 },
+      debug: {
+        url: window.location.href,
+        title: document.title,
+        bodyLength: document.body ? document.body.innerHTML.length : 0
+      }
+    };
+  }
+
+  // 광고 제외한 상품만
+  const nonAdProducts = products.filter(p => !p.isAd);
+  const allPrices = (nonAdProducts.length > 0 ? nonAdProducts : products).map(p => p.price);
+
+  // IQR 방법으로 이상치 제거
+  function removeOutliers(prices) {
+    if (prices.length < 4) return prices;
+
+    const sorted = [...prices].sort((a, b) => a - b);
+    const q1Index = Math.floor(sorted.length * 0.25);
+    const q3Index = Math.floor(sorted.length * 0.75);
+    const q1 = sorted[q1Index];
+    const q3 = sorted[q3Index];
+    const iqr = q3 - q1;
+    const lowerBound = q1 - iqr * 1.5;
+    const upperBound = q3 + iqr * 1.5;
+
+    return sorted.filter(p => p >= lowerBound && p <= upperBound);
+  }
+
+  // 통계 계산 함수
+  function calcStats(prices) {
+    if (prices.length === 0) {
+      return { status: 'no_data', totalItems: 0 };
+    }
+
+    const sorted = [...prices].sort((a, b) => a - b);
+    const min = sorted[0];
+    const max = sorted[sorted.length - 1];
+    const average = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
+
+    const mid = Math.floor(sorted.length / 2);
+    const median = sorted.length % 2 !== 0
+      ? sorted[mid]
+      : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+
+    return {
+      status: 'success',
+      min,
+      max,
+      average,
+      median,
+      totalItems: prices.length
+    };
+  }
+
+  // 이상치 제거된 가격으로 통계 계산
+  const cleanedPrices = removeOutliers(allPrices);
+  const allStats = calcStats(cleanedPrices);
+
+  // 배송 타입별 통계 (옵션)
+  const rocketPrices = nonAdProducts.filter(p => p.deliveryType === 'rocket').map(p => p.price);
+  const rocketStats = calcStats(removeOutliers(rocketPrices));
+
+  console.log('📊 가격 통계:', {
+    원본: allPrices.length,
+    이상치제거: cleanedPrices.length,
+    로켓: rocketPrices.length
+  });
+
+  return {
+    found: true,
+    all: allStats,
+    rocket: rocketStats.totalItems > 0 ? rocketStats : { status: 'no_data', totalItems: 0 },
+    rawCount: products.length,
+    adCount: products.filter(p => p.isAd).length
+  };
 }

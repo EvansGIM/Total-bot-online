@@ -176,4 +176,19 @@ router.post('/auto-upload', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/coupang/collect-prices
+ * 가격 수집은 Chrome 확장 프로그램에서 처리
+ * 서버는 확장 프로그램을 사용하라는 안내만 반환
+ */
+router.post('/collect-prices', async (req, res) => {
+  // 가격 수집은 Chrome 확장 프로그램에서 직접 처리
+  // 서버에서 스크래핑하면 봇 감지에 걸리므로 브라우저 탭에서 직접 수행
+  res.json({
+    success: false,
+    useExtension: true,
+    message: '가격 수집은 Chrome 확장 프로그램에서 처리됩니다.'
+  });
+});
+
 module.exports = router;

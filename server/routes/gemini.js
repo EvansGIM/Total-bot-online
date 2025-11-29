@@ -291,4 +291,220 @@ function indexToLetter(index) {
   return result;
 }
 
+/**
+ * POST /api/gemini/rename-options
+ * AI를 사용하여 옵션명 일괄 변환
+ *
+ * Body:
+ * - optionValues: 변환할 옵션 값 배열
+ * - mode: 'auto' (자동 중국어→한국어) 또는 'custom' (커스텀 프롬프트)
+ * - customPrompt: 커스텀 모드일 때 사용자 프롬프트
+ */
+router.post('/rename-options', async (req, res) => {
+  try {
+    const { optionValues, mode, customPrompt } = req.body;
+
+    if (!optionValues || !Array.isArray(optionValues) || optionValues.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '변환할 옵션 값이 필요합니다.'
+      });
+    }
+
+    console.log('[Gemini API] 옵션명 변환 요청:', {
+      count: optionValues.length,
+      mode,
+      hasCustomPrompt: !!customPrompt
+    });
+
+    // Gemini Flash 모델 사용 (빠른 텍스트 처리)
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+
+    let prompt;
+
+    if (mode === 'custom' && customPrompt) {
+      // 커스텀 프롬프트 모드
+      prompt = `당신은 한국 이커머스 상품 옵션명 전문가입니다.
+
+다음은 사용자의 요청입니다:
+${customPrompt}
+
+변환해야 할 옵션 값 목록:
+${optionValues.map((v, i) => `${i + 1}. "${v}"`).join('\n')}
+
+중요 규칙:
+1. 각 옵션 값을 사용자 요청에 맞게 변환하세요
+2. 반드시 JSON 형식으로만 응답하세요
+3. 응답 형식: {"mapping": {"원본값1": "변환값1", "원본값2": "변환값2", ...}}
+4. 변환이 불필요한 값은 원본 그대로 유지
+5. JSON 외의 다른 텍스트는 포함하지 마세요`;
+    } else {
+      // 자동 변환 모드 (중국어 → 한국어)
+      prompt = `당신은 중국어를 한국어로 변환하는 이커머스 옵션명 전문가입니다.
+
+다음 옵션 값들을 자연스러운 한국어 쇼핑몰 옵션명으로 변환해주세요:
+${optionValues.map((v, i) => `${i + 1}. "${v}"`).join('\n')}
+
+변환 규칙:
+1. 색상명: 중국어 색상을 간단한 한국어로 (예: 黑色 → 블랙, 白色 → 화이트, 粉色 → 핑크)
+2. 사이즈: 표준 사이즈로 통일 (예: 大码 → XL, 均码 → Free)
+3. 숫자/영문: 그대로 유지
+4. 불필요한 기호나 중복 제거
+5. 이미 한국어인 경우 그대로 유지
+
+중요:
+- 반드시 JSON 형식으로만 응답하세요
+- 응답 형식: {"mapping": {"원본값1": "변환값1", "원본값2": "변환값2", ...}}
+- JSON 외의 다른 텍스트는 포함하지 마세요`;
+    }
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let responseText = response.text().trim();
+
+    console.log('[Gemini API] 응답:', responseText.substring(0, 200) + '...');
+
+    // JSON 파싱 시도
+    let mapping = {};
+
+    try {
+      // JSON 블록 추출 (```json ... ``` 형식 처리)
+      if (responseText.includes('```json')) {
+        responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      } else if (responseText.includes('```')) {
+        responseText = responseText.replace(/```\n?/g, '');
+      }
+
+      const parsed = JSON.parse(responseText);
+      mapping = parsed.mapping || parsed;
+    } catch (parseError) {
+      console.error('[Gemini API] JSON 파싱 실패, 수동 파싱 시도:', parseError.message);
+
+      // 수동으로 매핑 추출 시도
+      const lines = responseText.split('\n');
+      optionValues.forEach((original, index) => {
+        // 원본과 동일하게 유지 (파싱 실패 시)
+        mapping[original] = original;
+      });
+    }
+
+    // 변환되지 않은 값은 원본 유지
+    optionValues.forEach(original => {
+      if (!mapping[original]) {
+        mapping[original] = original;
+      }
+    });
+
+    console.log('[Gemini API] 옵션명 변환 완료:', Object.keys(mapping).length + '개');
+
+    res.json({
+      success: true,
+      mapping,
+      message: `${Object.keys(mapping).length}개 옵션이 변환되었습니다.`
+    });
+
+  } catch (error) {
+    console.error('[Gemini API] 옵션명 변환 오류:', error);
+
+    let userMessage = '옵션명 변환 중 오류가 발생했습니다.';
+    const errorMessage = error.message || String(error);
+
+    if (errorMessage.includes('429') || errorMessage.includes('RESOURCE_EXHAUSTED')) {
+      userMessage = 'API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요.';
+    }
+
+    res.status(500).json({
+      success: false,
+      message: userMessage,
+      error: errorMessage
+    });
+  }
+});
+
+/**
+ * POST /api/gemini/generate-title
+ * AI를 사용하여 상품명 생성
+ *
+ * Body:
+ * - originalTitle: 현재 상품명 (필수)
+ * - titleCn: 중국어 원본 상품명 (선택)
+ */
+router.post('/generate-title', async (req, res) => {
+  try {
+    const { originalTitle, titleCn } = req.body;
+
+    if (!originalTitle) {
+      return res.status(400).json({
+        success: false,
+        message: '상품명이 필요합니다.'
+      });
+    }
+
+    console.log('[Gemini API] 상품명 생성 요청:', {
+      originalTitle: originalTitle.substring(0, 50) + '...',
+      hasTitleCn: !!titleCn
+    });
+
+    // Gemini Flash 모델 사용 (빠른 텍스트 처리)
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+
+    const prompt = `당신은 한국 쿠팡/네이버 쇼핑몰 상품명 전문가입니다.
+
+다음 상품명을 한국 온라인 쇼핑몰에 최적화된 상품명으로 변환해주세요:
+
+원본 상품명: ${originalTitle}
+${titleCn ? `중국어 원본: ${titleCn}` : ''}
+
+변환 규칙:
+1. 한국어로 자연스럽게 변환
+2. 검색에 잘 노출되도록 핵심 키워드 포함
+3. 불필요한 중복 단어 제거
+4. 50자 이내로 간결하게 작성
+5. 브랜드명이 있다면 앞에 배치
+6. 특수문자 최소화 (쉼표, 슬래시 정도만 사용)
+7. "여성용", "남성용" 등 타겟 정보는 유지
+8. 시즌(봄/여름/가을/겨울) 정보 유지
+9. 중국어나 일본어 문자는 한글로 번역
+
+예시:
+- 입력: "여성용 하프 터틀넥 밑단 셔츠, 여성용 슬림 핏 및 활용도 높은 탑, 가을 겨울 한식 학생 시크 이너 티셔츠"
+- 출력: "여성 하프넥 이너 티셔츠 슬림핏 가을겨울 기본 레이어드"
+
+중요:
+- 상품명만 반환하세요. 따옴표나 설명 없이 상품명 텍스트만 출력하세요.
+- 줄바꿈 없이 한 줄로 출력하세요.`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let generatedTitle = response.text().trim();
+
+    // 따옴표 제거
+    generatedTitle = generatedTitle.replace(/^["']|["']$/g, '');
+
+    console.log('[Gemini API] 상품명 생성 완료:', generatedTitle);
+
+    res.json({
+      success: true,
+      title: generatedTitle,
+      message: '상품명이 생성되었습니다.'
+    });
+
+  } catch (error) {
+    console.error('[Gemini API] 상품명 생성 오류:', error);
+
+    let userMessage = '상품명 생성 중 오류가 발생했습니다.';
+    const errorMessage = error.message || String(error);
+
+    if (errorMessage.includes('429') || errorMessage.includes('RESOURCE_EXHAUSTED')) {
+      userMessage = 'API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요.';
+    }
+
+    res.status(500).json({
+      success: false,
+      message: userMessage,
+      error: errorMessage
+    });
+  }
+});
+
 module.exports = router;

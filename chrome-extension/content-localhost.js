@@ -104,6 +104,25 @@ window.addEventListener('message', (event) => {
       return;
     }
 
+    // 쿠팡 가격 수집 요청
+    if (message.action === 'collectCoupangPrices') {
+      console.log('💰 쿠팡 가격 수집 요청:', message.keyword);
+
+      chrome.runtime.sendMessage({
+        action: 'collectCoupangPrices',
+        keyword: message.keyword,
+        options: message.options || {}
+      }, (response) => {
+        console.log('✅ 가격 수집 응답:', response);
+        window.postMessage({
+          type: 'TOTALBOT_RESPONSE',
+          messageId: messageId,
+          response: response || { success: false, error: '가격 수집 실패' }
+        }, '*');
+      });
+      return;
+    }
+
     // 기타 요청은 Background로 전달
     chrome.runtime.sendMessage(message, (response) => {
       console.log('✅ Background 응답:', response);

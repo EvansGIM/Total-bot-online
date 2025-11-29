@@ -8,12 +8,16 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const https = require('https');
 
 // 환경 변수 로드
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
+
+// TotalBot API 서버 URL
+const TOTALBOT_API = 'https://114.202.247.228';
 
 // 미들웨어
 app.use(cors());
@@ -81,6 +85,101 @@ app.use('/api/orders', ordersRoutes);
 console.log('✅ Magic Eraser 라우트 등록 완료');
 console.log('✅ Gemini 라우트 등록 완료');
 console.log('✅ Orders 라우트 등록 완료');
+
+// 기본 경로 -> 로그인 페이지로 리다이렉트
+app.get('/', (req, res) => {
+  res.redirect('/login.html');
+});
+
+// ============================================
+// TotalBot API 프록시 (CORS 우회)
+// ============================================
+
+// 프록시 헬퍼 함수
+function proxyRequest(method, apiPath, body, req, res) {
+  const url = new URL(apiPath, TOTALBOT_API);
+
+  const options = {
+    hostname: url.hostname,
+    port: url.port || 443,
+    path: url.pathname + url.search,
+    method: method,
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    rejectUnauthorized: false // SSL 인증서 검증 비활성화
+  };
+
+  // 쿠키 전달
+  if (req.headers.cookie) {
+    options.headers['Cookie'] = req.headers.cookie;
+  }
+
+  const proxyReq = https.request(options, (proxyRes) => {
+    // 쿠키 전달
+    if (proxyRes.headers['set-cookie']) {
+      res.setHeader('Set-Cookie', proxyRes.headers['set-cookie']);
+    }
+
+    res.status(proxyRes.statusCode);
+
+    let data = '';
+    proxyRes.on('data', chunk => data += chunk);
+    proxyRes.on('end', () => {
+      try {
+        res.json(JSON.parse(data));
+      } catch (e) {
+        res.send(data);
+      }
+    });
+  });
+
+  proxyReq.on('error', (err) => {
+    console.error('Proxy error:', err);
+    res.status(500).json({ success: false, message: '서버 연결 오류' });
+  });
+
+  if (body) {
+    proxyReq.write(JSON.stringify(body));
+  }
+
+  proxyReq.end();
+}
+
+// 로그인 프록시
+app.post('/proxy/login', (req, res) => {
+  proxyRequest('POST', '/login', req.body, req, res);
+});
+
+// 회원가입 프록시
+app.post('/proxy/users', (req, res) => {
+  proxyRequest('POST', '/users', req.body, req, res);
+});
+
+// 사용자 정보 프록시
+app.get('/proxy/user/info', (req, res) => {
+  proxyRequest('GET', '/user/info', null, req, res);
+});
+
+// 포인트 관련 프록시
+app.get('/proxy/user/points', (req, res) => {
+  proxyRequest('GET', '/api/user/points', null, req, res);
+});
+
+app.get('/proxy/user/points/history', (req, res) => {
+  const query = new URLSearchParams(req.query).toString();
+  proxyRequest('GET', '/api/user/points/history' + (query ? '?' + query : ''), null, req, res);
+});
+
+app.post('/proxy/user/points/charge', (req, res) => {
+  proxyRequest('POST', '/api/user/points/charge', req.body, req, res);
+});
+
+// 재고 데이터 프록시
+app.get('/proxy/inventory_data/by_username', (req, res) => {
+  proxyRequest('GET', '/api/inventory_data/by_username', null, req, res);
+});
 
 // Health check
 app.get('/health', (req, res) => {

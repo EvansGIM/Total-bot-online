@@ -70,6 +70,49 @@
       opacity: 0.8;
     }
 
+    .user-info {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .user-info .user-name {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .user-info .user-grade {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .user-grade.basic { background: rgba(255,255,255,0.2); }
+    .user-grade.premium { background: #f59e0b; color: #000; }
+    .user-grade.student { background: #10b981; }
+    .user-grade.admin { background: #ef4444; }
+
+    .logout-btn {
+      display: block;
+      width: 100%;
+      margin-top: 12px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 6px;
+      color: white;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .logout-btn:hover {
+      background: rgba(255,255,255,0.25);
+    }
+
     .sidebar-menu {
       padding: 16px 0;
     }
@@ -474,6 +517,11 @@
     <div class="sidebar-header">
       <h2>TotalBot</h2>
       <p>쿠팡 자동화 플랫폼</p>
+      <div class="user-info" id="userInfo">
+        <div class="user-name" id="userName">로딩중...</div>
+        <span class="user-grade basic" id="userGrade">-</span>
+        <button class="logout-btn" onclick="logout()">로그아웃</button>
+      </div>
     </div>
 
     <div class="sidebar-menu">
@@ -493,7 +541,11 @@
 
       <div class="sidebar-divider"></div>
 
-      <div class="sidebar-menu-title">발주 관리</div>
+      <div class="sidebar-menu-title">재고/발주</div>
+      <a class="sidebar-menu-item" href="stock.html">
+        <span class="menu-icon">📊</span>
+        재고 관리
+      </a>
       <a class="sidebar-menu-item" href="orders.html">
         <span class="menu-icon">🛒</span>
         자동 발주
@@ -509,9 +561,13 @@
 
       <div class="sidebar-divider"></div>
 
-      <div class="sidebar-menu-title">분석/설정</div>
-      <a class="sidebar-menu-item" href="settlement.html">
+      <div class="sidebar-menu-title">정산/포인트</div>
+      <a class="sidebar-menu-item" href="points.html">
         <span class="menu-icon">💰</span>
+        포인트 관리
+      </a>
+      <a class="sidebar-menu-item" href="settlement.html">
+        <span class="menu-icon">📊</span>
         정산
       </a>
       <a class="sidebar-menu-item" href="settings.html">
@@ -660,7 +716,10 @@
 
   <script>
     // 버전 확인
-    console.log('🔄 TotalBot 발주 리스트 v2025-11-27');
+    console.log('🔄 TotalBot 발주 리스트 v2025-11-29');
+
+    // API 서버
+    const API_SERVER = 'https://114.202.247.228';
 
     // 상태 변수
     let allOrders = [];
@@ -668,6 +727,66 @@
     let currentPage = 1;
     const pageSize = 20;
     let selectedOrders = new Set();
+    let currentUser = null;
+
+    // 로그인 체크
+    function checkAuth() {
+      const userInfoStr = localStorage.getItem('userInfo');
+      if (!userInfoStr) {
+        // 로그인 안됨 -> 로그인 페이지로 리다이렉트
+        window.location.href = 'login.html';
+        return false;
+      }
+
+      try {
+        currentUser = JSON.parse(userInfoStr);
+        updateUserDisplay();
+        return true;
+      } catch (e) {
+        console.error('Failed to parse user info:', e);
+        window.location.href = 'login.html';
+        return false;
+      }
+    }
+
+    // 사용자 정보 표시 업데이트
+    function updateUserDisplay() {
+      if (!currentUser) return;
+
+      const userName = currentUser.name || currentUser.username || '사용자';
+      const userGrade = currentUser.grade || 'basic';
+      const isAdmin = currentUser.is_admin || false;
+
+      document.getElementById('userName').textContent = userName;
+
+      const gradeEl = document.getElementById('userGrade');
+      let gradeText = '일반';
+      let gradeClass = 'basic';
+
+      if (isAdmin) {
+        gradeText = '관리자';
+        gradeClass = 'admin';
+      } else if (userGrade === 'premium') {
+        gradeText = '프리미엄';
+        gradeClass = 'premium';
+      } else if (userGrade === 'student') {
+        gradeText = '학생';
+        gradeClass = 'student';
+      }
+
+      gradeEl.textContent = gradeText;
+      gradeEl.className = `user-grade ${gradeClass}`;
+    }
+
+    // 로그아웃
+    function logout() {
+      if (confirm('로그아웃 하시겠습니까?')) {
+        localStorage.removeItem('userInfo');
+        localStorage.removeItem('username');
+        localStorage.removeItem('password');
+        window.location.href = 'login.html';
+      }
+    }
 
     // 사이드바 토글
     function toggleSidebar() {
@@ -1010,6 +1129,9 @@
 
     // 초기화
     document.addEventListener('DOMContentLoaded', () => {
+      // 로그인 체크
+      if (!checkAuth()) return;
+
       // 날짜 필터 기본값 설정
       const today = new Date();
       const monthAgo = new Date();

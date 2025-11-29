@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TotalBot - 회원가입</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .register-container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* 왼쪽 영역 - 브랜딩 */
+        .left-panel {
+            width: 400px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .left-panel::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(118, 75, 162, 0.15) 0%, transparent 70%);
+            animation: pulse 15s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .brand-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .logo-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .logo-text {
+            color: white;
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #a855f7 0%, #667eea 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-desc {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        /* 오른쪽 영역 - 회원가입 폼 */
+        .right-panel {
+            flex: 1;
+            background: white;
+            overflow-y: auto;
+        }
+
+        .form-wrapper {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 50px 40px;
+        }
+
+        .register-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+        }
+
+        .register-subtitle {
+            font-size: 15px;
+            color: #888;
+            margin-bottom: 35px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #667eea;
+            margin-top: 30px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title:first-of-type {
+            margin-top: 0;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 6px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+            font-size: 16px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 14px 14px 42px;
+            font-size: 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            background-color: #f9fafb;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: #667eea;
+            background-color: white;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        .btn-cancel {
+            flex: 1;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            background-color: transparent;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-cancel:hover {
+            border-color: #ccc;
+            background-color: #f5f5f5;
+        }
+
+        .btn-submit {
+            flex: 2;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-submit:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .message {
+            padding: 14px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .message.error {
+            background-color: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .message.success {
+            background-color: #f0fdf4;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+
+        .helper-text {
+            font-size: 11px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        /* 스피너 */
+        .spinner {
+            display: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 스크롤바 */
+        .right-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .right-panel::-webkit-scrollbar-track {
+            background: #f0f0f0;
+        }
+
+        .right-panel::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+
+        /* 반응형 */
+        @media (max-width: 900px) {
+            .left-panel {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .form-wrapper {
+                padding: 30px 20px;
+            }
+
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .register-title {
+                font-size: 26px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <!-- 왼쪽 패널 -->
+        <div class="left-panel">
+            <div class="brand-content">
+                <span class="logo-icon">👥</span>
+                <h1 class="logo-text">회원가입</h1>
+                <p class="logo-desc">
+                    TotalBot과 함께<br>
+                    스마트한 쿠팡 셀링을 시작하세요
+                </p>
+            </div>
+        </div>
+
+        <!-- 오른쪽 패널 - 폼 -->
+        <div class="right-panel">
+            <div class="form-wrapper">
+                <h2 class="register-title">회원가입</h2>
+                <p class="register-subtitle">서비스 이용을 위해 정보를 입력해주세요</p>
+
+                <form id="registerForm">
+                    <!-- 기본 정보 -->
+                    <div class="section-title">
+                        <i class="bi bi-person-badge"></i> 계정 정보
+                    </div>
+
+                    <div class="form-group">
+                        <label for="username">아이디</label>
+                        <div class="input-wrapper">
+                            <i class="bi bi-person"></i>
+                            <input type="text" class="form-control" id="username" placeholder="영문, 숫자 조합 4자 이상" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="password">비밀번호</label>
+                            <div class="input-wrapper">
+                                <i class="bi bi-lock"></i>
+                                <input type="password" class="form-control" id="password" placeholder="8자 이상" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="passwordConfirm">비밀번호 확인</label>
+                            <div class="input-wrapper">
+                                <i class="bi bi-lock-fill"></i>
+                                <input type="password" class="form-control" id="passwordConfirm" placeholder="다시 입력" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 개인 정보 -->
+                    <div class="section-title">
+                        <i class="bi bi-person-vcard"></i> 개인 정보
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="name">이름</label>
+                            <div class="input-wrapper">
+                                <i class="bi bi-person-fill"></i>
+                                <input type="text" class="form-control" id="name" placeholder="실명 입력" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">전화번호</label>
+                            <div class="input-wrapper">
+                                <i class="bi bi-telephone"></i>
+                                <input type="tel" class="form-control" id="phone" placeholder="010-0000-0000" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">이메일</label>
+                        <div class="input-wrapper">
+                            <i class="bi bi-envelope"></i>
+                            <input type="email" class="form-control" id="email" placeholder="example@email.com" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="address">주소</label>
+                        <div class="input-wrapper">
+                            <i class="bi bi-geo-alt"></i>
+                            <input type="text" class="form-control" id="address" placeholder="사업장 주소" required>
+                        </div>
+                    </div>
+
+                    <!-- 사업자 정보 -->
+                    <div class="section-title">
+                        <i class="bi bi-building"></i> 사업자 정보
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="companyName">사업자명</label>
+                            <div class="input-wrapper">
+                                <i class="bi bi-shop"></i>
+                                <input type="text" class="form-control" id="companyName" placeholder="상호명" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="businessNumber">사업자등록번호</label>
+                            <div class="input-wrapper">
+                                <i class="bi bi-card-text"></i>
+                                <input type="text" class="form-control" id="businessNumber" placeholder="000-00-00000" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 버튼 -->
+                    <div class="btn-group">
+                        <button type="button" class="btn-cancel" onclick="location.href='login.html'">
+                            취소
+                        </button>
+                        <button type="submit" class="btn-submit" id="submitBtn">
+                            <span class="spinner" id="submitSpinner"></span>
+                            <span id="submitText">가입하기</span>
+                        </button>
+                    </div>
+
+                    <div class="message error" id="errorMessage"></div>
+                    <div class="message success" id="successMessage"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 프록시를 통해 API 호출 (CORS 우회)
+
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            hideMessages();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const passwordConfirm = document.getElementById('passwordConfirm').value;
+            const name = document.getElementById('name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const address = document.getElementById('address').value.trim();
+            const companyName = document.getElementById('companyName').value.trim();
+            const businessNumber = document.getElementById('businessNumber').value.trim();
+
+            // 유효성 검사
+            if (username.length < 4) {
+                showError('아이디는 4자 이상이어야 합니다.');
+                return;
+            }
+
+            if (password.length < 8) {
+                showError('비밀번호는 8자 이상이어야 합니다.');
+                return;
+            }
+
+            if (password !== passwordConfirm) {
+                showError('비밀번호가 일치하지 않습니다.');
+                return;
+            }
+
+            if (!name || !phone || !email || !address || !companyName || !businessNumber) {
+                showError('모든 항목을 입력해주세요.');
+                return;
+            }
+
+            setLoading(true);
+
+            try {
+                const response = await fetch('/proxy/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username,
+                        password,
+                        name,
+                        phone,
+                        email,
+                        address,
+                        company_name: companyName,
+                        company_registration_number: businessNumber
+                    })
+                });
+
+                if (response.ok) {
+                    showSuccess('회원가입이 완료되었습니다!');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 1500);
+                } else {
+                    let errorMsg = '회원가입에 실패했습니다.';
+                    try {
+                        const errorData = await response.json();
+                        errorMsg = errorData.message || errorMsg;
+                    } catch {
+                        if (response.status === 409) {
+                            errorMsg = '이미 존재하는 아이디입니다.';
+                        }
+                    }
+                    showError(errorMsg);
+                }
+            } catch (error) {
+                console.error('Register error:', error);
+                showError('서버에 연결할 수 없습니다.');
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        function setLoading(loading) {
+            const btn = document.getElementById('submitBtn');
+            const spinner = document.getElementById('submitSpinner');
+            const text = document.getElementById('submitText');
+
+            if (loading) {
+                btn.disabled = true;
+                spinner.style.display = 'inline-block';
+                text.textContent = '처리 중...';
+            } else {
+                btn.disabled = false;
+                spinner.style.display = 'none';
+                text.textContent = '가입하기';
+            }
+        }
+
+        function showError(message) {
+            const el = document.getElementById('errorMessage');
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+
+        function showSuccess(message) {
+            const el = document.getElementById('successMessage');
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+
+        function hideMessages() {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

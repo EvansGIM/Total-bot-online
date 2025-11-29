@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
   "name": "TotalBot - 쿠팡 자동 업로드",
-  "version": "1.2.2",
+  "version": "1.2.4",
   "description": "1688/AliExpress 상품을 쿠팡에 자동 업로드하는 도구",
+  "incognito": "spanning",
   "permissions": [
     "tabs",
     "storage",
@@ -15,6 +16,7 @@
   "host_permissions": [
     "https://supplier.coupang.com/*",
     "https://xauth.coupang.com/*",
+    "https://www.coupang.com/*",
     "https://detail.1688.com/*",
     "https://*.1688.com/*",
     "https://*.aliexpress.com/*",
