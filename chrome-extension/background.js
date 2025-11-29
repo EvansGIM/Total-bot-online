@@ -542,7 +542,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   // 탭이 완전히 로드되고, totalbot.cafe24.com/node-api이며, 아직 주입하지 않았을 때
   if (changeInfo.status === 'complete' &&
       tab.url &&
-      tab.url.startsWith('http://totalbot.cafe24.com/node-api/') &&
+      tab.url.startsWith('https://totalbot.cafe24.com/') &&
       !injectedTabs.has(tabId)) {
 
     console.log('🔧 Injecting content script to localhost tab:', tabId);
@@ -1206,7 +1206,7 @@ async function handleFillQuotationExcels(data) {
       try {
         const allTabs = await chrome.tabs.query({});
         const localhostTab = allTabs.find(tab =>
-          tab.url && tab.url.includes('totalbot.cafe24.com/node-api')
+          tab.url && tab.url.includes('totalbot.cafe24.com')
         );
 
         if (localhostTab) {
@@ -2256,7 +2256,7 @@ async function handleFillQuotationExcels(data) {
         // 3초 후 모달 닫기
         await new Promise(resolve => setTimeout(resolve, 3000));
         const allTabs = await chrome.tabs.query({});
-        const localhostTab = allTabs.find(tab => tab.url && tab.url.includes('totalbot.cafe24.com/node-api'));
+        const localhostTab = allTabs.find(tab => tab.url && tab.url.includes('totalbot.cafe24.com'));
         if (localhostTab) {
           await chrome.tabs.sendMessage(localhostTab.id, {
             action: 'closeProgressModal'
@@ -2270,7 +2270,7 @@ async function handleFillQuotationExcels(data) {
 
         // 반려 정보를 localhost 탭에 전송
         const allTabs = await chrome.tabs.query({});
-        const localhostTab = allTabs.find(tab => tab.url && tab.url.includes('totalbot.cafe24.com/node-api'));
+        const localhostTab = allTabs.find(tab => tab.url && tab.url.includes('totalbot.cafe24.com'));
         if (localhostTab) {
           await chrome.tabs.sendMessage(localhostTab.id, {
             action: 'showRejectedModal',
@@ -2324,7 +2324,7 @@ async function handleFillQuotationExcels(data) {
 
         // 검증 진행 중 정보를 localhost 탭에 전송
         const allTabs = await chrome.tabs.query({});
-        const localhostTab = allTabs.find(tab => tab.url && tab.url.includes('totalbot.cafe24.com/node-api'));
+        const localhostTab = allTabs.find(tab => tab.url && tab.url.includes('totalbot.cafe24.com'));
         if (localhostTab) {
           await chrome.tabs.sendMessage(localhostTab.id, {
             action: 'showPendingModal',
@@ -2339,7 +2339,7 @@ async function handleFillQuotationExcels(data) {
 
         // 실패 정보를 localhost 탭에 전송 (수동 업로드 옵션 제공)
         const allTabs = await chrome.tabs.query({});
-        const localhostTab = allTabs.find(tab => tab.url && tab.url.includes('totalbot.cafe24.com/node-api'));
+        const localhostTab = allTabs.find(tab => tab.url && tab.url.includes('totalbot.cafe24.com'));
         if (localhostTab) {
           await chrome.tabs.sendMessage(localhostTab.id, {
             action: 'showUploadFailedModal',
