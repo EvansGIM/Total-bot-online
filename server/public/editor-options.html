@@ -3471,8 +3471,51 @@
 
   <script>
     // 버전 확인용 (브라우저 캐시 확인)
-    console.log('🔄 TotalBot Editor 버전: 2025-11-29-v1 (확장프로그램 가격수집)');
-    console.log('✅ 최신 버전이 로드되었습니다. 설정 모달에 3개의 탭이 표시되어야 합니다.');
+    console.log('🔄 TotalBot Editor 버전: 2025-11-29-v2 (인증 추가)');
+    console.log('✅ 최신 버전이 로드되었습니다.');
+
+    // ===== 인증 관련 함수 =====
+    function getAuthToken() {
+      return localStorage.getItem('authToken');
+    }
+
+    function checkAuth() {
+      const token = getAuthToken();
+      if (!token) {
+        window.location.href = '/login.html';
+        return false;
+      }
+      return true;
+    }
+
+    async function authFetch(url, options = {}) {
+      const token = getAuthToken();
+      if (!token) {
+        window.location.href = '/login.html';
+        throw new Error('로그인이 필요합니다.');
+      }
+
+      const headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`
+      };
+
+      const response = await fetch(url, { ...options, headers });
+
+      if (response.status === 401) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userInfo');
+        window.location.href = '/login.html';
+        throw new Error('세션이 만료되었습니다.');
+      }
+
+      return response;
+    }
+
+    // 페이지 로드 시 인증 체크
+    if (!checkAuth()) {
+      throw new Error('인증 필요');
+    }
 
     // Chrome 확장 프로그램 통신 함수
     async function sendMessageToExtension(message, timeout = 60000) {
@@ -4183,9 +4226,7 @@
 
     async function loadProduct(id) {
       try {
-        const response = await fetch(`/api/products/${id}`, {
-          credentials: 'include'
-        });
+        const response = await authFetch(`/api/products/${id}`);
 
         if (!response.ok) {
           throw new Error('상품을 불러올 수 없습니다.');
@@ -6152,10 +6193,9 @@
       }
 
       try {
-        const response = await fetch(`/api/products/${productId}`, {
+        const response = await authFetch(`/api/products/${productId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify(productData)
         });
 
@@ -8004,10 +8044,9 @@
         const url = productId ? `/api/products/${productId}` : '/api/products/save';
         const method = productId ? 'PUT' : 'POST';
 
-        const response = await fetch(url, {
+        const response = await authFetch(url, {
           method: method,
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify(productData)
         });
 
