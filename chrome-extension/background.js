@@ -1650,12 +1650,21 @@ async function handleFillQuotationExcels(data) {
               for (const newMapping of userResponse.mappings) {
                 allMappings.push(newMapping);
 
-                // 설정에도 저장 (chrome.storage)
-                const storageResult = await chrome.storage.local.get(['quotationMappings']);
-                const savedMappings = storageResult.quotationMappings || [];
-                savedMappings.push(newMapping);
-                await chrome.storage.local.set({ quotationMappings: savedMappings });
-                console.log(`      💾 설정에 저장됨: ${newMapping.header} = ${newMapping.type === 'fixed' ? newMapping.value : newMapping.type}`);
+                // 서버 API로 설정 저장 (유저별 분리)
+                try {
+                  const response = await authFetch(`${SERVER_URL}/api/settings/quotation-mappings`, {
+                    method: 'POST',
+                    body: JSON.stringify({ mapping: newMapping })
+                  });
+                  const result = await response.json();
+                  if (result.success) {
+                    console.log(`      💾 서버에 저장됨: ${newMapping.header} = ${newMapping.type === 'fixed' ? newMapping.value : newMapping.type}`);
+                  } else {
+                    console.error(`      ❌ 서버 저장 실패:`, result.message);
+                  }
+                } catch (saveError) {
+                  console.error(`      ❌ 서버 저장 오류:`, saveError);
+                }
               }
 
               // columnMappings 다시 계산

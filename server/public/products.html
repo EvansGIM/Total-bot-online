@@ -2542,65 +2542,83 @@
       ]
     };
 
-    // 설정 로드 (localStorage에서)
+    // 설정 로드 (서버 API에서 유저별 설정 가져오기)
     async function loadSettings() {
       // 기본값 백업 (settings 객체의 quotationMappings 기본값)
       const defaultQuotationMappings = settings.quotationMappings;
 
-      // Chrome Extension storage에서 먼저 로드 시도
-      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-        try {
-          const result = await new Promise((resolve) => {
-            chrome.storage.local.get(['totalbotSettings'], resolve);
-          });
+      // 1. 서버에서 유저별 설정 로드 시도
+      try {
+        const response = await authFetch('/api/settings');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.settings) {
+            console.log('✅ Settings loaded from server API');
 
-          if (result.totalbotSettings) {
-            console.log('✅ Settings loaded from chrome.storage.local');
-            settings = { ...settings, ...result.totalbotSettings };
-            // 저장된 값이 있으면 사용, 없거나 비어있으면 기본값 사용
-            window.quotationMappings = (settings.quotationMappings && settings.quotationMappings.length > 0)
-              ? settings.quotationMappings
-              : defaultQuotationMappings;
-            console.log('📋 Loaded quotationMappings:', window.quotationMappings.length);
+            // 서버에서 가져온 견적서 매핑이 있으면 사용
+            if (data.settings.quotationMappings && data.settings.quotationMappings.length > 0) {
+              window.quotationMappings = data.settings.quotationMappings;
+              settings.quotationMappings = data.settings.quotationMappings;
+              console.log('📋 Loaded quotationMappings from server:', window.quotationMappings.length);
+            } else {
+              window.quotationMappings = defaultQuotationMappings;
+              console.log('📋 Using default quotationMappings (server empty):', window.quotationMappings.length);
+            }
+
+            // 기타 설정도 병합
+            if (data.settings.priceSettings) {
+              settings.priceSettings = data.settings.priceSettings;
+            }
             return;
           }
-        } catch (e) {
-          console.warn('Chrome storage 로드 실패, localStorage 사용:', e);
         }
+      } catch (e) {
+        console.warn('서버 설정 로드 실패, localStorage fallback:', e);
       }
 
-      // Fallback to localStorage
+      // 2. Fallback to localStorage (오프라인 또는 서버 오류 시)
       const saved = localStorage.getItem('totalbotSettings');
       if (saved) {
         try {
           const savedSettings = JSON.parse(saved);
-          // 저장된 설정을 기본값과 병합
           settings = { ...settings, ...savedSettings };
-          // 견적서 작성 양식 로드 (저장된 값이 있으면 사용, 없거나 비어있으면 기본값 사용)
           window.quotationMappings = (settings.quotationMappings && settings.quotationMappings.length > 0)
             ? settings.quotationMappings
             : defaultQuotationMappings;
-          console.log('📋 Loaded quotationMappings:', window.quotationMappings.length);
+          console.log('📋 Loaded quotationMappings from localStorage:', window.quotationMappings.length);
         } catch (e) {
           console.error('설정 로드 실패:', e);
           window.quotationMappings = defaultQuotationMappings;
         }
       } else {
-        // 저장된 설정이 없으면 기본값 사용
         window.quotationMappings = defaultQuotationMappings;
         console.log('📋 Using default quotationMappings:', window.quotationMappings.length);
       }
     }
 
-    // 설정 저장 (localStorage에)
-    function saveSettingsToStorage() {
+    // 설정 저장 (서버 API + localStorage 백업)
+    async function saveSettingsToStorage() {
+      // localStorage에 백업 저장
       localStorage.setItem('totalbotSettings', JSON.stringify(settings));
 
-      // Chrome Extension storage에도 저장 (background.js가 접근 가능)
-      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-        chrome.storage.local.set({ totalbotSettings: settings }, () => {
-          console.log('✅ Settings saved to chrome.storage.local');
+      // 서버에 유저별 설정 저장
+      try {
+        const response = await authFetch('/api/settings/quotation-mappings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quotationMappings: window.quotationMappings || settings.quotationMappings })
         });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            console.log('✅ Settings saved to server API');
+          } else {
+            console.error('❌ 서버 설정 저장 실패:', data.message);
+          }
+        }
+      } catch (e) {
+        console.error('❌ 서버 설정 저장 오류:', e);
       }
     }
 
@@ -4590,7 +4608,7 @@
       }
     }
 
-    function saveRequiredFields() {
+    async function saveRequiredFields() {
       const results = [];
 
       pendingRequiredFields.forEach((field, index) => {
@@ -4615,6 +4633,28 @@
 
       if (results.length !== pendingRequiredFields.length) {
         return; // 유효성 검사 실패
+      }
+
+      // 로컬 설정에 새 매핑 추가
+      for (const newMapping of results) {
+        const existingIndex = window.quotationMappings.findIndex(m => m.header === newMapping.header);
+        if (existingIndex >= 0) {
+          window.quotationMappings[existingIndex] = newMapping;
+        } else {
+          window.quotationMappings.push(newMapping);
+        }
+      }
+
+      // 서버에 저장 (비동기, 실패해도 계속 진행)
+      try {
+        await authFetch('/api/settings/quotation-mappings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quotationMappings: window.quotationMappings })
+        });
+        console.log('✅ 필수 칸 매핑이 서버에 저장됨');
+      } catch (e) {
+        console.error('❌ 서버 저장 실패:', e);
       }
 
       closeRequiredFieldModal();

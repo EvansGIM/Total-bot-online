@@ -67,6 +67,7 @@ const coupangRoutes = require('./routes/coupang');
 const magicEraserRoutes = require('./routes/magicEraser');
 const geminiRoutes = require('./routes/gemini');
 const ordersRoutes = require('./routes/orders');
+const settingsRoutes = require('./routes/settings');
 
 // 라우트 등록
 console.log('✅ Magic Eraser 라우트 로드됨:', typeof magicEraserRoutes);
@@ -82,7 +83,9 @@ app.use('/api/coupang', coupangRoutes);
 app.use('/api', magicEraserRoutes);
 app.use('/api/gemini', geminiRoutes);
 app.use('/api/orders', ordersRoutes);
+app.use('/api/settings', settingsRoutes);
 console.log('✅ Magic Eraser 라우트 등록 완료');
+console.log('✅ Settings 라우트 등록 완료');
 console.log('✅ Gemini 라우트 등록 완료');
 console.log('✅ Orders 라우트 등록 완료');
 
