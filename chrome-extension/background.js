@@ -2725,10 +2725,14 @@ function getValueForMapping(mapping, context) {
         return ''; // 선택이면 공란
       }
       // 랜덤 파일명 사용 (globalSizeChartImages에서 가져오기)
-      if (globalSizeChartImages && globalSizeChartImages[productIndex]) {
-        return globalSizeChartImages[productIndex].filename;
+      console.log(`   📐 사이즈차트 파일명 조회: productIndex=${productIndex}, globalSizeChartImages.length=${globalSizeChartImages ? globalSizeChartImages.length : 0}`);
+      if (globalSizeChartImages && globalSizeChartImages.length > 0 && globalSizeChartImages[productIndex]) {
+        const filename = globalSizeChartImages[productIndex].filename;
+        console.log(`   📐 사이즈차트 파일명: ${filename}`);
+        return filename;
       }
       // fallback: 기존 방식
+      console.log(`   ⚠️ 사이즈차트 fallback: A${productIndex + 1}.png`);
       return `A${productIndex + 1}.png`;
 
     case 'calc:release_month_last_year':
