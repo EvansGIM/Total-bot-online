@@ -4,147 +4,292 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TotalBot</title>
-  <link rel="stylesheet" href="popup.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 400px;
+    }
+
+    .container {
+      padding: 24px;
+    }
+
+    /* 로그인 화면 */
+    #login-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 40px;
+    }
+
+    .logo {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+
+    .app-name {
+      font-size: 24px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 32px;
+    }
+
+    .login-form {
+      width: 100%;
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+
+    .login-form input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e8e8e8;
+      border-radius: 10px;
+      font-size: 14px;
+      margin-bottom: 12px;
+      transition: border-color 0.2s;
+    }
+
+    .login-form input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .login-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .error-msg {
+      color: #e74c3c;
+      font-size: 13px;
+      text-align: center;
+      margin-top: 12px;
+      min-height: 18px;
+    }
+
+    /* 메인 화면 */
+    #main-screen {
+      display: none;
+    }
+
+    .user-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      background: white;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+
+    .user-details h2 {
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(255,255,255,0.2);
+      color: white;
+    }
+
+    .badge.premium {
+      background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
+    }
+
+    .logout-btn {
+      background: rgba(255,255,255,0.15);
+      border: none;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .logout-btn:hover {
+      background: rgba(255,255,255,0.25);
+    }
+
+    /* 메뉴 카드 */
+    .menu-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .menu-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .menu-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+
+    .menu-card .icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .menu-card .title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .menu-card .desc {
+      font-size: 11px;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    /* 전체 너비 카드 */
+    .menu-card.full {
+      grid-column: span 2;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      text-align: left;
+      padding: 16px 20px;
+    }
+
+    .menu-card.full .icon {
+      font-size: 28px;
+      margin-bottom: 0;
+    }
+
+    .menu-card.full .info {
+      flex: 1;
+    }
+
+    /* 숨김 */
+    .hidden {
+      display: none !important;
+    }
+  </style>
 </head>
 <body>
-  <div id="app">
+  <div class="container">
     <!-- 로그인 화면 -->
-    <div id="login-screen" class="screen">
-      <div class="header">
-        <h1>🤖 TotalBot</h1>
-        <p>쇼핑몰 자동화 도구</p>
-      </div>
+    <div id="login-screen">
+      <div class="logo">🤖</div>
+      <div class="app-name">TotalBot</div>
 
-      <div class="form-container">
+      <div class="login-form">
         <input type="text" id="username" placeholder="아이디" autocomplete="username">
         <input type="password" id="password" placeholder="비밀번호" autocomplete="current-password">
-        <button id="login-btn" class="primary-btn">로그인</button>
+        <button id="login-btn" class="login-btn">로그인</button>
         <p class="error-msg" id="login-error"></p>
-      </div>
-
-      <div class="links">
-        <a href="#" id="register-link">회원가입</a>
       </div>
     </div>
 
     <!-- 메인 화면 -->
-    <div id="main-screen" class="screen" style="display: none;">
-      <div class="header">
-        <h1>🤖 TotalBot</h1>
+    <div id="main-screen">
+      <div class="user-header">
         <div class="user-info">
-          <span id="user-name">사용자</span>
-          <span id="user-grade" class="badge">Basic</span>
+          <div class="avatar">👤</div>
+          <div class="user-details">
+            <h2 id="user-name">사용자</h2>
+            <span id="user-grade" class="badge">Basic</span>
+          </div>
         </div>
-        <button id="logout-btn" class="icon-btn">로그아웃</button>
+        <button id="logout-btn" class="logout-btn">로그아웃</button>
       </div>
 
-      <div class="tabs">
-        <button class="tab-btn active" data-tab="crawl">상품 수집</button>
-        <button class="tab-btn" data-tab="order">발주 처리</button>
-        <button class="tab-btn" data-tab="settlement">정산</button>
-        <button class="tab-btn" data-tab="settings">설정</button>
-      </div>
+      <div class="menu-grid">
+        <a href="#" class="menu-card" id="menu-products">
+          <div class="icon">📦</div>
+          <div class="title">상품 목록</div>
+          <div class="desc">수집된 상품 관리</div>
+        </a>
 
-      <!-- 상품 수집 탭 -->
-      <div id="crawl-tab" class="tab-content active">
-        <div class="action-buttons">
-          <button id="crawl-current-btn" class="action-btn compact">
-            <span>📦</span> 수집
-          </button>
-          <button id="edit-images-btn" class="action-btn compact">
-            <span>🎨</span> 편집
-          </button>
-          <button id="edit-options-btn" class="action-btn compact">
-            <span>✏️</span> 옵션
-          </button>
-        </div>
+        <a href="#" class="menu-card" id="menu-editor">
+          <div class="icon">🎨</div>
+          <div class="title">이미지 편집</div>
+          <div class="desc">상세페이지 제작</div>
+        </a>
 
-        <div id="crawl-status" class="status-box"></div>
+        <a href="#" class="menu-card" id="menu-orders">
+          <div class="icon">🚚</div>
+          <div class="title">발주 관리</div>
+          <div class="desc">주문/배송 처리</div>
+        </a>
 
-        <!-- 상태별 탭 -->
-        <div class="status-tabs">
-          <button class="status-tab-btn active" data-status="all">
-            전체 <span class="count" id="count-all">0</span>
-          </button>
-          <button class="status-tab-btn" data-status="collected">
-            수집됨 <span class="count" id="count-collected">0</span>
-          </button>
-          <button class="status-tab-btn" data-status="uploaded">
-            업로드됨 <span class="count" id="count-uploaded">0</span>
-          </button>
-          <button class="status-tab-btn" data-status="approved">
-            승인됨 <span class="count" id="count-approved">0</span>
-          </button>
-        </div>
+        <a href="#" class="menu-card" id="menu-settings">
+          <div class="icon">⚙️</div>
+          <div class="title">설정</div>
+          <div class="desc">계정 설정</div>
+        </a>
 
-        <!-- 상품 목록 -->
-        <div id="product-list" class="product-list">
-          <div class="loading">상품 목록 로딩 중...</div>
-        </div>
-      </div>
-
-      <!-- 발주 처리 탭 -->
-      <div id="order-tab" class="tab-content">
-        <h2>발주 자동 처리</h2>
-        <p class="desc">엑셀 파일을 업로드하여 발주를 처리합니다.</p>
-
-        <button id="upload-order-btn" class="action-btn">
-          <span>📁</span>
-          발주 파일 업로드
-        </button>
-
-        <button id="process-order-btn" class="action-btn">
-          <span>⚙️</span>
-          발주 처리 시작
-        </button>
-
-        <div id="order-status" class="status-box"></div>
-      </div>
-
-      <!-- 정산 탭 -->
-      <div id="settlement-tab" class="tab-content">
-        <h2>정산 자동화</h2>
-        <p class="desc">쿠팡/루트로지스/3PL 데이터를 통합하여 정산합니다.</p>
-
-        <button id="upload-settlement-btn" class="action-btn">
-          <span>📊</span>
-          정산 파일 업로드
-        </button>
-
-        <button id="calculate-settlement-btn" class="action-btn">
-          <span>💰</span>
-          정산 계산하기
-        </button>
-
-        <div id="settlement-status" class="status-box"></div>
-      </div>
-
-      <!-- 설정 탭 -->
-      <div id="settings-tab" class="tab-content">
-        <h2>설정</h2>
-
-        <div class="setting-item">
-          <label>쿠팡 아이디:</label>
-          <input type="text" id="coupang-id" placeholder="쿠팡 로그인 ID">
-        </div>
-
-        <div class="setting-item">
-          <label>쿠팡 비밀번호:</label>
-          <input type="password" id="coupang-pw" placeholder="쿠팡 비밀번호">
-        </div>
-
-        <div class="setting-item">
-          <label>사업자 번호:</label>
-          <input type="text" id="business-number" placeholder="123-45-67890">
-        </div>
-
-        <button id="save-settings-btn" class="primary-btn">설정 저장</button>
-
-        <div id="settings-status" class="status-box"></div>
+        <a href="#" class="menu-card full" id="menu-collect">
+          <div class="icon">🔍</div>
+          <div class="info">
+            <div class="title">상품 수집하기</div>
+            <div class="desc">1688, AliExpress 등에서 상품 데이터 수집</div>
+          </div>
+        </a>
       </div>
     </div>
   </div>
 
-  <script type="module" src="popup.js"></script>
+  <script src="popup.js"></script>
 </body>
 </html>
