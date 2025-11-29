@@ -151,7 +151,7 @@
     {
       "matches": [
         "http://localhost:5001/*",
-        "https://totalbot.cafe24.com/node-api/*"
+        "https://totalbot.cafe24.com/*"
       ],
       "js": ["content/content-localhost.js"],
       "run_at": "document_end"
