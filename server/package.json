@@ -16,6 +16,7 @@
   "license": "ISC",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "canvas": "^2.11.2",
     "@vitalets/google-translate-api": "^9.2.0",
     "axios": "^1.6.2",
     "bcrypt": "^5.1.1",
