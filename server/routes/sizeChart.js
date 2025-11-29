@@ -270,10 +270,11 @@ function createSizeChartImage() {
   // 데이터 생성
   const data = generateSizeData(clothingType, sizeLabels);
 
-  // 캔버스 크기 (랜덤 변동)
-  const width = randomInRange(550, 650);
+  // 캔버스 크기 (최소 600x600 이상 - 쿠팡 이미지 규격)
+  const width = randomInRange(650, 750);
   const rowCount = data.length;
-  const height = 70 + (rowCount + 1) * 36 + (disclaimer ? 30 : 10);
+  const baseHeight = 100 + (rowCount + 1) * 50 + (disclaimer ? 50 : 20);
+  const height = Math.max(600, baseHeight); // 최소 600px 보장
 
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext('2d');
@@ -289,10 +290,10 @@ function createSizeChartImage() {
     ctx.strokeRect(0, 0, width, height);
   }
 
-  // 표 설정
-  const startX = randomInRange(15, 30);
-  const startY = randomInRange(45, 55);
-  const rowHeight = randomInRange(32, 40);
+  // 표 설정 (더 큰 해상도에 맞게 조정)
+  const startX = randomInRange(25, 40);
+  const startY = randomInRange(60, 80);
+  const rowHeight = randomInRange(45, 55);
 
   // 컬럼 너비 계산
   const tableWidth = width - (startX * 2);
@@ -304,11 +305,11 @@ function createSizeChartImage() {
 
   // 제목
   ctx.fillStyle = style.titleColor;
-  ctx.font = `bold ${randomInRange(14, 18)}px sans-serif`;
+  ctx.font = `bold ${randomInRange(18, 24)}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  let titleY = 25;
+  let titleY = 35;
   if (titleStyle.subText) {
     ctx.fillText(`${titleStyle.text} ${titleStyle.subText}`, width / 2, titleY);
   } else {
@@ -327,7 +328,7 @@ function createSizeChartImage() {
 
   // 헤더 텍스트
   ctx.fillStyle = style.headerText;
-  ctx.font = `bold ${randomInRange(11, 14)}px sans-serif`;
+  ctx.font = `bold ${randomInRange(14, 18)}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
@@ -358,7 +359,7 @@ function createSizeChartImage() {
 
     // 사이즈 라벨
     ctx.fillStyle = style.accentColor;
-    ctx.font = `bold ${randomInRange(11, 13)}px sans-serif`;
+    ctx.font = `bold ${randomInRange(14, 17)}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(row.size, currentX + colWidths[0] / 2, y + rowHeight / 2);
@@ -366,7 +367,7 @@ function createSizeChartImage() {
 
     // 측정값
     ctx.fillStyle = style.textColor;
-    ctx.font = `${randomInRange(11, 13)}px sans-serif`;
+    ctx.font = `${randomInRange(14, 17)}px sans-serif`;
 
     const values = [row.a, row.b, row.c, row.d];
     values.forEach((value, i) => {
@@ -387,10 +388,10 @@ function createSizeChartImage() {
   if (disclaimer) {
     ctx.fillStyle = style.textColor;
     ctx.globalAlpha = 0.6;
-    ctx.font = `${randomInRange(9, 11)}px sans-serif`;
+    ctx.font = `${randomInRange(12, 14)}px sans-serif`;
     ctx.textAlign = randomChoice(['left', 'center']);
     const disclaimerX = ctx.textAlign === 'center' ? width / 2 : startX;
-    ctx.fillText(disclaimer, disclaimerX, height - 12);
+    ctx.fillText(disclaimer, disclaimerX, height - 20);
     ctx.globalAlpha = 1;
   }
 
