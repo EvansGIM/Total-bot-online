@@ -1,7 +1,9 @@
 /**
  * 사이즈 차트 이미지 생성 API
- * - 랜덤한 사이즈 값으로 표 이미지 생성
- * - 랜덤 파일명 생성
+ * - 다양한 의류 종류 (상의, 바지, 치마, 원피스 등)
+ * - 랜덤 UI 스타일 (색상, 폰트, 레이아웃)
+ * - 랜덤 사이즈 값 (논리적 순서 유지)
+ * - 랜덤 파일명
  */
 
 const express = require('express');
@@ -10,101 +12,342 @@ const crypto = require('crypto');
 
 const router = express.Router();
 
-// 랜덤 값 생성 함수
+// ===== 유틸리티 함수 =====
+
 function randomInRange(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// 랜덤 파일명 생성
+function randomFloat(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+function randomChoice(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
 function generateRandomFilename() {
+  const prefixes = ['SC', 'SZ', 'SIZE', 'CHART', 'TBL', 'SPEC'];
+  const prefix = randomChoice(prefixes);
   const randomStr = crypto.randomBytes(4).toString('hex');
-  return `SC_${randomStr}.png`;
+  return `${prefix}_${randomStr}.png`;
 }
 
-// 사이즈 차트 데이터 생성 (의류용)
-function generateClothingSizeData() {
-  const sizes = ['S', 'M', 'L', 'XL', '2XL'];
-  const baseValues = {
-    chest: randomInRange(86, 92),      // 가슴
-    shoulder: randomInRange(38, 42),   // 어깨
-    sleeve: randomInRange(58, 62),     // 소매
-    length: randomInRange(65, 70),     // 총장
-    waist: randomInRange(68, 74)       // 허리 (바지/치마)
+// ===== 의류 종류별 설정 =====
+
+const CLOTHING_TYPES = {
+  top: {
+    name: '상의',
+    headers: ['사이즈', '가슴', '어깨', '소매', '총장'],
+    headersAlt: ['SIZE', 'CHEST', 'SHOULDER', 'SLEEVE', 'LENGTH'],
+    headersKrEn: ['사이즈', '가슴/Chest', '어깨/Shoulder', '소매/Sleeve', '총장/Length'],
+    baseValues: { a: [86, 94], b: [38, 44], c: [58, 64], d: [62, 70] },
+    increments: { a: [3, 5], b: [1, 2], c: [1, 2], d: [2, 3] }
+  },
+  pants: {
+    name: '바지',
+    headers: ['사이즈', '허리', '엉덩이', '허벅지', '총장'],
+    headersAlt: ['SIZE', 'WAIST', 'HIP', 'THIGH', 'LENGTH'],
+    headersKrEn: ['사이즈', '허리/Waist', '힙/Hip', '허벅지/Thigh', '총장/Length'],
+    baseValues: { a: [66, 74], b: [88, 96], c: [54, 60], d: [96, 104] },
+    increments: { a: [3, 5], b: [3, 5], c: [2, 3], d: [1, 2] }
+  },
+  skirt: {
+    name: '치마',
+    headers: ['사이즈', '허리', '엉덩이', '총장', '밑단'],
+    headersAlt: ['SIZE', 'WAIST', 'HIP', 'LENGTH', 'HEM'],
+    headersKrEn: ['사이즈', '허리/Waist', '힙/Hip', '총장/Length', '밑단/Hem'],
+    baseValues: { a: [64, 72], b: [86, 94], c: [40, 50], d: [38, 46] },
+    increments: { a: [3, 5], b: [3, 5], c: [2, 4], d: [2, 4] }
+  },
+  dress: {
+    name: '원피스',
+    headers: ['사이즈', '가슴', '허리', '어깨', '총장'],
+    headersAlt: ['SIZE', 'BUST', 'WAIST', 'SHOULDER', 'LENGTH'],
+    headersKrEn: ['사이즈', '가슴/Bust', '허리/Waist', '어깨/Shoulder', '총장/Length'],
+    baseValues: { a: [84, 92], b: [66, 74], c: [36, 42], d: [80, 92] },
+    increments: { a: [3, 5], b: [3, 5], c: [1, 2], d: [3, 5] }
+  },
+  outer: {
+    name: '아우터',
+    headers: ['사이즈', '가슴', '어깨', '소매', '총장'],
+    headersAlt: ['SIZE', 'CHEST', 'SHOULDER', 'SLEEVE', 'LENGTH'],
+    headersKrEn: ['사이즈', '가슴/Chest', '어깨/Shoulder', '소매/Sleeve', '총장/Length'],
+    baseValues: { a: [108, 118], b: [44, 50], c: [60, 66], d: [68, 78] },
+    increments: { a: [4, 6], b: [2, 3], c: [1, 2], d: [2, 4] }
+  },
+  shorts: {
+    name: '반바지',
+    headers: ['사이즈', '허리', '엉덩이', '허벅지', '총장'],
+    headersAlt: ['SIZE', 'WAIST', 'HIP', 'THIGH', 'LENGTH'],
+    headersKrEn: ['사이즈', '허리/Waist', '힙/Hip', '허벅지/Thigh', '총장/Length'],
+    baseValues: { a: [66, 74], b: [90, 98], c: [56, 64], d: [28, 38] },
+    increments: { a: [3, 5], b: [3, 5], c: [2, 4], d: [2, 3] }
+  }
+};
+
+// ===== 사이즈 라벨 종류 =====
+
+const SIZE_LABELS = [
+  ['S', 'M', 'L', 'XL', '2XL'],
+  ['S', 'M', 'L', 'XL', 'XXL'],
+  ['85', '90', '95', '100', '105'],
+  ['FREE', '', '', '', ''],  // 프리사이즈 (1개만)
+  ['44', '55', '66', '77', '88'],
+  ['XS', 'S', 'M', 'L', 'XL'],
+  ['90', '95', '100', '105', '110'],
+];
+
+// ===== UI 스타일 종류 =====
+
+const UI_STYLES = [
+  {
+    name: 'modern',
+    bgColor: '#ffffff',
+    headerBg: '#333333',
+    headerText: '#ffffff',
+    rowBg1: '#ffffff',
+    rowBg2: '#f9f9f9',
+    textColor: '#333333',
+    borderColor: '#e0e0e0',
+    titleColor: '#333333',
+    accentColor: '#2196F3'
+  },
+  {
+    name: 'warm',
+    bgColor: '#fffaf5',
+    headerBg: '#e67e22',
+    headerText: '#ffffff',
+    rowBg1: '#fffaf5',
+    rowBg2: '#fff5eb',
+    textColor: '#5d4037',
+    borderColor: '#ddd',
+    titleColor: '#e67e22',
+    accentColor: '#e67e22'
+  },
+  {
+    name: 'cool',
+    bgColor: '#f5f9ff',
+    headerBg: '#3498db',
+    headerText: '#ffffff',
+    rowBg1: '#f5f9ff',
+    rowBg2: '#eef5fc',
+    textColor: '#2c3e50',
+    borderColor: '#d0e3f0',
+    titleColor: '#2980b9',
+    accentColor: '#3498db'
+  },
+  {
+    name: 'minimal',
+    bgColor: '#ffffff',
+    headerBg: '#f5f5f5',
+    headerText: '#333333',
+    rowBg1: '#ffffff',
+    rowBg2: '#fafafa',
+    textColor: '#555555',
+    borderColor: '#eeeeee',
+    titleColor: '#333333',
+    accentColor: '#757575'
+  },
+  {
+    name: 'dark',
+    bgColor: '#2d2d2d',
+    headerBg: '#1a1a1a',
+    headerText: '#ffffff',
+    rowBg1: '#2d2d2d',
+    rowBg2: '#383838',
+    textColor: '#e0e0e0',
+    borderColor: '#444444',
+    titleColor: '#ffffff',
+    accentColor: '#4fc3f7'
+  },
+  {
+    name: 'pink',
+    bgColor: '#fff5f8',
+    headerBg: '#e91e63',
+    headerText: '#ffffff',
+    rowBg1: '#fff5f8',
+    rowBg2: '#ffeef3',
+    textColor: '#880e4f',
+    borderColor: '#f8bbd9',
+    titleColor: '#c2185b',
+    accentColor: '#e91e63'
+  },
+  {
+    name: 'green',
+    bgColor: '#f1f8e9',
+    headerBg: '#4caf50',
+    headerText: '#ffffff',
+    rowBg1: '#f1f8e9',
+    rowBg2: '#e8f5e9',
+    textColor: '#33691e',
+    borderColor: '#c5e1a5',
+    titleColor: '#388e3c',
+    accentColor: '#4caf50'
+  },
+  {
+    name: 'elegant',
+    bgColor: '#fafafa',
+    headerBg: '#6d4c41',
+    headerText: '#ffffff',
+    rowBg1: '#fafafa',
+    rowBg2: '#f5f5f5',
+    textColor: '#4e342e',
+    borderColor: '#d7ccc8',
+    titleColor: '#5d4037',
+    accentColor: '#8d6e63'
+  }
+];
+
+// ===== 제목 스타일 종류 =====
+
+const TITLE_STYLES = [
+  { text: 'SIZE CHART', subText: '(단위: cm)' },
+  { text: 'SIZE GUIDE', subText: '(Unit: cm)' },
+  { text: '사이즈 안내', subText: '(단위: cm)' },
+  { text: 'SIZE INFO', subText: 'cm' },
+  { text: '사이즈 차트', subText: '(cm)' },
+  { text: 'MEASUREMENTS', subText: '(cm)' },
+  { text: '치수 안내', subText: 'Unit: cm' },
+  { text: 'SIZE SPECIFICATION', subText: '' },
+];
+
+// ===== 주의사항 문구 종류 =====
+
+const DISCLAIMERS = [
+  '* 측정 방법에 따라 1~3cm 오차가 있을 수 있습니다.',
+  '* Measurements may vary by 1-3cm depending on how they are taken.',
+  '* 실측 사이즈이며 1~2cm 오차가 발생할 수 있습니다.',
+  '* 측정 위치에 따라 약간의 차이가 있을 수 있습니다.',
+  '* Please allow 1-3cm difference due to manual measurement.',
+  '* 제품 특성상 1~3cm 오차 범위가 있을 수 있습니다.',
+  '* 평균 실측 사이즈이며 개인차가 있을 수 있습니다.',
+  '',  // 없는 경우도
+];
+
+// ===== 데이터 생성 함수 =====
+
+function generateSizeData(clothingType, sizeLabels) {
+  const config = CLOTHING_TYPES[clothingType];
+  const activeSizes = sizeLabels.filter(s => s !== '');
+
+  // 프리사이즈인 경우 1행만
+  if (activeSizes.length === 1 && activeSizes[0] === 'FREE') {
+    return [{
+      size: 'FREE',
+      a: randomInRange(config.baseValues.a[0], config.baseValues.a[1]) + randomInRange(4, 8),
+      b: randomInRange(config.baseValues.b[0], config.baseValues.b[1]) + randomInRange(2, 4),
+      c: randomInRange(config.baseValues.c[0], config.baseValues.c[1]) + randomInRange(2, 4),
+      d: randomInRange(config.baseValues.d[0], config.baseValues.d[1]) + randomInRange(4, 8)
+    }];
+  }
+
+  // 기본 값 (가장 작은 사이즈)
+  const base = {
+    a: randomInRange(config.baseValues.a[0], config.baseValues.a[1]),
+    b: randomInRange(config.baseValues.b[0], config.baseValues.b[1]),
+    c: randomInRange(config.baseValues.c[0], config.baseValues.c[1]),
+    d: randomInRange(config.baseValues.d[0], config.baseValues.d[1])
   };
 
-  const data = sizes.map((size, index) => ({
-    size,
-    chest: baseValues.chest + (index * randomInRange(3, 5)),
-    shoulder: baseValues.shoulder + (index * randomInRange(1, 2)),
-    sleeve: baseValues.sleeve + (index * randomInRange(1, 2)),
-    length: baseValues.length + (index * randomInRange(2, 3))
-  }));
+  // 각 사이즈별 증가량 (일관성 유지를 위해 미리 계산)
+  const incA = randomInRange(config.increments.a[0], config.increments.a[1]);
+  const incB = randomInRange(config.increments.b[0], config.increments.b[1]);
+  const incC = randomInRange(config.increments.c[0], config.increments.c[1]);
+  const incD = randomInRange(config.increments.d[0], config.increments.d[1]);
 
-  return data;
+  return activeSizes.map((size, index) => ({
+    size,
+    a: base.a + (index * incA) + randomInRange(-1, 1), // 약간의 변동
+    b: base.b + (index * incB) + randomInRange(0, 1),
+    c: base.c + (index * incC) + randomInRange(0, 1),
+    d: base.d + (index * incD) + randomInRange(-1, 1)
+  }));
 }
 
-// 사이즈 차트 데이터 생성 (바지용)
-function generatePantsSizeData() {
-  const sizes = ['S', 'M', 'L', 'XL', '2XL'];
-  const baseValues = {
-    waist: randomInRange(66, 72),
-    hip: randomInRange(88, 94),
-    thigh: randomInRange(54, 58),
-    length: randomInRange(98, 102),
-    hem: randomInRange(16, 18)
-  };
+// ===== 이미지 생성 함수 =====
 
-  const data = sizes.map((size, index) => ({
-    size,
-    waist: baseValues.waist + (index * randomInRange(3, 5)),
-    hip: baseValues.hip + (index * randomInRange(3, 5)),
-    thigh: baseValues.thigh + (index * randomInRange(2, 3)),
-    length: baseValues.length + (index * randomInRange(1, 2))
-  }));
+function createSizeChartImage() {
+  // 랜덤 선택
+  const clothingType = randomChoice(Object.keys(CLOTHING_TYPES));
+  const clothingConfig = CLOTHING_TYPES[clothingType];
+  const sizeLabels = randomChoice(SIZE_LABELS);
+  const style = randomChoice(UI_STYLES);
+  const titleStyle = randomChoice(TITLE_STYLES);
+  const disclaimer = randomChoice(DISCLAIMERS);
 
-  return data;
-}
+  // 헤더 스타일 선택 (한글, 영어, 한영 혼합)
+  const headerStyle = randomChoice(['kr', 'en', 'mixed']);
+  let headers;
+  if (headerStyle === 'en') {
+    headers = clothingConfig.headersAlt;
+  } else if (headerStyle === 'mixed') {
+    headers = clothingConfig.headersKrEn;
+  } else {
+    headers = clothingConfig.headers;
+  }
 
-// 사이즈 차트 이미지 생성
-function createSizeChartImage(type = 'clothing') {
-  const width = 600;
-  const height = 280;
+  // 데이터 생성
+  const data = generateSizeData(clothingType, sizeLabels);
+
+  // 캔버스 크기 (랜덤 변동)
+  const width = randomInRange(550, 650);
+  const rowCount = data.length;
+  const height = 70 + (rowCount + 1) * 36 + (disclaimer ? 30 : 10);
+
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext('2d');
 
   // 배경
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = style.bgColor;
   ctx.fillRect(0, 0, width, height);
 
-  // 테두리
-  ctx.strokeStyle = '#e0e0e0';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(0, 0, width, height);
+  // 테두리 (랜덤하게 있거나 없거나)
+  if (Math.random() > 0.3) {
+    ctx.strokeStyle = style.borderColor;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0, 0, width, height);
+  }
 
   // 표 설정
-  const startX = 20;
-  const startY = 50;
-  const rowHeight = 36;
-  const headers = type === 'pants'
-    ? ['사이즈', '허리', '엉덩이', '허벅지', '총장']
-    : ['사이즈', '가슴', '어깨', '소매', '총장'];
-  const colWidths = [80, 100, 100, 100, 100];
+  const startX = randomInRange(15, 30);
+  const startY = randomInRange(45, 55);
+  const rowHeight = randomInRange(32, 40);
 
-  const data = type === 'pants' ? generatePantsSizeData() : generateClothingSizeData();
+  // 컬럼 너비 계산
+  const tableWidth = width - (startX * 2);
+  const colCount = headers.length;
+  const colWidths = headers.map((_, i) => {
+    if (i === 0) return Math.floor(tableWidth * 0.15); // 사이즈 컬럼
+    return Math.floor(tableWidth * 0.85 / (colCount - 1));
+  });
 
   // 제목
-  ctx.fillStyle = '#333333';
-  ctx.font = 'bold 16px "Noto Sans KR", sans-serif';
+  ctx.fillStyle = style.titleColor;
+  ctx.font = `bold ${randomInRange(14, 18)}px sans-serif`;
   ctx.textAlign = 'center';
-  ctx.fillText('SIZE CHART (단위: cm)', width / 2, 30);
+  ctx.textBaseline = 'middle';
+
+  let titleY = 25;
+  if (titleStyle.subText) {
+    ctx.fillText(`${titleStyle.text} ${titleStyle.subText}`, width / 2, titleY);
+  } else {
+    ctx.fillText(titleStyle.text, width / 2, titleY);
+  }
 
   // 헤더 배경
-  ctx.fillStyle = '#f5f5f5';
-  ctx.fillRect(startX, startY, colWidths.reduce((a, b) => a + b, 0), rowHeight);
+  ctx.fillStyle = style.headerBg;
+  const headerRadius = Math.random() > 0.5 ? 4 : 0; // 둥근 모서리 랜덤
+  if (headerRadius > 0) {
+    roundRect(ctx, startX, startY, colWidths.reduce((a, b) => a + b, 0), rowHeight, headerRadius);
+    ctx.fill();
+  } else {
+    ctx.fillRect(startX, startY, colWidths.reduce((a, b) => a + b, 0), rowHeight);
+  }
 
   // 헤더 텍스트
-  ctx.fillStyle = '#333333';
-  ctx.font = 'bold 13px "Noto Sans KR", sans-serif';
+  ctx.fillStyle = style.headerText;
+  ctx.font = `bold ${randomInRange(11, 14)}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
@@ -115,7 +358,7 @@ function createSizeChartImage(type = 'clothing') {
   });
 
   // 헤더 테두리
-  ctx.strokeStyle = '#cccccc';
+  ctx.strokeStyle = style.borderColor;
   ctx.lineWidth = 1;
   currentX = startX;
   headers.forEach((_, i) => {
@@ -124,38 +367,35 @@ function createSizeChartImage(type = 'clothing') {
   });
 
   // 데이터 행
-  ctx.font = '12px "Noto Sans KR", sans-serif';
-  ctx.fillStyle = '#555555';
-
   data.forEach((row, rowIndex) => {
     const y = startY + rowHeight * (rowIndex + 1);
 
     // 행 배경 (줄무늬)
-    if (rowIndex % 2 === 1) {
-      ctx.fillStyle = '#fafafa';
-      ctx.fillRect(startX, y, colWidths.reduce((a, b) => a + b, 0), rowHeight);
-    }
+    ctx.fillStyle = rowIndex % 2 === 0 ? style.rowBg1 : style.rowBg2;
+    ctx.fillRect(startX, y, colWidths.reduce((a, b) => a + b, 0), rowHeight);
 
-    ctx.fillStyle = '#555555';
     currentX = startX;
 
-    // 사이즈
-    ctx.font = 'bold 12px "Noto Sans KR", sans-serif';
+    // 사이즈 라벨
+    ctx.fillStyle = style.accentColor;
+    ctx.font = `bold ${randomInRange(11, 13)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     ctx.fillText(row.size, currentX + colWidths[0] / 2, y + rowHeight / 2);
     currentX += colWidths[0];
 
-    // 각 측정값
-    ctx.font = '12px "Noto Sans KR", sans-serif';
-    const values = type === 'pants'
-      ? [row.waist, row.hip, row.thigh, row.length]
-      : [row.chest, row.shoulder, row.sleeve, row.length];
+    // 측정값
+    ctx.fillStyle = style.textColor;
+    ctx.font = `${randomInRange(11, 13)}px sans-serif`;
 
+    const values = [row.a, row.b, row.c, row.d];
     values.forEach((value, i) => {
       ctx.fillText(String(value), currentX + colWidths[i + 1] / 2, y + rowHeight / 2);
       currentX += colWidths[i + 1];
     });
 
     // 행 테두리
+    ctx.strokeStyle = style.borderColor;
     currentX = startX;
     colWidths.forEach((w) => {
       ctx.strokeRect(currentX, y, w, rowHeight);
@@ -164,21 +404,41 @@ function createSizeChartImage(type = 'clothing') {
   });
 
   // 주의사항
-  ctx.fillStyle = '#999999';
-  ctx.font = '10px "Noto Sans KR", sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText('* 측정 방법에 따라 1~3cm 오차가 있을 수 있습니다.', startX, height - 15);
+  if (disclaimer) {
+    ctx.fillStyle = style.textColor;
+    ctx.globalAlpha = 0.6;
+    ctx.font = `${randomInRange(9, 11)}px sans-serif`;
+    ctx.textAlign = randomChoice(['left', 'center']);
+    const disclaimerX = ctx.textAlign === 'center' ? width / 2 : startX;
+    ctx.fillText(disclaimer, disclaimerX, height - 12);
+    ctx.globalAlpha = 1;
+  }
 
   return canvas.toBuffer('image/png');
 }
 
-// 사이즈 차트 이미지 생성 API
+// 둥근 사각형 그리기 헬퍼
+function roundRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
+// ===== API 엔드포인트 =====
+
+// 단일 이미지 생성
 router.get('/generate', (req, res) => {
   try {
-    const type = req.query.type || 'clothing'; // clothing 또는 pants
     const filename = generateRandomFilename();
-
-    const imageBuffer = createSizeChartImage(type);
+    const imageBuffer = createSizeChartImage();
 
     res.set({
       'Content-Type': 'image/png',
@@ -187,26 +447,22 @@ router.get('/generate', (req, res) => {
     });
 
     res.send(imageBuffer);
-
-    console.log(`✅ 사이즈 차트 이미지 생성: ${filename} (${type})`);
+    console.log(`✅ 사이즈 차트 이미지 생성: ${filename}`);
   } catch (error) {
     console.error('❌ 사이즈 차트 이미지 생성 오류:', error);
-    res.status(500).json({
-      success: false,
-      message: '이미지 생성 실패'
-    });
+    res.status(500).json({ success: false, message: '이미지 생성 실패' });
   }
 });
 
-// 사이즈 차트 이미지 생성 API (POST - 여러 개)
+// 여러 이미지 생성
 router.post('/generate-batch', (req, res) => {
   try {
-    const { count = 1, type = 'clothing' } = req.body;
+    const { count = 1 } = req.body;
     const images = [];
 
-    for (let i = 0; i < Math.min(count, 50); i++) { // 최대 50개
+    for (let i = 0; i < Math.min(count, 50); i++) {
       const filename = generateRandomFilename();
-      const imageBuffer = createSizeChartImage(type);
+      const imageBuffer = createSizeChartImage();
 
       images.push({
         filename,
@@ -214,43 +470,27 @@ router.post('/generate-batch', (req, res) => {
       });
     }
 
-    res.json({
-      success: true,
-      images
-    });
-
-    console.log(`✅ 사이즈 차트 이미지 ${images.length}개 생성 (${type})`);
+    res.json({ success: true, images });
+    console.log(`✅ 사이즈 차트 이미지 ${images.length}개 생성`);
   } catch (error) {
     console.error('❌ 사이즈 차트 이미지 배치 생성 오류:', error);
-    res.status(500).json({
-      success: false,
-      message: '이미지 생성 실패'
-    });
+    res.status(500).json({ success: false, message: '이미지 생성 실패' });
   }
 });
 
-// 파일명만 생성 API (이미지 없이)
+// 파일명만 생성
 router.get('/filename', (req, res) => {
-  const filename = generateRandomFilename();
-  res.json({
-    success: true,
-    filename
-  });
+  res.json({ success: true, filename: generateRandomFilename() });
 });
 
-// 여러 파일명 생성 API
+// 여러 파일명 생성
 router.post('/filenames', (req, res) => {
   const { count = 1 } = req.body;
   const filenames = [];
-
   for (let i = 0; i < Math.min(count, 100); i++) {
     filenames.push(generateRandomFilename());
   }
-
-  res.json({
-    success: true,
-    filenames
-  });
+  res.json({ success: true, filenames });
 });
 
 module.exports = router;
