@@ -1294,44 +1294,50 @@ async function handleFillQuotationExcels(data) {
     // 데이터 준비 완료
     await updateProgress('prepare', 'completed');
 
-    // 사이즈 차트 이미지 미리 생성 (견적서 작성 전에 파일명 확보)
-    console.log('   📐 사이즈 차트 이미지 생성 중...');
+    // 사이즈 차트 이미지 필요 여부 확인 (매핑 설정에 calc:size_chart_image 타입이 있는지)
+    const needsSizeChart = finalQuotationMappings.some(m => m.type === 'calc:size_chart_image');
     globalSizeChartImages = []; // 초기화
 
-    try {
-      const sizeChartResponse = await authFetch(`${SERVER_URL}/api/size-chart/generate-batch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ count: products.length })
-      });
+    if (needsSizeChart) {
+      console.log('   📐 사이즈 차트 이미지 생성 중...');
 
-      const sizeChartResult = await sizeChartResponse.json();
+      try {
+        const sizeChartResponse = await authFetch(`${SERVER_URL}/api/size-chart/generate-batch`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ count: products.length })
+        });
 
-      if (sizeChartResult.success && sizeChartResult.images) {
-        for (let i = 0; i < sizeChartResult.images.length; i++) {
-          const imgData = sizeChartResult.images[i];
-          // Base64를 Blob으로 변환
-          const binaryString = atob(imgData.data);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let j = 0; j < binaryString.length; j++) {
-            bytes[j] = binaryString.charCodeAt(j);
+        const sizeChartResult = await sizeChartResponse.json();
+
+        if (sizeChartResult.success && sizeChartResult.images) {
+          for (let i = 0; i < sizeChartResult.images.length; i++) {
+            const imgData = sizeChartResult.images[i];
+            // Base64를 Blob으로 변환
+            const binaryString = atob(imgData.data);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let j = 0; j < binaryString.length; j++) {
+              bytes[j] = binaryString.charCodeAt(j);
+            }
+            const blob = new Blob([bytes], { type: 'image/png' });
+
+            globalSizeChartImages.push({
+              filename: imgData.filename,
+              blob: blob,
+              productIndex: i
+            });
+
+            console.log(`   ✅ 사이즈 차트: ${imgData.filename} (상품 ${i + 1})`);
           }
-          const blob = new Blob([bytes], { type: 'image/png' });
-
-          globalSizeChartImages.push({
-            filename: imgData.filename,
-            blob: blob,
-            productIndex: i
-          });
-
-          console.log(`   ✅ 사이즈 차트: ${imgData.filename} (상품 ${i + 1})`);
+          console.log(`   📐 사이즈 차트 이미지 ${globalSizeChartImages.length}개 준비 완료`);
+        } else {
+          console.warn('   ⚠️ 사이즈 차트 생성 실패, 기본 파일명(A1.png) 사용');
         }
-        console.log(`   📐 사이즈 차트 이미지 ${globalSizeChartImages.length}개 준비 완료`);
-      } else {
-        console.warn('   ⚠️ 사이즈 차트 생성 실패, 기본 파일명(A1.png) 사용');
+      } catch (sizeChartError) {
+        console.error('   ❌ 사이즈 차트 생성 오류:', sizeChartError);
       }
-    } catch (sizeChartError) {
-      console.error('   ❌ 사이즈 차트 생성 오류:', sizeChartError);
+    } else {
+      console.log('   📐 사이즈 차트 이미지 불필요 (매핑에 없음)');
     }
 
     // Excel 파일 작성 시작
