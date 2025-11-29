@@ -1294,12 +1294,12 @@ async function handleFillQuotationExcels(data) {
     // 데이터 준비 완료
     await updateProgress('prepare', 'completed');
 
-    // 사이즈 차트 이미지 필요 여부 확인 (매핑 설정에 calc:size_chart_image 타입이 있는지)
-    const needsSizeChart = finalQuotationMappings.some(m => m.type === 'calc:size_chart_image');
+    // 사이즈 차트 이미지 생성 (autoMappings에 포함되어 있으므로 항상 생성)
+    // Excel 헤더에 "사이즈차트 이미지 파일명"이 있으면 사용됨
     globalSizeChartImages = []; // 초기화
+    console.log('   📐 사이즈 차트 이미지 생성 중...');
 
-    if (needsSizeChart) {
-      console.log('   📐 사이즈 차트 이미지 생성 중...');
+    {
 
       try {
         const sizeChartResponse = await authFetch(`${SERVER_URL}/api/size-chart/generate-batch`, {
@@ -1336,8 +1336,6 @@ async function handleFillQuotationExcels(data) {
       } catch (sizeChartError) {
         console.error('   ❌ 사이즈 차트 생성 오류:', sizeChartError);
       }
-    } else {
-      console.log('   📐 사이즈 차트 이미지 불필요 (매핑에 없음)');
     }
 
     // Excel 파일 작성 시작

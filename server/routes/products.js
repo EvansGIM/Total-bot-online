@@ -357,7 +357,20 @@ function generateDetailPageHtml(product) {
   const options = product.results || [];
 
   let html = `
-<div style="max-width: 800px; margin: 0 auto; font-family: Arial, sans-serif;">
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Noto Sans KR', sans-serif !important; }
+    body { margin: 0; padding: 20px; background: white; }
+  </style>
+</head>
+<body>
+<div style="max-width: 800px; margin: 0 auto; font-family: 'Noto Sans KR', sans-serif;">
   <h1 style="font-size: 28px; font-weight: bold; margin-bottom: 20px; color: #333;">
     ${title}
   </h1>
@@ -425,6 +438,8 @@ function generateDetailPageHtml(product) {
     </ul>
   </div>
 </div>
+</body>
+</html>
   `;
 
   return html.trim();
@@ -470,8 +485,12 @@ function generateLabelHtml(product) {
 <html>
 <head>
   <meta charset="UTF-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
-    body { margin: 0; padding: 20px; font-family: Arial, sans-serif; background: white; }
+    * { font-family: 'Noto Sans KR', sans-serif !important; }
+    body { margin: 0; padding: 20px; font-family: 'Noto Sans KR', sans-serif; background: white; }
     .label-container { max-width: 800px; margin: 0 auto; padding: 20px; background: #f9f9f9; border-radius: 8px; }
     h3 { font-size: 18px; margin: 0 0 10px 0; color: #333; }
   </style>
@@ -597,6 +616,9 @@ router.post('/generate-images', authMiddleware, async (req, res) => {
       const detailPage = await browser.newPage();
       await detailPage.setContent(detailHtml, { waitUntil: 'networkidle0' });
       await detailPage.setViewport({ width: 800, height: 1200 });
+      // 웹폰트 로딩 대기
+      await detailPage.evaluate(() => document.fonts.ready);
+      await new Promise(resolve => setTimeout(resolve, 500)); // 추가 대기
       const detailScreenshot = await detailPage.screenshot({ type: 'png', fullPage: true });
       await detailPage.close();
 
@@ -604,6 +626,9 @@ router.post('/generate-images', authMiddleware, async (req, res) => {
       const labelPage = await browser.newPage();
       await labelPage.setContent(labelHtml, { waitUntil: 'networkidle0' });
       await labelPage.setViewport({ width: 800, height: 400 });
+      // 웹폰트 로딩 대기
+      await labelPage.evaluate(() => document.fonts.ready);
+      await new Promise(resolve => setTimeout(resolve, 500)); // 추가 대기
       const labelScreenshot = await labelPage.screenshot({ type: 'png', fullPage: true });
       await labelPage.close();
 
