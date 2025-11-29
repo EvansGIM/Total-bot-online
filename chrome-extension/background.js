@@ -1294,6 +1294,46 @@ async function handleFillQuotationExcels(data) {
     // 데이터 준비 완료
     await updateProgress('prepare', 'completed');
 
+    // 사이즈 차트 이미지 미리 생성 (견적서 작성 전에 파일명 확보)
+    console.log('   📐 사이즈 차트 이미지 생성 중...');
+    globalSizeChartImages = []; // 초기화
+
+    try {
+      const sizeChartResponse = await authFetch(`${SERVER_URL}/api/size-chart/generate-batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ count: products.length })
+      });
+
+      const sizeChartResult = await sizeChartResponse.json();
+
+      if (sizeChartResult.success && sizeChartResult.images) {
+        for (let i = 0; i < sizeChartResult.images.length; i++) {
+          const imgData = sizeChartResult.images[i];
+          // Base64를 Blob으로 변환
+          const binaryString = atob(imgData.data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let j = 0; j < binaryString.length; j++) {
+            bytes[j] = binaryString.charCodeAt(j);
+          }
+          const blob = new Blob([bytes], { type: 'image/png' });
+
+          globalSizeChartImages.push({
+            filename: imgData.filename,
+            blob: blob,
+            productIndex: i
+          });
+
+          console.log(`   ✅ 사이즈 차트: ${imgData.filename} (상품 ${i + 1})`);
+        }
+        console.log(`   📐 사이즈 차트 이미지 ${globalSizeChartImages.length}개 준비 완료`);
+      } else {
+        console.warn('   ⚠️ 사이즈 차트 생성 실패, 기본 파일명(A1.png) 사용');
+      }
+    } catch (sizeChartError) {
+      console.error('   ❌ 사이즈 차트 생성 오류:', sizeChartError);
+    }
+
     // Excel 파일 작성 시작
     await updateProgress('fill', 'in_progress');
 
@@ -2134,55 +2174,16 @@ async function handleFillQuotationExcels(data) {
     console.log(`\n✅ 상품 이미지 수집 완료: 성공 ${successCount}개, 실패 ${failCount}개`);
     console.log(`📊 상품 이미지: ${productImageBlobs.length}개, 라벨컷 이미지: ${labelImageBlobs.length}개`);
 
-    // 사이즈 차트 이미지 생성 (랜덤 파일명)
-    console.log('   📐 사이즈 차트 이미지 생성 중...');
-    const sizeChartImages = []; // { filename, blob, productIndex } 저장용
-
-    try {
-      // 상품 개수만큼 사이즈 차트 이미지 생성 요청
-      const sizeChartResponse = await authFetch(`${SERVER_URL}/api/size-chart/generate-batch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ count: products.length, type: 'clothing' })
-      });
-
-      const sizeChartResult = await sizeChartResponse.json();
-
-      if (sizeChartResult.success && sizeChartResult.images) {
-        for (let i = 0; i < sizeChartResult.images.length; i++) {
-          const imgData = sizeChartResult.images[i];
-          // Base64를 Blob으로 변환
-          const binaryString = atob(imgData.data);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let j = 0; j < binaryString.length; j++) {
-            bytes[j] = binaryString.charCodeAt(j);
-          }
-          const blob = new Blob([bytes], { type: 'image/png' });
-
-          sizeChartImages.push({
-            filename: imgData.filename,
-            blob: blob,
-            productIndex: i
-          });
-
-          // productImageBlobs에도 추가 (ZIP에 포함되도록)
-          productImageBlobs.push({
-            filename: imgData.filename,
-            blob: blob
-          });
-
-          console.log(`   ✅ 사이즈 차트 생성: ${imgData.filename} (상품 ${i + 1})`);
-        }
-      } else {
-        console.warn('   ⚠️  사이즈 차트 이미지 생성 실패, 기본 파일명 사용');
+    // 사이즈 차트 이미지를 productImageBlobs에도 추가 (ZIP에 포함되도록)
+    if (globalSizeChartImages && globalSizeChartImages.length > 0) {
+      for (const sizeChart of globalSizeChartImages) {
+        productImageBlobs.push({
+          filename: sizeChart.filename,
+          blob: sizeChart.blob
+        });
       }
-    } catch (sizeChartError) {
-      console.error('   ❌ 사이즈 차트 이미지 생성 오류:', sizeChartError);
-      // 오류가 나도 계속 진행 (기존 A1.png 방식으로 fallback)
+      console.log(`📊 사이즈 차트 이미지 ${globalSizeChartImages.length}개 ZIP에 추가됨`);
     }
-
-    // sizeChartImages를 전역적으로 접근 가능하도록 저장
-    globalSizeChartImages = sizeChartImages;
 
     console.log('\n✅ 견적서 자동 작성 완료');
 

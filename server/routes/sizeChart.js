@@ -35,52 +35,41 @@ function generateRandomFilename() {
 
 // ===== 의류 종류별 설정 =====
 
+// 의류 종류별 설정 (영어로만 - 서버 폰트 호환성)
 const CLOTHING_TYPES = {
   top: {
-    name: '상의',
-    headers: ['사이즈', '가슴', '어깨', '소매', '총장'],
-    headersAlt: ['SIZE', 'CHEST', 'SHOULDER', 'SLEEVE', 'LENGTH'],
-    headersKrEn: ['사이즈', '가슴/Chest', '어깨/Shoulder', '소매/Sleeve', '총장/Length'],
+    name: 'Top',
+    headers: ['SIZE', 'CHEST', 'SHOULDER', 'SLEEVE', 'LENGTH'],
     baseValues: { a: [86, 94], b: [38, 44], c: [58, 64], d: [62, 70] },
     increments: { a: [3, 5], b: [1, 2], c: [1, 2], d: [2, 3] }
   },
   pants: {
-    name: '바지',
-    headers: ['사이즈', '허리', '엉덩이', '허벅지', '총장'],
-    headersAlt: ['SIZE', 'WAIST', 'HIP', 'THIGH', 'LENGTH'],
-    headersKrEn: ['사이즈', '허리/Waist', '힙/Hip', '허벅지/Thigh', '총장/Length'],
+    name: 'Pants',
+    headers: ['SIZE', 'WAIST', 'HIP', 'THIGH', 'LENGTH'],
     baseValues: { a: [66, 74], b: [88, 96], c: [54, 60], d: [96, 104] },
     increments: { a: [3, 5], b: [3, 5], c: [2, 3], d: [1, 2] }
   },
   skirt: {
-    name: '치마',
-    headers: ['사이즈', '허리', '엉덩이', '총장', '밑단'],
-    headersAlt: ['SIZE', 'WAIST', 'HIP', 'LENGTH', 'HEM'],
-    headersKrEn: ['사이즈', '허리/Waist', '힙/Hip', '총장/Length', '밑단/Hem'],
+    name: 'Skirt',
+    headers: ['SIZE', 'WAIST', 'HIP', 'LENGTH', 'HEM'],
     baseValues: { a: [64, 72], b: [86, 94], c: [40, 50], d: [38, 46] },
     increments: { a: [3, 5], b: [3, 5], c: [2, 4], d: [2, 4] }
   },
   dress: {
-    name: '원피스',
-    headers: ['사이즈', '가슴', '허리', '어깨', '총장'],
-    headersAlt: ['SIZE', 'BUST', 'WAIST', 'SHOULDER', 'LENGTH'],
-    headersKrEn: ['사이즈', '가슴/Bust', '허리/Waist', '어깨/Shoulder', '총장/Length'],
+    name: 'Dress',
+    headers: ['SIZE', 'BUST', 'WAIST', 'SHOULDER', 'LENGTH'],
     baseValues: { a: [84, 92], b: [66, 74], c: [36, 42], d: [80, 92] },
     increments: { a: [3, 5], b: [3, 5], c: [1, 2], d: [3, 5] }
   },
   outer: {
-    name: '아우터',
-    headers: ['사이즈', '가슴', '어깨', '소매', '총장'],
-    headersAlt: ['SIZE', 'CHEST', 'SHOULDER', 'SLEEVE', 'LENGTH'],
-    headersKrEn: ['사이즈', '가슴/Chest', '어깨/Shoulder', '소매/Sleeve', '총장/Length'],
+    name: 'Outer',
+    headers: ['SIZE', 'CHEST', 'SHOULDER', 'SLEEVE', 'LENGTH'],
     baseValues: { a: [108, 118], b: [44, 50], c: [60, 66], d: [68, 78] },
     increments: { a: [4, 6], b: [2, 3], c: [1, 2], d: [2, 4] }
   },
   shorts: {
-    name: '반바지',
-    headers: ['사이즈', '허리', '엉덩이', '허벅지', '총장'],
-    headersAlt: ['SIZE', 'WAIST', 'HIP', 'THIGH', 'LENGTH'],
-    headersKrEn: ['사이즈', '허리/Waist', '힙/Hip', '허벅지/Thigh', '총장/Length'],
+    name: 'Shorts',
+    headers: ['SIZE', 'WAIST', 'HIP', 'THIGH', 'LENGTH'],
     baseValues: { a: [66, 74], b: [90, 98], c: [56, 64], d: [28, 38] },
     increments: { a: [3, 5], b: [3, 5], c: [2, 4], d: [2, 3] }
   }
@@ -199,29 +188,28 @@ const UI_STYLES = [
   }
 ];
 
-// ===== 제목 스타일 종류 =====
+// ===== 제목 스타일 종류 (영어만) =====
 
 const TITLE_STYLES = [
-  { text: 'SIZE CHART', subText: '(단위: cm)' },
+  { text: 'SIZE CHART', subText: '(cm)' },
   { text: 'SIZE GUIDE', subText: '(Unit: cm)' },
-  { text: '사이즈 안내', subText: '(단위: cm)' },
   { text: 'SIZE INFO', subText: 'cm' },
-  { text: '사이즈 차트', subText: '(cm)' },
   { text: 'MEASUREMENTS', subText: '(cm)' },
-  { text: '치수 안내', subText: 'Unit: cm' },
   { text: 'SIZE SPECIFICATION', subText: '' },
+  { text: 'PRODUCT DIMENSIONS', subText: '(cm)' },
+  { text: 'SIZING TABLE', subText: '' },
+  { text: 'FIT GUIDE', subText: '(cm)' },
 ];
 
-// ===== 주의사항 문구 종류 =====
+// ===== 주의사항 문구 종류 (영어만) =====
 
 const DISCLAIMERS = [
-  '* 측정 방법에 따라 1~3cm 오차가 있을 수 있습니다.',
   '* Measurements may vary by 1-3cm depending on how they are taken.',
-  '* 실측 사이즈이며 1~2cm 오차가 발생할 수 있습니다.',
-  '* 측정 위치에 따라 약간의 차이가 있을 수 있습니다.',
   '* Please allow 1-3cm difference due to manual measurement.',
-  '* 제품 특성상 1~3cm 오차 범위가 있을 수 있습니다.',
-  '* 평균 실측 사이즈이며 개인차가 있을 수 있습니다.',
+  '* All measurements are in centimeters (cm).',
+  '* Size tolerance: +/- 2cm due to manual measuring.',
+  '* Actual product may vary slightly from measurements shown.',
+  '* Flat lay measurement, slight deviation possible.',
   '',  // 없는 경우도
 ];
 
@@ -276,16 +264,8 @@ function createSizeChartImage() {
   const titleStyle = randomChoice(TITLE_STYLES);
   const disclaimer = randomChoice(DISCLAIMERS);
 
-  // 헤더 스타일 선택 (한글, 영어, 한영 혼합)
-  const headerStyle = randomChoice(['kr', 'en', 'mixed']);
-  let headers;
-  if (headerStyle === 'en') {
-    headers = clothingConfig.headersAlt;
-  } else if (headerStyle === 'mixed') {
-    headers = clothingConfig.headersKrEn;
-  } else {
-    headers = clothingConfig.headers;
-  }
+  // 헤더 (영어만 사용 - 서버 폰트 호환성)
+  const headers = clothingConfig.headers;
 
   // 데이터 생성
   const data = generateSizeData(clothingType, sizeLabels);
