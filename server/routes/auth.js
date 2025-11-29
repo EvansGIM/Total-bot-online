@@ -8,29 +8,60 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const fs = require('fs').promises;
+const path = require('path');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
-// 임시 사용자 DB (실제로는 MongoDB나 MySQL 사용)
-const users = [
-  {
-    id: 1,
-    username: 'admin',
-    password: '$2b$10$abcdefghijklmnopqrstuv', // bcrypt 해시 (실제로는 'admin123')
-    name: '관리자',
-    grade: 'premium',
-    is_admin: true
-  },
-  {
-    id: 2,
-    username: 'user1',
-    password: '$2b$10$abcdefghijklmnopqrstuv',
-    name: '사용자1',
-    grade: 'basic',
-    is_admin: false
+// 유저 데이터 파일 경로
+const DATA_DIR = path.join(__dirname, '../data');
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+
+// 디렉토리 및 파일 초기화
+async function ensureDataExists() {
+  try {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    try {
+      await fs.access(USERS_FILE);
+    } catch {
+      // 파일이 없으면 기본 admin 유저로 초기화
+      const defaultPassword = await bcrypt.hash('admin123', 10);
+      const defaultUsers = [
+        {
+          id: 1,
+          username: 'admin',
+          password: defaultPassword,
+          name: '관리자',
+          grade: 'premium',
+          is_admin: true,
+          createdAt: new Date().toISOString()
+        }
+      ];
+      await fs.writeFile(USERS_FILE, JSON.stringify(defaultUsers, null, 2));
+    }
+  } catch (error) {
+    console.error('데이터 초기화 오류:', error);
   }
-];
+}
+
+// 유저 목록 로드
+async function loadUsers() {
+  try {
+    await ensureDataExists();
+    const data = await fs.readFile(USERS_FILE, 'utf-8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('유저 로드 오류:', error);
+    return [];
+  }
+}
+
+// 유저 목록 저장
+async function saveUsers(users) {
+  await ensureDataExists();
+  await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
+}
 
 // 로그인
 router.post('/login', async (req, res) => {
@@ -44,6 +75,9 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // 유저 목록 로드
+    const users = await loadUsers();
+
     // 사용자 찾기
     const user = users.find(u => u.username === username);
 
@@ -54,8 +88,8 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // 비밀번호 검증 (임시로 간단히 처리 - 실제로는 bcrypt 사용)
-    const isPasswordValid = password === 'admin123' || password === 'user123';
+    // 비밀번호 검증
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -71,8 +105,8 @@ router.post('/login', async (req, res) => {
         username: user.username,
         grade: user.grade
       },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' } // 7일 유효
+      process.env.JWT_SECRET || 'totalbot_secret_key',
+      { expiresIn: '7d' }
     );
 
     // 비밀번호 제외하고 응답
@@ -105,6 +139,9 @@ router.post('/register', async (req, res) => {
       });
     }
 
+    // 유저 목록 로드
+    const users = await loadUsers();
+
     // 중복 확인
     const existingUser = users.find(u => u.username === username);
 
@@ -118,17 +155,27 @@ router.post('/register', async (req, res) => {
     // 비밀번호 해시
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // 새 사용자 ID 생성
+    const maxId = users.reduce((max, u) => Math.max(max, u.id), 0);
+
     // 새 사용자 생성
     const newUser = {
-      id: users.length + 1,
+      id: maxId + 1,
       username,
       password: hashedPassword,
       name,
       grade: 'basic',
-      is_admin: false
+      is_admin: false,
+      createdAt: new Date().toISOString()
     };
 
     users.push(newUser);
+    await saveUsers(users);
+
+    // 유저별 상품 폴더 생성
+    const userProductDir = path.join(DATA_DIR, 'products', String(newUser.id));
+    await fs.mkdir(userProductDir, { recursive: true });
+    await fs.writeFile(path.join(userProductDir, 'products.json'), '[]');
 
     // 비밀번호 제외하고 응답
     const { password: _, ...userInfo } = newUser;
@@ -149,8 +196,9 @@ router.post('/register', async (req, res) => {
 });
 
 // 사용자 정보 조회 (인증 필요)
-router.get('/me', authMiddleware, (req, res) => {
+router.get('/me', authMiddleware, async (req, res) => {
   try {
+    const users = await loadUsers();
     const user = users.find(u => u.id === req.user.id);
 
     if (!user) {
@@ -176,4 +224,7 @@ router.get('/me', authMiddleware, (req, res) => {
   }
 });
 
+// 유저 목록 내보내기 (다른 라우트에서 사용)
 module.exports = router;
+module.exports.loadUsers = loadUsers;
+module.exports.saveUsers = saveUsers;

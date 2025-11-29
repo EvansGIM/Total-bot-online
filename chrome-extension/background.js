@@ -10,6 +10,36 @@ importScripts('lib/xlsx.full.min.js');
 // 서버 URL 설정
 const SERVER_URL = 'https://totalbot.cafe24.com/node-api';
 
+// 인증 토큰 가져오기
+async function getAuthToken() {
+  const result = await chrome.storage.local.get(['authToken']);
+  return result.authToken || null;
+}
+
+// 인증 헤더 포함 fetch 함수
+async function authFetch(url, options = {}) {
+  const token = await getAuthToken();
+
+  if (!token) {
+    throw new Error('로그인이 필요합니다.');
+  }
+
+  const headers = {
+    ...options.headers,
+    'Authorization': `Bearer ${token}`
+  };
+
+  // Content-Type이 없고 body가 JSON이면 추가
+  if (!headers['Content-Type'] && options.body && typeof options.body === 'string') {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  return fetch(url, {
+    ...options,
+    headers
+  });
+}
+
 console.log('🚀 TotalBot Background Script loaded');
 console.log('✅ JSZip loaded:', typeof JSZip);
 console.log('✅ SheetJS loaded:', typeof XLSX);
@@ -107,7 +137,7 @@ async function checkUploadedProductsApproval() {
     console.log('========================================');
 
     // 1. 서버에서 uploaded 상태 상품 목록 가져오기
-    const response = await fetch('${SERVER_URL}/api/products/list');
+    const response = await authFetch(`${SERVER_URL}/api/products/list`);
     if (!response.ok) {
       console.log('⚠️ 서버 연결 실패, 다음 주기에 재시도');
       return;
@@ -267,7 +297,7 @@ async function findCoupangTab() {
  */
 async function updateProductsToApproved(productIds) {
   try {
-    const response = await fetch('${SERVER_URL}/api/products/batch-status', {
+    const response = await authFetch(`${SERVER_URL}/api/products/batch-status`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -281,7 +311,7 @@ async function updateProductsToApproved(productIds) {
 
       // 각 상품에 approvedAt 추가
       for (const productId of productIds) {
-        await fetch(`${SERVER_URL}/api/products/${productId}`, {
+        await authFetch(`${SERVER_URL}/api/products/${productId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -475,7 +505,7 @@ async function updateProductsSkuStatus(productIds, statusResult) {
 
     // 각 상품에 SKU 상태 업데이트
     for (const productId of productIds) {
-      await fetch(`${SERVER_URL}/api/products/${productId}`, {
+      await authFetch(`${SERVER_URL}/api/products/${productId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1760,7 +1790,7 @@ async function handleFillQuotationExcels(data) {
       console.log(`   📤 셀 업데이트: ${cellUpdates.length}개`);
 
       // 서버 API 호출
-      const response = await fetch('${SERVER_URL}/api/quote/edit-excel', {
+      const response = await authFetch(`${SERVER_URL}/api/quote/edit-excel`, {
         method: 'POST',
         body: formData
       });
@@ -1863,7 +1893,7 @@ async function handleFillQuotationExcels(data) {
     }
 
     try {
-      const response = await fetch('${SERVER_URL}/api/products/generate-images', {
+      const response = await authFetch(`${SERVER_URL}/api/products/generate-images`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -2143,7 +2173,7 @@ async function handleFillQuotationExcels(data) {
             console.log('📊 상품 상태 업데이트 중...', productIds.length, '개');
 
             // 일괄 상태 변경 API 호출
-            const statusResponse = await fetch('${SERVER_URL}/api/products/batch-status', {
+            const statusResponse = await authFetch(`${SERVER_URL}/api/products/batch-status`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -2158,7 +2188,7 @@ async function handleFillQuotationExcels(data) {
 
             // 각 상품에 quoteId 저장
             for (const productId of productIds) {
-              await fetch(`${SERVER_URL}/api/products/${productId}`, {
+              await authFetch(`${SERVER_URL}/api/products/${productId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -2226,7 +2256,7 @@ async function handleFillQuotationExcels(data) {
           if (productIds.length > 0) {
             console.log('📊 상품 상태 업데이트 중 (pending)...', productIds.length, '개');
 
-            await fetch('${SERVER_URL}/api/products/batch-status', {
+            await authFetch(`${SERVER_URL}/api/products/batch-status`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -2236,7 +2266,7 @@ async function handleFillQuotationExcels(data) {
             });
 
             for (const productId of productIds) {
-              await fetch(`${SERVER_URL}/api/products/${productId}`, {
+              await authFetch(`${SERVER_URL}/api/products/${productId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

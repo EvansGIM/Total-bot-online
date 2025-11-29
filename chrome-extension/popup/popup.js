@@ -5,6 +5,30 @@
 // 서버 URL 설정
 const SERVER_URL = 'https://totalbot.cafe24.com/node-api';
 
+// 인증 헤더 포함 fetch 함수
+async function authFetch(url, options = {}) {
+  const result = await chrome.storage.local.get(['authToken']);
+  const token = result.authToken;
+
+  if (!token) {
+    throw new Error('로그인이 필요합니다.');
+  }
+
+  const headers = {
+    ...options.headers,
+    'Authorization': `Bearer ${token}`
+  };
+
+  if (!headers['Content-Type'] && options.body && typeof options.body === 'string') {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  return fetch(url, {
+    ...options,
+    headers
+  });
+}
+
 // DOM 요소
 const loginScreen = document.getElementById('login-screen');
 const mainScreen = document.getElementById('main-screen');
@@ -496,7 +520,7 @@ async function loadProductList() {
   try {
     productListEl.innerHTML = '<div class="loading">상품 목록 로딩 중...</div>';
 
-    const response = await fetch(`${SERVER_URL}/api/products/list`);
+    const response = await authFetch(`${SERVER_URL}/api/products/list`);
     const data = await response.json();
 
     if (data.success && data.products) {

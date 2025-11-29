@@ -7,6 +7,38 @@
 // 서버 URL 설정
 const SERVER_URL = 'https://totalbot.cafe24.com/node-api';
 
+// 인증 토큰 가져오기 (content script용)
+async function getAuthToken() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['authToken'], (result) => {
+      resolve(result.authToken || null);
+    });
+  });
+}
+
+// 인증 헤더 포함 fetch 함수
+async function authFetch(url, options = {}) {
+  const token = await getAuthToken();
+
+  if (!token) {
+    throw new Error('로그인이 필요합니다.');
+  }
+
+  const headers = {
+    ...options.headers,
+    'Authorization': `Bearer ${token}`
+  };
+
+  if (!headers['Content-Type'] && options.body && typeof options.body === 'string') {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  return fetch(url, {
+    ...options,
+    headers
+  });
+}
+
 // 이미지 URL 정리 (Python _clean_img 함수 포팅)
 function cleanImageUrl(url) {
   if (!url) return '';
@@ -2841,7 +2873,7 @@ function showCrawlIndicator() {
         console.log('[TotalBot] 수집 성공:', result.results.length, '개');
 
         // 서버로 데이터 전송
-        const response = await fetch(`${SERVER_URL}/api/products/save`, {
+        const response = await authFetch(`${SERVER_URL}/api/products/save`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(result)
