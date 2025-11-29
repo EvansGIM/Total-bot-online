@@ -4,8 +4,8 @@
  */
 
 // JSZip 및 SheetJS 라이브러리 로드
-importScripts('jszip.min.js');
-importScripts('xlsx.full.min.js');
+importScripts('lib/jszip.min.js');
+importScripts('lib/xlsx.full.min.js');
 
 console.log('🚀 TotalBot Background Script loaded');
 console.log('✅ JSZip loaded:', typeof JSZip);

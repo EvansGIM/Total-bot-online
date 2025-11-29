@@ -37,7 +37,7 @@
         "https://supplier.coupang.com/*",
         "https://xauth.coupang.com/*"
       ],
-      "js": ["content-coupang.js", "content/coupang-uploader.js"],
+      "js": ["content/content-coupang.js", "content/coupang-uploader.js"],
       "run_at": "document_end"
     },
     {
@@ -150,11 +150,11 @@
       "matches": [
         "http://localhost:5001/*"
       ],
-      "js": ["content-localhost.js"],
+      "js": ["content/content-localhost.js"],
       "run_at": "document_end"
     }
   ],
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup/popup.html"
   }
 }
