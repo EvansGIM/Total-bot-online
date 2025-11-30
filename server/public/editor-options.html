@@ -3455,11 +3455,6 @@
             </p>
 
             <div class="settings-field">
-              <label>제조국</label>
-              <input type="text" id="qtCountry" placeholder="Made in China" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
-            </div>
-
-            <div class="settings-field">
               <label>제조사</label>
               <input type="text" id="qtManufacturer" placeholder="브랜드명" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
             </div>
@@ -3470,7 +3465,12 @@
             </div>
 
             <div class="settings-field">
-              <label>품질보증기준</label>
+              <label>제조 연월</label>
+              <input type="text" id="qtManufactureDate" placeholder="2024년 1월" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+            </div>
+
+            <div class="settings-field">
+              <label>품질 보증기준</label>
               <input type="text" id="qtWarranty" placeholder="관련법 및 소비자 분쟁해결 규정에 따름" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
             </div>
 
@@ -3626,30 +3626,116 @@
       ],
       // 품질표시사항 설정
       qualityTable: {
-        제조국: 'Made in China',
         제조사: '',
         취급시주의사항: '상세페이지 참조',
+        제조연월: '',
         품질보증기준: '관련법 및 소비자 분쟁해결 규정에 따름',
         AS책임자: '',
         customRows: [] // { label: '', value: '' } 형태로 추가 가능
       }
     };
 
-    // 설정 로드 (localStorage에서)
-    function loadSettings() {
-      const saved = localStorage.getItem('totalbotSettings');
-      if (saved) {
-        try {
-          settings = JSON.parse(saved);
-        } catch (e) {
-          console.error('설정 로드 실패:', e);
+    // 설정 로드 (서버에서 유저별로 관리)
+    async function loadSettings() {
+      try {
+        const response = await authFetch('/api/settings');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.settings) {
+            const serverSettings = data.settings;
+
+            // 서버에서 가져온 설정 병합
+            if (serverSettings.priceSettings) {
+              settings.exchangeRate = serverSettings.priceSettings.exchangeRate || settings.exchangeRate;
+              settings.packagingCost = serverSettings.priceSettings.packagingCost || settings.packagingCost;
+              settings.shipmentCost = serverSettings.priceSettings.shipmentCost || settings.shipmentCost;
+              settings.minMargin = serverSettings.priceSettings.minMargin || settings.minMargin;
+              if (serverSettings.priceSettings.supplyMargins) {
+                settings.supplyMargins = serverSettings.priceSettings.supplyMargins;
+              }
+              if (serverSettings.priceSettings.saleMargins) {
+                settings.saleMargins = serverSettings.priceSettings.saleMargins;
+              }
+            }
+
+            // 품질표시사항 설정 로드
+            if (serverSettings.qualityTable) {
+              settings.qualityTable = serverSettings.qualityTable;
+            }
+
+            // 상세페이지 기본 템플릿 로드
+            if (serverSettings.defaultDetailTemplate && serverSettings.defaultDetailTemplate.length > 0) {
+              settings.defaultDetailTemplate = serverSettings.defaultDetailTemplate;
+            }
+
+            // 브랜드 이미지 URL 로드
+            if (serverSettings.brandImageUrl) {
+              settings.brandImageUrl = serverSettings.brandImageUrl;
+            }
+
+            // 쿠팡 정보는 localStorage에서만 로드 (보안상)
+            const localCreds = localStorage.getItem('totalbotCredentials');
+            if (localCreds) {
+              try {
+                const creds = JSON.parse(localCreds);
+                settings.coupangId = creds.coupangId || '';
+                settings.coupangPassword = creds.coupangPassword || '';
+                settings.address = creds.address || '';
+              } catch (e) {
+                console.error('localStorage credentials 로드 실패:', e);
+              }
+            }
+
+            console.log('✅ Settings loaded from server');
+          }
         }
+      } catch (e) {
+        console.warn('서버 설정 로드 실패:', e);
       }
     }
 
-    // 설정 저장 (localStorage에)
-    function saveSettingsToStorage() {
-      localStorage.setItem('totalbotSettings', JSON.stringify(settings));
+    // 설정 저장 (서버 API에 모든 설정 저장)
+    async function saveSettingsToStorage() {
+      // 쿠팡 정보는 localStorage에만 저장 (보안상)
+      localStorage.setItem('totalbotCredentials', JSON.stringify({
+        coupangId: settings.coupangId || '',
+        coupangPassword: settings.coupangPassword || '',
+        address: settings.address || ''
+      }));
+
+      // 서버에 모든 설정 저장
+      try {
+        const serverSettings = {
+          qualityTable: settings.qualityTable,
+          defaultDetailTemplate: settings.defaultDetailTemplate,
+          brandImageUrl: settings.brandImageUrl || '',
+          priceSettings: {
+            exchangeRate: settings.exchangeRate,
+            packagingCost: settings.packagingCost,
+            shipmentCost: settings.shipmentCost,
+            minMargin: settings.minMargin,
+            supplyMargins: settings.supplyMargins,
+            saleMargins: settings.saleMargins
+          }
+        };
+
+        const response = await authFetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(serverSettings)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            console.log('✅ Settings saved to server');
+          } else {
+            console.error('❌ 서버 설정 저장 실패:', data.message);
+          }
+        }
+      } catch (e) {
+        console.error('❌ 서버 설정 저장 오류:', e);
+      }
     }
 
     let currentEditingImage = null;
@@ -3670,8 +3756,8 @@
     let maskCtx = null;
 
     // 페이지 로드
-    window.addEventListener('load', () => {
-      loadSettings(); // 설정 먼저 로드
+    window.addEventListener('load', async () => {
+      await loadSettings(); // 설정 먼저 로드
 
       const urlParams = new URLSearchParams(window.location.search);
       productId = urlParams.get('id');
@@ -3888,7 +3974,7 @@
     }
 
     // 설정 저장
-    function saveSettings() {
+    async function saveSettings() {
       // 정보 설정 저장
       settings.coupangId = document.getElementById('coupangId').value || '';
       settings.coupangPassword = document.getElementById('coupangPassword').value || '';
@@ -3902,14 +3988,14 @@
 
       // 품질표시사항 설정 저장
       if (!settings.qualityTable) settings.qualityTable = {};
-      settings.qualityTable.제조국 = document.getElementById('qtCountry').value || 'Made in China';
       settings.qualityTable.제조사 = document.getElementById('qtManufacturer').value || '';
       settings.qualityTable.취급시주의사항 = document.getElementById('qtCaution').value || '상세페이지 참조';
+      settings.qualityTable.제조연월 = document.getElementById('qtManufactureDate').value || '';
       settings.qualityTable.품질보증기준 = document.getElementById('qtWarranty').value || '관련법 및 소비자 분쟁해결 규정에 따름';
       settings.qualityTable.AS책임자 = document.getElementById('qtAS').value || '';
 
-      // 로컬스토리지에 저장
-      saveSettingsToStorage();
+      // 서버에 저장
+      await saveSettingsToStorage();
 
       // 가격 재계산
       renderOptions();
@@ -4043,9 +4129,9 @@
       // 품질표시사항 설정값 표시
       const qt = settings.qualityTable || {};
 
-      document.getElementById('qtCountry').value = qt.제조국 || 'Made in China';
       document.getElementById('qtManufacturer').value = qt.제조사 || '';
       document.getElementById('qtCaution').value = qt.취급시주의사항 || '상세페이지 참조';
+      document.getElementById('qtManufactureDate').value = qt.제조연월 || '';
       document.getElementById('qtWarranty').value = qt.품질보증기준 || '관련법 및 소비자 분쟁해결 규정에 따름';
       document.getElementById('qtAS').value = qt.AS책임자 || '';
 

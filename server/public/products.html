@@ -2549,10 +2549,11 @@
         { type: 'quality-table', label: '품질표시사항' }
       ],
       defaultQualityRows: [
-        { label: '제품명', value: '' },
         { label: '제조사', value: '' },
-        { label: '원산지', value: '' },
-        { label: '제조년월', value: '' }
+        { label: '취급시 주의사항', value: '상세페이지 참조' },
+        { label: '제조 연월', value: '' },
+        { label: '품질 보증기준', value: '관련법 및 소비자 분쟁해결 규정에 따름' },
+        { label: 'A/S 책임자와 전화번호', value: '' }
       ],
       // 견적서 작성 양식 기본값 (사용자가 수정 가능한 항목만, json_to_excel HEADER_RULES 기반)
       quotationMappings: [
@@ -2631,44 +2632,78 @@
       ]
     };
 
-    // 설정 로드 (서버 + localStorage 혼합)
-    // - quotationMappings: 서버에서 유저별로 관리 (공유 컴퓨터에서도 유저별 분리)
-    // - coupangId, password 등: localStorage에서 관리 (보안상 서버 저장 X)
+    // 설정 로드 (서버에서 유저별로 관리)
+    // - 모든 설정을 서버에서 유저별로 관리 (공유 컴퓨터에서도 유저별 분리)
+    // - coupangId, password는 localStorage에 백업 (보안상)
     async function loadSettings() {
       // 기본값 백업
       const defaultQuotationMappings = settings.quotationMappings;
+      const defaultQualityRows = settings.defaultQualityRows;
+      const defaultDetailTemplate = settings.defaultDetailTemplate;
 
-      // 1. localStorage에서 기본 설정 로드 (coupangId, password, 가격설정 등)
-      const saved = localStorage.getItem('totalbotSettings');
-      if (saved) {
-        try {
-          const savedSettings = JSON.parse(saved);
-          // 기존 settings에 localStorage 값 병합
-          settings = { ...settings, ...savedSettings };
-          console.log('✅ Settings loaded from localStorage');
-        } catch (e) {
-          console.error('localStorage 설정 로드 실패:', e);
-        }
-      }
-
-      // 2. 서버에서 quotationMappings만 로드 (유저별 분리)
+      // 서버에서 모든 설정 로드 (유저별 분리)
       try {
         const response = await authFetch('/api/settings');
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.settings) {
-            // 서버에서 가져온 견적서 매핑이 있으면 사용 (localStorage 값 덮어쓰기)
-            if (data.settings.quotationMappings && data.settings.quotationMappings.length > 0) {
-              window.quotationMappings = data.settings.quotationMappings;
-              settings.quotationMappings = data.settings.quotationMappings;
+            const serverSettings = data.settings;
+
+            // 서버에서 가져온 설정 병합
+            if (serverSettings.quotationMappings && serverSettings.quotationMappings.length > 0) {
+              window.quotationMappings = serverSettings.quotationMappings;
+              settings.quotationMappings = serverSettings.quotationMappings;
               console.log('📋 Loaded quotationMappings from server:', window.quotationMappings.length);
             } else {
-              // 서버에 없으면 localStorage 또는 기본값 사용
-              window.quotationMappings = (settings.quotationMappings && settings.quotationMappings.length > 0)
-                ? settings.quotationMappings
-                : defaultQuotationMappings;
-              console.log('📋 Using quotationMappings from localStorage/default:', window.quotationMappings.length);
+              window.quotationMappings = defaultQuotationMappings;
             }
+
+            // 품질표시사항 기본 행 로드
+            if (serverSettings.defaultQualityRows && serverSettings.defaultQualityRows.length > 0) {
+              settings.defaultQualityRows = serverSettings.defaultQualityRows;
+              console.log('📋 Loaded defaultQualityRows from server:', settings.defaultQualityRows.length);
+            }
+
+            // 상세페이지 기본 템플릿 로드
+            if (serverSettings.defaultDetailTemplate && serverSettings.defaultDetailTemplate.length > 0) {
+              settings.defaultDetailTemplate = serverSettings.defaultDetailTemplate;
+              console.log('📋 Loaded defaultDetailTemplate from server');
+            }
+
+            // 가격 설정 로드
+            if (serverSettings.priceSettings) {
+              settings.exchangeRate = serverSettings.priceSettings.exchangeRate || settings.exchangeRate;
+              settings.packagingCost = serverSettings.priceSettings.packagingCost || settings.packagingCost;
+              settings.shipmentCost = serverSettings.priceSettings.shipmentCost || settings.shipmentCost;
+              settings.minMargin = serverSettings.priceSettings.minMargin || settings.minMargin;
+              if (serverSettings.priceSettings.supplyMargins) {
+                settings.supplyMargins = serverSettings.priceSettings.supplyMargins;
+              }
+              if (serverSettings.priceSettings.saleMargins) {
+                settings.saleMargins = serverSettings.priceSettings.saleMargins;
+              }
+              console.log('📋 Loaded priceSettings from server');
+            }
+
+            // 브랜드 이미지 URL 로드
+            if (serverSettings.brandImageUrl) {
+              settings.brandImageUrl = serverSettings.brandImageUrl;
+            }
+
+            // 쿠팡 정보는 localStorage에서만 로드 (보안상)
+            const localCreds = localStorage.getItem('totalbotCredentials');
+            if (localCreds) {
+              try {
+                const creds = JSON.parse(localCreds);
+                settings.coupangId = creds.coupangId || '';
+                settings.coupangPassword = creds.coupangPassword || '';
+                settings.address = creds.address || '';
+              } catch (e) {
+                console.error('localStorage credentials 로드 실패:', e);
+              }
+            }
+
+            console.log('✅ All settings loaded from server');
             return;
           }
         }
@@ -2676,30 +2711,47 @@
         console.warn('서버 설정 로드 실패:', e);
       }
 
-      // 3. 서버 연결 실패 시 localStorage/기본값 사용
-      window.quotationMappings = (settings.quotationMappings && settings.quotationMappings.length > 0)
-        ? settings.quotationMappings
-        : defaultQuotationMappings;
-      console.log('📋 Using quotationMappings (fallback):', window.quotationMappings.length);
+      // 서버 연결 실패 시 기본값 사용
+      window.quotationMappings = defaultQuotationMappings;
+      console.log('📋 Using default settings (server unavailable)');
     }
 
-    // 설정 저장 (서버 API + localStorage 백업)
+    // 설정 저장 (서버 API에 모든 설정 저장)
     async function saveSettingsToStorage() {
-      // localStorage에 백업 저장
-      localStorage.setItem('totalbotSettings', JSON.stringify(settings));
+      // 쿠팡 정보는 localStorage에만 저장 (보안상)
+      localStorage.setItem('totalbotCredentials', JSON.stringify({
+        coupangId: settings.coupangId || '',
+        coupangPassword: settings.coupangPassword || '',
+        address: settings.address || ''
+      }));
 
-      // 서버에 유저별 설정 저장
+      // 서버에 모든 설정 저장
       try {
-        const response = await authFetch('/api/settings/quotation-mappings', {
+        const serverSettings = {
+          quotationMappings: window.quotationMappings || settings.quotationMappings,
+          defaultQualityRows: settings.defaultQualityRows,
+          defaultDetailTemplate: settings.defaultDetailTemplate,
+          brandImageUrl: settings.brandImageUrl || '',
+          priceSettings: {
+            exchangeRate: settings.exchangeRate,
+            packagingCost: settings.packagingCost,
+            shipmentCost: settings.shipmentCost,
+            minMargin: settings.minMargin,
+            supplyMargins: settings.supplyMargins,
+            saleMargins: settings.saleMargins
+          }
+        };
+
+        const response = await authFetch('/api/settings', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ quotationMappings: window.quotationMappings || settings.quotationMappings })
+          body: JSON.stringify(serverSettings)
         });
 
         if (response.ok) {
           const data = await response.json();
           if (data.success) {
-            console.log('✅ Settings saved to server API');
+            console.log('✅ All settings saved to server API');
           } else {
             console.error('❌ 서버 설정 저장 실패:', data.message);
           }
@@ -2986,7 +3038,7 @@
     }
 
     // 설정 저장
-    function saveSettings() {
+    async function saveSettings() {
       // 정보 설정 저장
       settings.coupangId = document.getElementById('settingsCoupangId').value || '';
       settings.coupangPassword = document.getElementById('settingsCoupangPassword').value || '';
@@ -3002,7 +3054,7 @@
       // 견적서 작성 양식 저장
       settings.quotationMappings = window.quotationMappings || [];
 
-      saveSettingsToStorage();
+      await saveSettingsToStorage();
       closeSettingsModal();
       alert('설정이 저장되었습니다.');
     }
