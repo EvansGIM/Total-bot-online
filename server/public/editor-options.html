@@ -3187,13 +3187,6 @@
               <div id="detailPageCanvas" class="detail-page-items">
                 <!-- 상세페이지 아이템들이 여기에 추가됨 -->
               </div>
-
-              <button class="add-text-btn" onclick="addTextBlock()">
-                <span>+</span> 텍스트 블록 추가
-              </button>
-              <button class="add-text-btn" onclick="addQualityTable()" style="margin-top: 8px;">
-                <span>+</span> 품질표시사항 추가
-              </button>
             </div>
           </div>
         </div>
@@ -4814,22 +4807,48 @@
         textInput.className = 'custom-text-input';
         textInput.value = item.text || '';
         textInput.placeholder = '텍스트를 입력하세요...';
-        textInput.style.cssText = `
-          width: 100%;
-          padding: 12px;
-          border: 1px solid #e5e8eb;
-          border-radius: 6px;
-          font-size: 14px;
-          resize: vertical;
-          min-height: 60px;
-        `;
+
+        // 타입별 기본 폰트 크기
+        const fontSizes = {
+          'title': '24',
+          'subtitle': '18',
+          'paragraph': '14'
+        };
+        const defaultFontSize = fontSizes[item.textType] || '14';
+
+        // 스타일 미리보기 적용 함수
+        const applyPreviewStyles = () => {
+          const color = item.color || '#000000';
+          const align = item.align || 'left';
+          const font = item.font || 'system-ui';
+          const fontSize = item.fontSize || defaultFontSize;
+
+          textInput.style.cssText = `
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e5e8eb;
+            border-radius: 6px;
+            font-size: ${fontSize}px;
+            font-family: ${font};
+            color: ${color};
+            text-align: ${align};
+            resize: vertical;
+            min-height: 60px;
+            background: #fafbfc;
+            transition: all 0.2s;
+          `;
+        };
+
+        // 초기 스타일 적용
+        applyPreviewStyles();
+
         textInput.oninput = (e) => {
           detailPageItems[index].text = e.target.value;
         };
 
         // 옵션 컨트롤
         const controls = document.createElement('div');
-        controls.style.cssText = 'display: flex; gap: 10px; align-items: center;';
+        controls.style.cssText = 'display: flex; flex-wrap: wrap; gap: 10px; align-items: center;';
 
         // 색상 선택
         const colorLabel = document.createElement('label');
@@ -4842,6 +4861,7 @@
         colorInput.style.cssText = 'width: 40px; height: 30px; border: 1px solid #e5e8eb; border-radius: 4px; cursor: pointer;';
         colorInput.onchange = (e) => {
           detailPageItems[index].color = e.target.value;
+          applyPreviewStyles();
         };
         colorLabel.appendChild(colorInput);
 
@@ -4854,12 +4874,13 @@
         alignSelect.value = item.align || 'left';
         alignSelect.style.cssText = 'padding: 6px 10px; border: 1px solid #e5e8eb; border-radius: 4px; font-size: 12px;';
         alignSelect.innerHTML = `
-          <option value="left" ${item.align === 'left' ? 'selected' : ''}>왼쪽</option>
+          <option value="left" ${item.align === 'left' || !item.align ? 'selected' : ''}>왼쪽</option>
           <option value="center" ${item.align === 'center' ? 'selected' : ''}>가운데</option>
           <option value="right" ${item.align === 'right' ? 'selected' : ''}>오른쪽</option>
         `;
         alignSelect.onchange = (e) => {
           detailPageItems[index].align = e.target.value;
+          applyPreviewStyles();
         };
         alignLabel.appendChild(alignSelect);
 
@@ -4872,7 +4893,7 @@
         fontSelect.value = item.font || 'system-ui';
         fontSelect.style.cssText = 'padding: 6px 10px; border: 1px solid #e5e8eb; border-radius: 4px; font-size: 12px;';
         fontSelect.innerHTML = `
-          <option value="system-ui" ${item.font === 'system-ui' ? 'selected' : ''}>시스템 기본</option>
+          <option value="system-ui" ${item.font === 'system-ui' || !item.font ? 'selected' : ''}>시스템 기본</option>
           <option value="'Noto Sans KR', sans-serif" ${item.font === "'Noto Sans KR', sans-serif" ? 'selected' : ''}>Noto Sans KR</option>
           <option value="'Nanum Gothic', sans-serif" ${item.font === "'Nanum Gothic', sans-serif" ? 'selected' : ''}>나눔고딕</option>
           <option value="Georgia, serif" ${item.font === 'Georgia, serif' ? 'selected' : ''}>Georgia</option>
@@ -4881,6 +4902,7 @@
         `;
         fontSelect.onchange = (e) => {
           detailPageItems[index].font = e.target.value;
+          applyPreviewStyles();
         };
         fontLabel.appendChild(fontSelect);
 
