@@ -5089,6 +5089,132 @@
           detailPageItems[index].label = e.target.textContent;
         };
         info.appendChild(textDisplay);
+
+        // 텍스트 스타일 컨트롤
+        const styleControls = document.createElement('div');
+        styleControls.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; align-items: center;';
+
+        // 1. 텍스트 크기
+        const sizeGroup = document.createElement('div');
+        sizeGroup.style.cssText = 'display: flex; align-items: center; gap: 4px;';
+        const sizeLabel = document.createElement('span');
+        sizeLabel.textContent = '크기';
+        sizeLabel.style.cssText = 'font-size: 11px; color: #666;';
+        const sizeSelect = document.createElement('select');
+        sizeSelect.style.cssText = 'padding: 4px 6px; border: 1px solid #e5e8eb; border-radius: 4px; font-size: 11px;';
+        sizeSelect.innerHTML = `
+          <option value="12" ${item.fontSize === '12' ? 'selected' : ''}>작게</option>
+          <option value="14" ${!item.fontSize || item.fontSize === '14' ? 'selected' : ''}>보통</option>
+          <option value="18" ${item.fontSize === '18' ? 'selected' : ''}>크게</option>
+          <option value="custom" ${item.fontSize && !['12','14','18'].includes(item.fontSize) ? 'selected' : ''}>직접입력</option>
+        `;
+        const customSizeInput = document.createElement('input');
+        customSizeInput.type = 'number';
+        customSizeInput.min = '8';
+        customSizeInput.max = '72';
+        customSizeInput.value = item.fontSize || '14';
+        customSizeInput.style.cssText = 'width: 45px; padding: 4px; border: 1px solid #e5e8eb; border-radius: 4px; font-size: 11px; display: ' + (item.fontSize && !['12','14','18'].includes(item.fontSize) ? 'block' : 'none') + ';';
+        sizeSelect.onchange = (e) => {
+          if (e.target.value === 'custom') {
+            customSizeInput.style.display = 'block';
+          } else {
+            customSizeInput.style.display = 'none';
+            detailPageItems[index].fontSize = e.target.value;
+          }
+        };
+        customSizeInput.onchange = (e) => {
+          detailPageItems[index].fontSize = e.target.value;
+        };
+        sizeGroup.appendChild(sizeLabel);
+        sizeGroup.appendChild(sizeSelect);
+        sizeGroup.appendChild(customSizeInput);
+
+        // 2. 정렬
+        const alignGroup = document.createElement('div');
+        alignGroup.style.cssText = 'display: flex; align-items: center; gap: 4px;';
+        const alignLabel = document.createElement('span');
+        alignLabel.textContent = '정렬';
+        alignLabel.style.cssText = 'font-size: 11px; color: #666;';
+        const alignSelect = document.createElement('select');
+        alignSelect.style.cssText = 'padding: 4px 6px; border: 1px solid #e5e8eb; border-radius: 4px; font-size: 11px;';
+        alignSelect.innerHTML = `
+          <option value="left" ${!item.textAlign || item.textAlign === 'left' ? 'selected' : ''}>왼쪽</option>
+          <option value="center" ${item.textAlign === 'center' ? 'selected' : ''}>가운데</option>
+          <option value="right" ${item.textAlign === 'right' ? 'selected' : ''}>오른쪽</option>
+        `;
+        alignSelect.onchange = (e) => {
+          detailPageItems[index].textAlign = e.target.value;
+        };
+        alignGroup.appendChild(alignLabel);
+        alignGroup.appendChild(alignSelect);
+
+        // 3. 색상
+        const colorGroup = document.createElement('div');
+        colorGroup.style.cssText = 'display: flex; align-items: center; gap: 4px;';
+        const colorLabel = document.createElement('span');
+        colorLabel.textContent = '색상';
+        colorLabel.style.cssText = 'font-size: 11px; color: #666;';
+        const colorSelect = document.createElement('select');
+        colorSelect.style.cssText = 'padding: 4px 6px; border: 1px solid #e5e8eb; border-radius: 4px; font-size: 11px;';
+        colorSelect.innerHTML = `
+          <option value="#000000" ${!item.textColor || item.textColor === '#000000' ? 'selected' : ''}>검정</option>
+          <option value="#666666" ${item.textColor === '#666666' ? 'selected' : ''}>회색</option>
+          <option value="#1e90ff" ${item.textColor === '#1e90ff' ? 'selected' : ''}>파랑</option>
+          <option value="#e74c3c" ${item.textColor === '#e74c3c' ? 'selected' : ''}>빨강</option>
+          <option value="#27ae60" ${item.textColor === '#27ae60' ? 'selected' : ''}>초록</option>
+          <option value="#f39c12" ${item.textColor === '#f39c12' ? 'selected' : ''}>주황</option>
+        `;
+        colorSelect.onchange = (e) => {
+          detailPageItems[index].textColor = e.target.value;
+        };
+        colorGroup.appendChild(colorLabel);
+        colorGroup.appendChild(colorSelect);
+
+        // 4. 굵기
+        const weightGroup = document.createElement('div');
+        weightGroup.style.cssText = 'display: flex; align-items: center; gap: 4px;';
+        const weightLabel = document.createElement('span');
+        weightLabel.textContent = '굵기';
+        weightLabel.style.cssText = 'font-size: 11px; color: #666;';
+        const weightSelect = document.createElement('select');
+        weightSelect.style.cssText = 'padding: 4px 6px; border: 1px solid #e5e8eb; border-radius: 4px; font-size: 11px;';
+        weightSelect.innerHTML = `
+          <option value="normal" ${!item.fontWeight || item.fontWeight === 'normal' ? 'selected' : ''}>보통</option>
+          <option value="bold" ${item.fontWeight === 'bold' ? 'selected' : ''}>굵게</option>
+        `;
+        weightSelect.onchange = (e) => {
+          detailPageItems[index].fontWeight = e.target.value;
+        };
+        weightGroup.appendChild(weightLabel);
+        weightGroup.appendChild(weightSelect);
+
+        // 5. 테두리
+        const borderGroup = document.createElement('div');
+        borderGroup.style.cssText = 'display: flex; align-items: center; gap: 4px;';
+        const borderLabel = document.createElement('span');
+        borderLabel.textContent = '테두리';
+        borderLabel.style.cssText = 'font-size: 11px; color: #666;';
+        const borderSelect = document.createElement('select');
+        borderSelect.style.cssText = 'padding: 4px 6px; border: 1px solid #e5e8eb; border-radius: 4px; font-size: 11px;';
+        borderSelect.innerHTML = `
+          <option value="none" ${!item.borderStyle || item.borderStyle === 'none' ? 'selected' : ''}>없음</option>
+          <option value="thin" ${item.borderStyle === 'thin' ? 'selected' : ''}>얇은선</option>
+          <option value="box" ${item.borderStyle === 'box' ? 'selected' : ''}>박스</option>
+          <option value="rounded" ${item.borderStyle === 'rounded' ? 'selected' : ''}>둥근박스</option>
+          <option value="left-accent" ${item.borderStyle === 'left-accent' ? 'selected' : ''}>왼쪽강조</option>
+        `;
+        borderSelect.onchange = (e) => {
+          detailPageItems[index].borderStyle = e.target.value;
+        };
+        borderGroup.appendChild(borderLabel);
+        borderGroup.appendChild(borderSelect);
+
+        styleControls.appendChild(sizeGroup);
+        styleControls.appendChild(alignGroup);
+        styleControls.appendChild(colorGroup);
+        styleControls.appendChild(weightGroup);
+        styleControls.appendChild(borderGroup);
+        info.appendChild(styleControls);
       }
 
       // 액션 버튼들
