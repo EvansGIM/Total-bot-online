@@ -8700,6 +8700,10 @@
         });
 
         if (!response.ok) {
+          if (response.status === 413) {
+            const sizeKB = Math.round(JSON.stringify(productData).length / 1024);
+            throw new Error(`데이터 용량이 너무 큽니다 (${sizeKB}KB). 이미지를 줄이거나 상세페이지 내용을 간소화해주세요.`);
+          }
           throw new Error('저장 실패');
         }
 
@@ -8713,7 +8717,7 @@
         }
       } catch (error) {
         console.error('저장 오류:', error);
-        showAlert('상품 저장에 실패했습니다.', 'error');
+        showAlert(error.message || '상품 저장에 실패했습니다.', 'error');
       }
     }
 
