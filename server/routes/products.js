@@ -86,21 +86,30 @@ async function captureHtmlScreenshot(browser, html, options = {}) {
   // 임시 HTML 파일 생성
   const tempHtmlPath = path.join(os.tmpdir(), `totalbot_html_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.html`);
 
-  // HTML에 로컬 폰트 CSS 삽입
+  // HTML에 로컬 폰트 CSS 삽입 (더 확실한 방식)
   const fontCSS = getLocalFontCSS();
-  const modifiedHtml = html.replace(
-    /<style>/,
-    `<style>${fontCSS}`
-  ).replace(
-    /https:\/\/fonts\.googleapis\.com[^"']*/g,
-    '' // 외부 폰트 URL 제거
-  ).replace(
-    /<link[^>]*fonts\.googleapis\.com[^>]*>/g,
-    '' // 외부 폰트 링크 제거
-  ).replace(
-    /<link[^>]*fonts\.gstatic\.com[^>]*>/g,
-    '' // gstatic 링크도 제거
-  );
+
+  // 1. 외부 폰트 관련 태그 모두 제거
+  let modifiedHtml = html
+    .replace(/<link[^>]*preconnect[^>]*>/gi, '') // preconnect 링크 제거
+    .replace(/<link[^>]*fonts\.googleapis\.com[^>]*>/gi, '') // Google Fonts 링크 제거
+    .replace(/<link[^>]*fonts\.gstatic\.com[^>]*>/gi, '') // gstatic 링크 제거
+    .replace(/https?:\/\/fonts\.googleapis\.com[^"'\s]*/g, '') // URL만 있는 경우 제거
+    .replace(/https?:\/\/fonts\.gstatic\.com[^"'\s]*/g, ''); // gstatic URL 제거
+
+  // 2. <head> 태그 바로 뒤에 로컬 폰트 스타일 삽입
+  if (modifiedHtml.includes('<head>')) {
+    modifiedHtml = modifiedHtml.replace(
+      '<head>',
+      `<head>\n<style type="text/css">\n${fontCSS}\n</style>`
+    );
+  } else if (modifiedHtml.includes('<style>')) {
+    // <head>가 없으면 기존 <style> 앞에 삽입
+    modifiedHtml = modifiedHtml.replace(
+      '<style>',
+      `<style>${fontCSS}\n`
+    );
+  }
 
   await fs.writeFile(tempHtmlPath, modifiedHtml, 'utf-8');
 
