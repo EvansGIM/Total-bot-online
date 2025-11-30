@@ -2263,8 +2263,30 @@
       color: #666;
     }
 
-    .mapping-row input:last-child {
+    .mapping-row input:nth-child(3) {
       border: 2px solid #000;
+    }
+
+    .mapping-delete-btn {
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
+      border: none;
+      border-radius: 50%;
+      background: #ff4444;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .mapping-delete-btn:hover {
+      background: #cc0000;
+      transform: scale(1.1);
     }
 
     .mapping-buttons {
@@ -7311,6 +7333,38 @@
       scheduleAutoSave();
     }
 
+    // 특정 옵션값이 포함된 모든 옵션 삭제
+    function deleteOptionsByValue(targetOption, value, rowElement) {
+      const optionLabel = targetOption === 'optionName1' ? '옵션1' : '옵션2';
+      const displayValue = value || '(빈 값)';
+
+      // 삭제될 옵션 수 계산
+      const toDeleteCount = productData.results.filter(opt => (opt[targetOption] || '') === value).length;
+
+      if (toDeleteCount === 0) {
+        showAlert('삭제할 옵션이 없습니다.', 'warning');
+        return;
+      }
+
+      if (!confirm(`"${displayValue}" 값이 포함된 ${toDeleteCount}개의 옵션을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+        return;
+      }
+
+      // 해당 값이 아닌 옵션만 남기기
+      productData.results = productData.results.filter(opt => (opt[targetOption] || '') !== value);
+
+      // 다이얼로그에서 해당 행 제거
+      if (rowElement) {
+        rowElement.remove();
+      }
+
+      // UI 업데이트
+      renderOptions();
+      scheduleAutoSave();
+
+      showAlert(`${toDeleteCount}개 옵션이 삭제되었습니다.`, 'success');
+    }
+
     // 이름 매핑 다이얼로그 열기
     function openMappingDialog() {
       const targetOption = document.getElementById('mappingTargetOption').value;
@@ -7339,6 +7393,7 @@
           <input type="text" value="${value || '(빈 값)'}" readonly>
           <span>→</span>
           <input type="text" value="${value}" data-old-value="${value}" placeholder="새 값 입력">
+          <button class="mapping-delete-btn" onclick="deleteOptionsByValue('${targetOption}', '${value.replace(/'/g, "\\'")}', this.closest('.mapping-row'))" title="이 옵션값이 포함된 모든 옵션 삭제">×</button>
         `;
         mappingRows.appendChild(row);
       });
