@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>TotalBot - 상품 상세</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f6f7;
+      color: #333;
+    }
+
+    /* Header */
+    .header {
+      background: white;
+      border-bottom: 1px solid #e5e8eb;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      background: #f0f0f0;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .back-btn:hover {
+      background: #e0e0e0;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      max-width: 500px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .btn-warning {
+      background: #f59e0b;
+      color: white;
+    }
+
+    .btn-warning:hover {
+      background: #d97706;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* Product Info Card */
+    .product-info-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      display: flex;
+      gap: 24px;
+    }
+
+    .product-thumb {
+      width: 120px;
+      height: 120px;
+      border-radius: 12px;
+      object-fit: cover;
+      background: #f0f0f0;
+      flex-shrink: 0;
+    }
+
+    .product-details {
+      flex: 1;
+    }
+
+    .product-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #222;
+    }
+
+    .product-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .meta-label {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .meta-value {
+      font-size: 14px;
+      color: #333;
+      font-weight: 500;
+    }
+
+    .meta-value a {
+      color: #667eea;
+      text-decoration: none;
+    }
+
+    .meta-value a:hover {
+      text-decoration: underline;
+    }
+
+    .original-name {
+      font-size: 13px;
+      color: #666;
+      background: #f9f9f9;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-top: 12px;
+      word-break: break-all;
+    }
+
+    /* Tabs */
+    .tabs {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    .tab-header {
+      display: flex;
+      border-bottom: 1px solid #e5e8eb;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 16px 24px;
+      background: none;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tab-btn:hover {
+      background: #f9f9f9;
+      color: #333;
+    }
+
+    .tab-btn.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      background: rgba(102, 126, 234, 0.05);
+    }
+
+    .tab-content {
+      display: none;
+      padding: 24px;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Image Grid */
+    .image-section {
+      margin-bottom: 32px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 16px;
+    }
+
+    .image-item {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #f0f0f0;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .image-item:hover {
+      transform: scale(1.02);
+    }
+
+    .image-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .image-item .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .image-item:hover .overlay {
+      opacity: 1;
+    }
+
+    .image-item .overlay button {
+      padding: 8px 16px;
+      background: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 0 4px;
+    }
+
+    .image-item .index {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    /* Detail Images */
+    .detail-images-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 600px;
+      overflow-y: auto;
+      border: 1px solid #e5e8eb;
+      border-radius: 8px;
+      padding: 16px;
+      background: #fafafa;
+    }
+
+    .detail-image {
+      width: 100%;
+      border-radius: 4px;
+    }
+
+    /* Action Bar */
+    .action-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    /* Rejection Section */
+    .rejection-section {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .rejection-title {
+      color: #991b1b;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .rejection-reason {
+      background: white;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #333;
+      margin-bottom: 16px;
+    }
+
+    .rejection-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    /* SKU Table */
+    .sku-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .sku-table th,
+    .sku-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #e5e8eb;
+    }
+
+    .sku-table th {
+      background: #f9fafb;
+      font-weight: 600;
+      color: #666;
+    }
+
+    .sku-table tr:hover {
+      background: #f9fafb;
+    }
+
+    .sku-status {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .sku-status.pending { background: #fef3c7; color: #92400e; }
+    .sku-status.approved { background: #d1fae5; color: #065f46; }
+    .sku-status.rejected { background: #fee2e2; color: #991b1b; }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+
+    .toast {
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      animation: slideIn 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .toast.success { background: #10b981; color: white; }
+    .toast.error { background: #ef4444; color: white; }
+    .toast.warning { background: #f59e0b; color: white; }
+    .toast.info { background: #3b82f6; color: white; }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Loading */
+    .loading {
+      padding: 60px;
+      text-align: center;
+      color: #888;
+    }
+
+    .loading::after {
+      content: '';
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 3px solid #ddd;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 12px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content {
+      max-width: 90%;
+      max-height: 90%;
+    }
+
+    .modal-content img {
+      max-width: 100%;
+      max-height: 90vh;
+      border-radius: 8px;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: white;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    /* Empty state */
+    .empty-state {
+      padding: 60px;
+      text-align: center;
+      color: #888;
+    }
+
+    .empty-state .icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Image Modal -->
+  <div class="modal-overlay" id="imageModal" onclick="closeImageModal()">
+    <button class="modal-close" onclick="closeImageModal()">&times;</button>
+    <div class="modal-content">
+      <img id="modalImage" src="" alt="">
+    </div>
+  </div>
+
+  <div class="header">
+    <div class="header-left">
+      <button class="back-btn" onclick="goBack()">
+        <span>←</span> 목록으로
+      </button>
+      <h1 id="pageTitle">상품 상세</h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="loadProduct()">
+        <span>🔄</span> 새로고침
+      </button>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Product Info Card -->
+    <div class="product-info-card" id="productInfoCard">
+      <div class="loading">상품 정보를 불러오는 중</div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab-header">
+        <button class="tab-btn active" data-tab="options">옵션 이미지</button>
+        <button class="tab-btn" data-tab="detail">상세페이지</button>
+        <button class="tab-btn" data-tab="sku">SKU 현황</button>
+        <button class="tab-btn" data-tab="info">원본 정보</button>
+      </div>
+
+      <!-- 옵션 이미지 탭 -->
+      <div class="tab-content active" id="tab-options">
+        <div class="action-bar">
+          <button class="btn btn-primary" onclick="downloadAllOptionImages()">
+            <span>📥</span> 전체 다운로드
+          </button>
+          <button class="btn btn-secondary" onclick="openInEditor('options')">
+            <span>🎨</span> 편집기에서 열기
+          </button>
+        </div>
+        <div class="image-section">
+          <h3 class="section-title">메인 이미지</h3>
+          <div class="image-grid" id="mainImagesGrid">
+            <div class="loading">이미지 로딩 중</div>
+          </div>
+        </div>
+        <div class="image-section">
+          <h3 class="section-title">옵션 이미지</h3>
+          <div class="image-grid" id="optionImagesGrid">
+            <div class="loading">이미지 로딩 중</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 상세페이지 탭 -->
+      <div class="tab-content" id="tab-detail">
+        <div class="action-bar">
+          <button class="btn btn-primary" onclick="downloadDetailImages()">
+            <span>📥</span> 상세이미지 다운로드
+          </button>
+          <button class="btn btn-secondary" onclick="openInEditor('detail')">
+            <span>🎨</span> 편집기에서 열기
+          </button>
+        </div>
+        <div class="detail-images-container" id="detailImagesContainer">
+          <div class="loading">상세 이미지 로딩 중</div>
+        </div>
+      </div>
+
+      <!-- SKU 현황 탭 -->
+      <div class="tab-content" id="tab-sku">
+        <div id="rejectionSection" class="rejection-section" style="display: none;">
+          <div class="rejection-title">
+            <span>⚠️</span> 반려된 SKU가 있습니다
+          </div>
+          <div class="rejection-reason" id="rejectionReason">
+            반려 사유를 확인해주세요.
+          </div>
+          <div class="rejection-actions">
+            <button class="btn btn-warning" onclick="openCoupangWing()">
+              <span>🔗</span> 쿠팡WING에서 확인
+            </button>
+            <button class="btn btn-primary" onclick="prepareResubmit()">
+              <span>📝</span> 회신 준비
+            </button>
+          </div>
+        </div>
+        <table class="sku-table" id="skuTable">
+          <thead>
+            <tr>
+              <th>SKU ID</th>
+              <th>옵션명</th>
+              <th>가격</th>
+              <th>상태</th>
+              <th>단계</th>
+            </tr>
+          </thead>
+          <tbody id="skuTableBody">
+            <tr><td colspan="5" class="loading">SKU 정보 로딩 중</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 원본 정보 탭 -->
+      <div class="tab-content" id="tab-info">
+        <div class="product-meta" id="originalInfo">
+          <div class="loading">원본 정보 로딩 중</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== 인증 관련 함수 =====
+    function getAuthToken() {
+      return localStorage.getItem('authToken');
+    }
+
+    function checkAuth() {
+      const token = getAuthToken();
+      if (!token) {
+        window.location.href = '/login.html';
+        return false;
+      }
+      return true;
+    }
+
+    async function authFetch(url, options = {}) {
+      const token = getAuthToken();
+      if (!token) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      const headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`
+      };
+
+      const response = await fetch(url, { ...options, headers });
+
+      if (response.status === 401) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userInfo');
+        window.location.href = '/login.html';
+        return;
+      }
+
+      return response;
+    }
+
+    // Toast 알림
+    function showToast(message, type = 'info', duration = 4000) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    // 상품 ID 가져오기
+    function getProductId() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('id');
+    }
+
+    let currentProduct = null;
+
+    // 뒤로가기
+    function goBack() {
+      window.location.href = 'uploaded.html';
+    }
+
+    // 탭 전환
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+        btn.classList.add('active');
+        document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+      });
+    });
+
+    // 상품 로드
+    async function loadProduct() {
+      const productId = getProductId();
+      if (!productId) {
+        showToast('상품 ID가 없습니다.', 'error');
+        return;
+      }
+
+      try {
+        const response = await authFetch(`/api/products/${productId}`);
+        if (!response) return;
+
+        const data = await response.json();
+        if (!data.success) {
+          throw new Error(data.error || '상품을 불러올 수 없습니다');
+        }
+
+        currentProduct = data.product;
+        renderProductInfo();
+        renderOptionImages();
+        renderDetailImages();
+        renderSkuTable();
+        renderOriginalInfo();
+
+      } catch (error) {
+        console.error('상품 로드 오류:', error);
+        showToast('상품을 불러오는데 실패했습니다.', 'error');
+      }
+    }
+
+    // 상품 정보 렌더링
+    function renderProductInfo() {
+      const p = currentProduct;
+      const mainImage = p.mainImages?.[0] || p.images?.[0] || '';
+
+      document.getElementById('pageTitle').textContent = p.title || '상품 상세';
+
+      document.getElementById('productInfoCard').innerHTML = `
+        <img class="product-thumb" src="${mainImage}" alt=""
+             onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23f0f0f0%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 font-size=%2240%22 text-anchor=%22middle%22 fill=%22%23ccc%22>📦</text></svg>'">
+        <div class="product-details">
+          <h2 class="product-title">${p.title || '제목 없음'}</h2>
+          <div class="product-meta">
+            <div class="meta-item">
+              <span class="meta-label">견적서 ID</span>
+              <span class="meta-value">#${p.quoteId || '-'}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">업로드 일시</span>
+              <span class="meta-value">${p.uploadedAt ? new Date(p.uploadedAt).toLocaleString('ko-KR') : '-'}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">SKU 수</span>
+              <span class="meta-value">${p.skuStatus?.totalSku || p.options?.length || '-'}개</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">승인 상태</span>
+              <span class="meta-value">${getStatusText(p)}</span>
+            </div>
+          </div>
+          ${p.originalTitle ? `<div class="original-name">📝 원본명: ${p.originalTitle}</div>` : ''}
+        </div>
+      `;
+    }
+
+    function getStatusText(p) {
+      if (p.status === 'approved') return '✅ 승인완료';
+      if (p.isRejected) return '❌ 반려';
+      if (!p.skuStatus) return '🔍 미확인';
+
+      const { approved, pending, rejected, totalSku } = p.skuStatus;
+      if (approved === totalSku) return '✅ 전체 승인';
+      if (rejected === totalSku) return '❌ 전체 반려';
+      return `⏳ 심사중 (${approved || 0}/${totalSku} 승인)`;
+    }
+
+    // 옵션 이미지 렌더링
+    function renderOptionImages() {
+      const p = currentProduct;
+
+      // 메인 이미지
+      const mainImages = p.mainImages || [];
+      const mainGrid = document.getElementById('mainImagesGrid');
+
+      if (mainImages.length === 0) {
+        mainGrid.innerHTML = '<div class="empty-state"><div class="icon">🖼️</div><p>메인 이미지가 없습니다.</p></div>';
+      } else {
+        mainGrid.innerHTML = mainImages.map((img, i) => `
+          <div class="image-item" onclick="openImageModal('${img}')">
+            <img src="${img}" alt="메인 ${i + 1}" onerror="this.parentElement.style.display='none'">
+            <span class="index">${i + 1}</span>
+            <div class="overlay">
+              <button onclick="event.stopPropagation(); downloadImage('${img}', 'main_${i + 1}')">다운로드</button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // 옵션 이미지
+      const options = p.options || [];
+      const optionImages = [];
+      options.forEach((opt, i) => {
+        if (opt.image) {
+          optionImages.push({ url: opt.image, name: opt.name || `옵션${i + 1}` });
+        }
+      });
+
+      const optionGrid = document.getElementById('optionImagesGrid');
+
+      if (optionImages.length === 0) {
+        optionGrid.innerHTML = '<div class="empty-state"><div class="icon">🎨</div><p>옵션 이미지가 없습니다.</p></div>';
+      } else {
+        optionGrid.innerHTML = optionImages.map((img, i) => `
+          <div class="image-item" onclick="openImageModal('${img.url}')">
+            <img src="${img.url}" alt="${img.name}" onerror="this.parentElement.style.display='none'">
+            <span class="index">${img.name}</span>
+            <div class="overlay">
+              <button onclick="event.stopPropagation(); downloadImage('${img.url}', 'option_${i + 1}')">다운로드</button>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // 상세 이미지 렌더링
+    function renderDetailImages() {
+      const p = currentProduct;
+      const detailImages = p.detailImages || p.descriptionImages || [];
+      const container = document.getElementById('detailImagesContainer');
+
+      if (detailImages.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">📄</div><p>상세페이지 이미지가 없습니다.</p></div>';
+      } else {
+        container.innerHTML = detailImages.map((img, i) => `
+          <img class="detail-image" src="${img}" alt="상세 ${i + 1}"
+               onclick="openImageModal('${img}')"
+               onerror="this.style.display='none'">
+        `).join('');
+      }
+    }
+
+    // SKU 테이블 렌더링
+    function renderSkuTable() {
+      const p = currentProduct;
+      const skuStatus = p.skuStatus;
+      const options = p.options || [];
+
+      // 반려 섹션
+      const rejectionSection = document.getElementById('rejectionSection');
+      if (p.isRejected || (skuStatus && skuStatus.rejected > 0)) {
+        rejectionSection.style.display = 'block';
+        document.getElementById('rejectionReason').textContent =
+          p.rejectionReason || '반려 사유를 쿠팡WING에서 확인해주세요.';
+      } else {
+        rejectionSection.style.display = 'none';
+      }
+
+      const tbody = document.getElementById('skuTableBody');
+
+      if (!skuStatus || !skuStatus.skuDetails) {
+        // SKU 상세 정보가 없으면 옵션 목록으로 표시
+        if (options.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="empty-state">SKU 정보가 없습니다.</td></tr>';
+        } else {
+          tbody.innerHTML = options.map((opt, i) => `
+            <tr>
+              <td>-</td>
+              <td>${opt.name || `옵션 ${i + 1}`}</td>
+              <td>${opt.price ? opt.price.toLocaleString() + '원' : '-'}</td>
+              <td><span class="sku-status pending">미확인</span></td>
+              <td>-</td>
+            </tr>
+          `).join('');
+        }
+      } else {
+        tbody.innerHTML = skuStatus.skuDetails.map(sku => {
+          let statusClass = 'pending';
+          let statusText = '심사중';
+
+          if (sku.status === 'approved' || sku.stage === 'R21') {
+            statusClass = 'approved';
+            statusText = '승인';
+          } else if (sku.status === 'rejected') {
+            statusClass = 'rejected';
+            statusText = '반려';
+          }
+
+          return `
+            <tr>
+              <td>${sku.skuId || '-'}</td>
+              <td>${sku.optionName || '-'}</td>
+              <td>${sku.price ? sku.price.toLocaleString() + '원' : '-'}</td>
+              <td><span class="sku-status ${statusClass}">${statusText}</span></td>
+              <td>${sku.stage || '-'}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    // 원본 정보 렌더링
+    function renderOriginalInfo() {
+      const p = currentProduct;
+
+      document.getElementById('originalInfo').innerHTML = `
+        <div class="meta-item">
+          <span class="meta-label">원본 상품명 (중국어)</span>
+          <span class="meta-value">${p.originalTitle || p.rawTitle || '-'}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">번역된 상품명</span>
+          <span class="meta-value">${p.title || '-'}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">원본 링크</span>
+          <span class="meta-value">
+            ${p.sourceUrl ? `<a href="${p.sourceUrl}" target="_blank">${p.sourceUrl}</a>` : '-'}
+          </span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">소싱처</span>
+          <span class="meta-value">${p.source || p.platform || '-'}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">원본 가격</span>
+          <span class="meta-value">${p.originalPrice ? p.originalPrice + ' CNY' : '-'}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">수집 일시</span>
+          <span class="meta-value">${p.createdAt ? new Date(p.createdAt).toLocaleString('ko-KR') : '-'}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">상품 ID</span>
+          <span class="meta-value">${p.id || '-'}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">원본 상품 ID</span>
+          <span class="meta-value">${p.sourceId || p.originalId || '-'}</span>
+        </div>
+      `;
+    }
+
+    // 이미지 모달
+    function openImageModal(src) {
+      document.getElementById('modalImage').src = src;
+      document.getElementById('imageModal').classList.add('active');
+    }
+
+    function closeImageModal() {
+      document.getElementById('imageModal').classList.remove('active');
+    }
+
+    // 이미지 다운로드
+    async function downloadImage(url, filename) {
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${filename}.jpg`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        showToast('다운로드 완료', 'success');
+      } catch (error) {
+        showToast('다운로드 실패: ' + error.message, 'error');
+      }
+    }
+
+    // 전체 옵션 이미지 다운로드
+    async function downloadAllOptionImages() {
+      const p = currentProduct;
+      if (!p) return;
+
+      showToast('이미지 다운로드 준비 중...', 'info');
+
+      const images = [];
+
+      // 메인 이미지
+      (p.mainImages || []).forEach((img, i) => {
+        images.push({ url: img, name: `main_${i + 1}` });
+      });
+
+      // 옵션 이미지
+      (p.options || []).forEach((opt, i) => {
+        if (opt.image) {
+          images.push({ url: opt.image, name: `option_${i + 1}_${opt.name || ''}`.replace(/[^a-zA-Z0-9가-힣_]/g, '') });
+        }
+      });
+
+      if (images.length === 0) {
+        showToast('다운로드할 이미지가 없습니다.', 'warning');
+        return;
+      }
+
+      // 순차 다운로드
+      for (let i = 0; i < images.length; i++) {
+        await downloadImage(images[i].url, images[i].name);
+        await new Promise(r => setTimeout(r, 300)); // 딜레이
+      }
+
+      showToast(`${images.length}개 이미지 다운로드 완료`, 'success');
+    }
+
+    // 상세 이미지 다운로드
+    async function downloadDetailImages() {
+      const p = currentProduct;
+      if (!p) return;
+
+      const images = p.detailImages || p.descriptionImages || [];
+
+      if (images.length === 0) {
+        showToast('다운로드할 상세 이미지가 없습니다.', 'warning');
+        return;
+      }
+
+      showToast('상세 이미지 다운로드 준비 중...', 'info');
+
+      for (let i = 0; i < images.length; i++) {
+        await downloadImage(images[i], `detail_${i + 1}`);
+        await new Promise(r => setTimeout(r, 300));
+      }
+
+      showToast(`${images.length}개 상세 이미지 다운로드 완료`, 'success');
+    }
+
+    // 편집기에서 열기
+    function openInEditor(type) {
+      const p = currentProduct;
+      if (!p) return;
+
+      if (type === 'options') {
+        window.open(`option-editor.html?productId=${p.id}`, '_blank');
+      } else if (type === 'detail') {
+        window.open(`editor.html?productId=${p.id}`, '_blank');
+      }
+    }
+
+    // 쿠팡WING 열기
+    function openCoupangWing() {
+      const p = currentProduct;
+      if (p && p.quoteId) {
+        window.open(`https://wing.coupang.com/vendor-inventory/quotations/${p.quoteId}`, '_blank');
+      } else {
+        window.open('https://wing.coupang.com/vendor-inventory/quotations', '_blank');
+      }
+    }
+
+    // 재제출 준비
+    function prepareResubmit() {
+      showToast('반려 회신 기능 준비 중입니다.', 'info');
+      // TODO: 반려 회신 모달 또는 페이지로 이동
+    }
+
+    // ESC로 모달 닫기
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeImageModal();
+      }
+    });
+
+    // 초기화
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!checkAuth()) return;
+      loadProduct();
+    });
+  </script>
+</body>
+</html>
