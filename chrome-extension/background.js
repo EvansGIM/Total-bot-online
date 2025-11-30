@@ -7,6 +7,43 @@
 importScripts('lib/jszip.min.js');
 importScripts('lib/xlsx.full.min.js');
 
+// ===== IndexedDB 대용량 데이터 전송용 =====
+const UPLOAD_DB_NAME = 'TotalBotUploadData';
+const UPLOAD_STORE_NAME = 'uploadData';
+
+function openUploadDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(UPLOAD_DB_NAME, 1);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(UPLOAD_STORE_NAME)) {
+        db.createObjectStore(UPLOAD_STORE_NAME, { keyPath: 'id' });
+      }
+    };
+  });
+}
+
+async function saveUploadData(data) {
+  const db = await openUploadDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(UPLOAD_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(UPLOAD_STORE_NAME);
+    // 기존 데이터 삭제 후 새 데이터 저장
+    store.clear();
+    store.put({ id: 'current', ...data });
+    tx.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error);
+    };
+  });
+}
+
 // 서버 URL 설정
 const SERVER_URL = 'https://totalbot.cafe24.com/node-api';
 
@@ -2871,12 +2908,27 @@ async function handleFillQuotationExcels(data) {
         products: productsLite
       };
 
-      console.log('📦 uploadData 크기:', JSON.stringify(uploadData).length, 'bytes');
+      const dataSize = JSON.stringify(uploadData).length;
+      console.log('📦 uploadData 크기:', dataSize, 'bytes', `(${(dataSize / 1024 / 1024).toFixed(2)} MB)`);
 
-      const uploadResponse = await chrome.tabs.sendMessage(coupangTabId, {
-        action: 'uploadToCoupang',
-        data: uploadData
-      });
+      let uploadResponse;
+
+      // 64MB 이상이면 IndexedDB 사용
+      if (dataSize > 60 * 1024 * 1024) {
+        console.log('📦 데이터가 너무 큼, IndexedDB 사용...');
+        await saveUploadData(uploadData);
+        console.log('✅ IndexedDB에 데이터 저장 완료');
+
+        uploadResponse = await chrome.tabs.sendMessage(coupangTabId, {
+          action: 'uploadToCoupang',
+          useIndexedDB: true  // IndexedDB에서 데이터 읽어오라고 알림
+        });
+      } else {
+        uploadResponse = await chrome.tabs.sendMessage(coupangTabId, {
+          action: 'uploadToCoupang',
+          data: uploadData
+        });
+      }
 
       console.log('✅ 쿠팡 업로드 응답:', uploadResponse);
 

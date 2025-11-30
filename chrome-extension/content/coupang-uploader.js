@@ -5,6 +5,46 @@
  * - 견적서 ID 획득
  */
 
+// ===== IndexedDB 대용량 데이터 읽기용 =====
+const UPLOAD_DB_NAME = 'TotalBotUploadData';
+const UPLOAD_STORE_NAME = 'uploadData';
+
+function openUploadDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(UPLOAD_DB_NAME, 1);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(UPLOAD_STORE_NAME)) {
+        db.createObjectStore(UPLOAD_STORE_NAME, { keyPath: 'id' });
+      }
+    };
+  });
+}
+
+async function getUploadDataFromDB() {
+  const db = await openUploadDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(UPLOAD_STORE_NAME, 'readonly');
+    const store = tx.objectStore(UPLOAD_STORE_NAME);
+    const request = store.get('current');
+    request.onsuccess = () => {
+      db.close();
+      if (request.result) {
+        const { id, ...data } = request.result; // id 필드 제외
+        resolve(data);
+      } else {
+        reject(new Error('IndexedDB에 업로드 데이터가 없습니다'));
+      }
+    };
+    request.onerror = () => {
+      db.close();
+      reject(request.error);
+    };
+  });
+}
+
 // 중복 로드 방지
 if (window._coupangUploaderLoaded) {
   console.log('⚠️ Coupang Uploader already loaded, skipping...');
@@ -22,9 +62,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('📩 Coupang Uploader received message:', message);
 
   if (message.action === 'uploadToCoupang') {
-    handleCoupangUpload(message.data)
-      .then(result => sendResponse(result))
-      .catch(error => sendResponse({ success: false, error: error.message }));
+    // IndexedDB에서 데이터 읽기 또는 직접 전달받은 데이터 사용
+    (async () => {
+      try {
+        let data;
+        if (message.useIndexedDB) {
+          console.log('📦 IndexedDB에서 대용량 데이터 읽는 중...');
+          data = await getUploadDataFromDB();
+          console.log('✅ IndexedDB 데이터 로드 완료');
+        } else {
+          data = message.data;
+        }
+        const result = await handleCoupangUpload(data);
+        sendResponse(result);
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
     return true; // 비동기 응답
   }
 
