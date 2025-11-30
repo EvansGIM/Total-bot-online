@@ -4,7 +4,11 @@ const fs = require('fs').promises;
 const path = require('path');
 const axios = require('axios');
 const puppeteer = require('puppeteer');
+const os = require('os');
 const authMiddleware = require('../middleware/auth');
+
+// 폰트 파일 경로
+const FONTS_DIR = path.join(__dirname, '../assets/fonts');
 
 // 상품 데이터 저장 기본 경로
 const DATA_DIR = path.join(__dirname, '../data/products');
@@ -44,6 +48,88 @@ async function saveUserProducts(userId, products) {
   await ensureUserDirectoryExists(userId);
   const filePath = getUserProductsFile(userId);
   await fs.writeFile(filePath, JSON.stringify(products, null, 2), 'utf-8');
+}
+
+// 로컬 폰트를 포함한 CSS 생성
+function getLocalFontCSS() {
+  const regularPath = path.join(FONTS_DIR, 'NotoSansKR-Regular.ttf');
+  const mediumPath = path.join(FONTS_DIR, 'NotoSansKR-Medium.ttf');
+  const boldPath = path.join(FONTS_DIR, 'NotoSansKR-Bold.ttf');
+
+  return `
+    @font-face {
+      font-family: 'Noto Sans KR';
+      font-style: normal;
+      font-weight: 400;
+      src: url('file://${regularPath}') format('truetype');
+    }
+    @font-face {
+      font-family: 'Noto Sans KR';
+      font-style: normal;
+      font-weight: 500;
+      src: url('file://${mediumPath}') format('truetype');
+    }
+    @font-face {
+      font-family: 'Noto Sans KR';
+      font-style: normal;
+      font-weight: 700;
+      src: url('file://${boldPath}') format('truetype');
+    }
+    * { font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif !important; }
+  `;
+}
+
+// HTML을 임시 파일로 저장하고 스크린샷 캡처
+async function captureHtmlScreenshot(browser, html, options = {}) {
+  const { width = 800, height = 1200, fullPage = true } = options;
+
+  // 임시 HTML 파일 생성
+  const tempHtmlPath = path.join(os.tmpdir(), `totalbot_html_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.html`);
+
+  // HTML에 로컬 폰트 CSS 삽입
+  const fontCSS = getLocalFontCSS();
+  const modifiedHtml = html.replace(
+    /<style>/,
+    `<style>${fontCSS}`
+  ).replace(
+    /https:\/\/fonts\.googleapis\.com[^"']*/g,
+    '' // 외부 폰트 URL 제거
+  ).replace(
+    /<link[^>]*fonts\.googleapis\.com[^>]*>/g,
+    '' // 외부 폰트 링크 제거
+  ).replace(
+    /<link[^>]*fonts\.gstatic\.com[^>]*>/g,
+    '' // gstatic 링크도 제거
+  );
+
+  await fs.writeFile(tempHtmlPath, modifiedHtml, 'utf-8');
+
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width, height });
+
+    // file:// 프로토콜로 로컬 파일 열기
+    await page.goto(`file://${tempHtmlPath}`, {
+      waitUntil: ['load', 'domcontentloaded', 'networkidle0'],
+      timeout: 30000
+    });
+
+    // 폰트 로딩 대기
+    await page.evaluate(() => document.fonts.ready);
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    const screenshot = await page.screenshot({ type: 'png', fullPage });
+    await page.close();
+
+    return screenshot;
+  } finally {
+    // 임시 파일 삭제
+    try {
+      await fs.unlink(tempHtmlPath);
+    } catch (e) {
+      // ignore
+    }
+  }
 }
 
 // 번역 헬퍼 함수
@@ -549,19 +635,12 @@ router.post('/html-to-image', authMiddleware, async (req, res) => {
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    // 로컬 폰트를 사용하여 스크린샷 캡처
+    const options = type === 'label'
+      ? { width: 800, height: 400, fullPage: true }
+      : { width: 800, height: 1200, fullPage: true };
 
-    if (type === 'label') {
-      await page.setViewport({ width: 800, height: 400 });
-    } else {
-      await page.setViewport({ width: 800, height: 1200 });
-    }
-
-    const screenshot = await page.screenshot({
-      type: 'png',
-      fullPage: true
-    });
+    const screenshot = await captureHtmlScreenshot(browser, html, options);
 
     await browser.close();
 
@@ -641,25 +720,19 @@ router.post('/generate-images', authMiddleware, async (req, res) => {
       const detailHtml = product.detailHtml || generateDetailPageHtml(product);
       const labelHtml = generateLabelHtml(product);
 
-      // 상세페이지 이미지
-      const detailPage = await browser.newPage();
-      await detailPage.setContent(detailHtml, { waitUntil: 'networkidle0' });
-      await detailPage.setViewport({ width: 800, height: 1200 });
-      // 웹폰트 로딩 대기
-      await detailPage.evaluate(() => document.fonts.ready);
-      await new Promise(resolve => setTimeout(resolve, 500)); // 추가 대기
-      const detailScreenshot = await detailPage.screenshot({ type: 'png', fullPage: true });
-      await detailPage.close();
+      // 상세페이지 이미지 (로컬 폰트 사용)
+      const detailScreenshot = await captureHtmlScreenshot(browser, detailHtml, {
+        width: 800,
+        height: 1200,
+        fullPage: true
+      });
 
-      // 라벨컷 이미지
-      const labelPage = await browser.newPage();
-      await labelPage.setContent(labelHtml, { waitUntil: 'networkidle0' });
-      await labelPage.setViewport({ width: 800, height: 400 });
-      // 웹폰트 로딩 대기
-      await labelPage.evaluate(() => document.fonts.ready);
-      await new Promise(resolve => setTimeout(resolve, 500)); // 추가 대기
-      const labelScreenshot = await labelPage.screenshot({ type: 'png', fullPage: true });
-      await labelPage.close();
+      // 라벨컷 이미지 (로컬 폰트 사용)
+      const labelScreenshot = await captureHtmlScreenshot(browser, labelHtml, {
+        width: 800,
+        height: 400,
+        fullPage: true
+      });
 
       results.push({
         productIndex: i,

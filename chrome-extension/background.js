@@ -2238,6 +2238,7 @@ async function handleFillQuotationExcels(data) {
               product,
               option: null,
               productIndex,
+              totalProducts: products.length,
               brandName: finalBrandName,
               handlingCare: handlingCare || '해당사항없음',
               season: season || '사계절',
@@ -2324,6 +2325,7 @@ async function handleFillQuotationExcels(data) {
                 product,
                 option,
                 productIndex,
+                totalProducts: products.length,
                 brandName: finalBrandName,
                 handlingCare: handlingCare || '해당사항없음',
                 season: season || '사계절',
@@ -2600,8 +2602,16 @@ async function handleFillQuotationExcels(data) {
       options.forEach((option, optIndex) => {
         const optionImageUrl = option.thumbnail || option.imageLink || option.option1Img;
         if (optionImageUrl) {
-          const optionFilename = getOptionImageFilename(option, product, productIndex);
+          let optionFilename = getOptionImageFilename(option, product, productIndex);
           if (optionFilename) {
+            // 여러 상품이 있을 때 파일명 충돌 방지를 위해 productIndex 추가
+            if (products.length > 1) {
+              // 파일명에서 확장자 분리
+              const extMatch = optionFilename.match(/\.([a-zA-Z]+)$/);
+              const ext = extMatch ? extMatch[1] : 'png';
+              const nameWithoutExt = optionFilename.replace(/\.[a-zA-Z]+$/, '');
+              optionFilename = `${nameWithoutExt}_p${productIndex + 1}.${ext}`;
+            }
             imagesToDownload.push({
               url: optionImageUrl,
               filename: optionFilename,
@@ -3180,7 +3190,15 @@ function getValueForMapping(mapping, context) {
     // 이미지 관련 계산 필드
     case 'calc:option_image':
       // 대표이미지 파일명
-      return getOptionImageFilename(option, product, productIndex);
+      let optionFilename = getOptionImageFilename(option, product, productIndex);
+      // 여러 상품이 있을 때 파일명 충돌 방지를 위해 productIndex 추가
+      if (context.totalProducts && context.totalProducts > 1 && optionFilename) {
+        const extMatch = optionFilename.match(/\.([a-zA-Z]+)$/);
+        const ext = extMatch ? extMatch[1] : 'png';
+        const nameWithoutExt = optionFilename.replace(/\.[a-zA-Z]+$/, '');
+        optionFilename = `${nameWithoutExt}_p${productIndex + 1}.${ext}`;
+      }
+      return optionFilename;
 
     case 'calc:detail_image':
       // 상세이미지 파일명
