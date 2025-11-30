@@ -2587,8 +2587,16 @@ async function handleFillQuotationExcels(data) {
       }
 
       // 2. 옵션 이미지들 (대표이미지 파일명으로 사용됨)
+      console.log(`   🔍 제품 ${productIndex + 1}: 옵션 이미지 수집 시작 (${options.length}개 옵션)`);
       options.forEach((option, optIndex) => {
         const optionImageUrl = option.thumbnail || option.imageLink || option.option1Img;
+
+        // 디버그: 첫 옵션이거나 제품3인 경우 상세 로그
+        if (optIndex === 0 || productIndex === 2) {
+          console.log(`      옵션 ${optIndex + 1}: thumbnail=${option.thumbnail ? 'Y' : 'N'}, imageLink=${option.imageLink ? 'Y' : 'N'}, option1Img=${option.option1Img ? 'Y' : 'N'}`);
+          console.log(`      -> optionImageUrl: ${optionImageUrl ? optionImageUrl.substring(0, 60) + '...' : 'NULL'}`);
+        }
+
         if (optionImageUrl) {
           let optionFilename = getOptionImageFilename(option, product, productIndex);
           if (optionFilename) {
@@ -2600,6 +2608,7 @@ async function handleFillQuotationExcels(data) {
               const nameWithoutExt = optionFilename.replace(/\.[a-zA-Z]+$/, '');
               optionFilename = `${nameWithoutExt}_p${productIndex + 1}.${ext}`;
             }
+            console.log(`      ✅ 다운로드 목록에 추가: ${optionFilename}`);
             imagesToDownload.push({
               url: optionImageUrl,
               filename: optionFilename,
@@ -2607,7 +2616,11 @@ async function handleFillQuotationExcels(data) {
               productIndex,
               optionIndex: optIndex
             });
+          } else {
+            console.warn(`      ⚠️ 파일명 생성 실패: 옵션 ${optIndex + 1}`);
           }
+        } else {
+          console.warn(`      ⚠️ 이미지 URL 없음: 옵션 ${optIndex + 1}`);
         }
       });
     }
