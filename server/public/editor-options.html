@@ -4234,6 +4234,13 @@
         const data = await response.json();
         productData = data.product;
 
+        // 저장된 선택 이미지 복원 (견적서용)
+        if (productData.selectedAdditionalImages && Array.isArray(productData.selectedAdditionalImages)) {
+          selectedAdditionalImages = new Set(productData.selectedAdditionalImages);
+        } else {
+          selectedAdditionalImages = new Set();
+        }
+
         // 상품명 표시
         document.getElementById('productTitle').value = productData.title || productData.titleCn || '';
 
@@ -8670,6 +8677,9 @@
 
       // detailPageItems를 저장 (편집기 상태 유지용)
       productData.detailPageItems = detailPageItems;
+
+      // 선택된 추가 이미지 저장 (견적서용)
+      productData.selectedAdditionalImages = Array.from(selectedAdditionalImages);
 
       // detailPageItems를 HTML로 변환해서 productData.detailHtml에 저장 (이미지 생성용)
       if (detailPageItems && detailPageItems.length > 0) {
