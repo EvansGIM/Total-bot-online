@@ -2831,12 +2831,47 @@ async function handleFillQuotationExcels(data) {
       await updateProgress('upload', 'in_progress');
       console.log('📤 Content script로 업로드 요청 전송...');
 
+      // products에서 base64 이미지 데이터 제거 (메시지 크기 제한 회피)
+      const productsLite = products.map(p => {
+        const lite = { ...p };
+        // base64 데이터가 포함된 필드 제거 (이미지는 productImagesData로 별도 전송됨)
+        if (lite.mainImage && lite.mainImage.startsWith('data:')) {
+          lite.mainImage = '[base64-removed]';
+        }
+        if (lite.images) {
+          lite.images = lite.images.map(img =>
+            img && img.startsWith('data:') ? '[base64-removed]' : img
+          );
+        }
+        if (lite.results) {
+          lite.results = lite.results.map(r => {
+            const rLite = { ...r };
+            if (rLite.imageLink && rLite.imageLink.startsWith('data:')) {
+              rLite.imageLink = '[base64-removed]';
+            }
+            if (rLite.titleImage) {
+              rLite.titleImage = rLite.titleImage.map(img =>
+                img && img.startsWith('data:') ? '[base64-removed]' : img
+              );
+            }
+            return rLite;
+          });
+        }
+        // detailPageHtml도 매우 클 수 있으므로 제거
+        if (lite.detailPageHtml && lite.detailPageHtml.length > 100000) {
+          lite.detailPageHtml = '[large-html-removed]';
+        }
+        return lite;
+      });
+
       const uploadData = {
         excelFiles: excelFilesData,
         productImages: productImagesData,  // Input #2: 상품 이미지
         labelImages: labelImagesData,      // Input #3: 라벨컷 이미지
-        products: products
+        products: productsLite
       };
+
+      console.log('📦 uploadData 크기:', JSON.stringify(uploadData).length, 'bytes');
 
       const uploadResponse = await chrome.tabs.sendMessage(coupangTabId, {
         action: 'uploadToCoupang',
