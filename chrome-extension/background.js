@@ -47,6 +47,243 @@ console.log('🚀 TotalBot Background Script loaded');
 console.log('✅ JSZip loaded:', typeof JSZip);
 console.log('✅ SheetJS loaded:', typeof XLSX);
 
+// ===== 쿠팡 API 직접 호출 함수 (캐시 문제 우회) =====
+
+/**
+ * 쿠팡 쿠키를 가져와서 직접 API 호출
+ * content script를 거치지 않아 페이지 캐시 문제 우회
+ */
+async function coupangApiFetch(url, options = {}) {
+  // 쿠팡 쿠키 가져오기
+  const cookies = await chrome.cookies.getAll({ domain: '.coupang.com' });
+  const cookieString = cookies.map(c => `${c.name}=${c.value}`).join('; ');
+
+  if (!cookieString) {
+    throw new Error('쿠팡 로그인 쿠키가 없습니다. 쿠팡에 로그인해주세요.');
+  }
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'Cookie': cookieString,
+    ...options.headers
+  };
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+    credentials: 'omit' // 쿠키를 직접 설정했으므로 omit
+  });
+
+  return response;
+}
+
+/**
+ * 견적서 승인 상태 확인 (background에서 직접 호출)
+ */
+async function checkQuotationStatusDirect(quotationId, vendorId) {
+  try {
+    console.log('🔍 [Direct API] Checking approval status for quotation:', quotationId);
+
+    // quotationId에 CID- 접두사 추가 (없는 경우)
+    const formattedQuotationId = quotationId.startsWith('CID-')
+      ? quotationId
+      : `CID-${quotationId}`;
+
+    const url = 'https://supplier.coupang.com/qvt/v2/wims/vendorSearch';
+
+    const requestBody = {
+      startDate: '1577836800000', // 2020-01-01
+      endDate: Date.now().toString(),
+      conditions: {
+        vendorId: vendorId,
+        state: '',
+        quotationId: formattedQuotationId,
+        progress: '',
+        productName: '',
+        productId: '',
+        startItemRegisteredDate: '',
+        endItemRegisteredDate: '',
+        startPriceRegisteredDate: '',
+        endPriceRegisteredDate: '',
+        vendorName: '',
+        skuId: '',
+        barcode: ''
+      },
+      page: 1,
+      sizePerPage: 1000
+    };
+
+    console.log('📤 [Direct API] Request:', JSON.stringify(requestBody, null, 2));
+
+    const response = await coupangApiFetch(url, {
+      method: 'POST',
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      console.error('❌ [Direct API] Response not ok:', response.status, errorText);
+      throw new Error(`API 요청 실패: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('📥 [Direct API] Response:', data);
+
+    // 응답 분석
+    const result = analyzeApprovalStatusBg(data, quotationId);
+    console.log('📊 [Direct API] Analysis result:', result);
+
+    return {
+      success: true,
+      ...result
+    };
+
+  } catch (error) {
+    console.error('❌ [Direct API] Quotation status check error:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 승인 상태 분석 (background용)
+ */
+function analyzeApprovalStatusBg(apiResponse, quotationId) {
+  const items = apiResponse.data || apiResponse.items || [];
+
+  if (items.length === 0) {
+    return {
+      quotationId: quotationId,
+      totalProducts: 0,
+      totalSku: 0,
+      isApproved: false,
+      isRejected: false,
+      inProgress: 0,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      message: '상품을 찾을 수 없습니다'
+    };
+  }
+
+  let step1Completed = 0; // ONBOARDED
+  let step2Completed = 0; // HOTW
+  let step3Completed = 0; // R21 (최종 승인)
+  let rejected = 0;
+  let inProgress = 0;
+
+  items.forEach(item => {
+    const steps = item.steps || [];
+    const state = item.state;
+    const progress = item.progress;
+
+    // 단계별 완료 카운트
+    const stepDict = {};
+    steps.forEach(step => {
+      stepDict[step.step] = step.progress;
+    });
+
+    if (stepDict['ONBOARDED'] === 'COMPLETED') step1Completed++;
+    if (stepDict['HOTW'] === 'COMPLETED') step2Completed++;
+    if (stepDict['R21'] === 'COMPLETED') step3Completed++;
+
+    // 반려 확인
+    if (state === 'REJECTION') {
+      rejected++;
+    }
+
+    // 진행 중 확인
+    if (progress === 'IN_PROGRESS') {
+      inProgress++;
+    } else if (progress === null && state !== 'REJECTION' && stepDict['R21'] !== 'COMPLETED') {
+      inProgress++;
+    }
+  });
+
+  const totalProducts = items.length;
+  const allApproved = step3Completed === totalProducts && totalProducts > 0;
+  const allRejected = rejected === totalProducts && totalProducts > 0;
+
+  // 현재 가장 진행된 단계 결정
+  let currentStage = null;
+  if (step3Completed > 0) {
+    currentStage = 'R21';
+  } else if (step2Completed > 0) {
+    currentStage = 'HOTW';
+  } else if (step1Completed > 0) {
+    currentStage = 'ONBOARDED';
+  }
+
+  return {
+    quotationId: quotationId,
+    totalSku: totalProducts,
+    totalProducts: totalProducts,
+    step1Completed: step1Completed,
+    step2Completed: step2Completed,
+    step3Completed: step3Completed,
+    rejected: rejected,
+    inProgress: inProgress,
+    pending: totalProducts - step3Completed - rejected,
+    approved: step3Completed,
+    isApproved: allApproved,
+    isRejected: allRejected,
+    currentStage: currentStage,
+    message: allApproved
+      ? '모든 상품 승인 완료'
+      : allRejected
+        ? '모든 상품 반려됨'
+        : `진행 중: ${inProgress}개, 완료: ${step3Completed}/${totalProducts}개`
+  };
+}
+
+/**
+ * vendorId 직접 가져오기 (쿠키에서 또는 API로)
+ */
+async function getVendorIdDirect() {
+  try {
+    // 방법 1: 쿠팡 API로 현재 사용자 정보 가져오기
+    const response = await coupangApiFetch('https://supplier.coupang.com/api/v1/me');
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.vendorId) {
+        console.log('✅ [Direct API] vendorId from /me:', data.vendorId);
+        return { success: true, vendorId: data.vendorId };
+      }
+    }
+
+    // 방법 2: 쿠팡 메인 페이지에서 vendorId 추출 시도
+    const pageResponse = await coupangApiFetch('https://supplier.coupang.com/');
+    if (pageResponse.ok) {
+      const html = await pageResponse.text();
+
+      // vendorId 패턴 찾기
+      const patterns = [
+        /vendorId['":\s]+['"]?(\d+)['"]?/i,
+        /vendor_id['":\s]+['"]?(\d+)['"]?/i,
+        /"vendorId"\s*:\s*"?(\d+)"?/i
+      ];
+
+      for (const pattern of patterns) {
+        const match = html.match(pattern);
+        if (match && match[1]) {
+          console.log('✅ [Direct API] vendorId from page:', match[1]);
+          return { success: true, vendorId: match[1] };
+        }
+      }
+    }
+
+    return { success: false, error: 'vendorId를 찾을 수 없습니다' };
+
+  } catch (error) {
+    console.error('❌ [Direct API] getVendorId error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 let coupangTab = null;
 const injectedTabs = new Set(); // 이미 주입된 탭 추적
 let excelDataStore = []; // Excel 파일 데이터를 메모리에 저장 (ArrayBuffer)
@@ -422,36 +659,41 @@ async function handleManualApprovalCheck(products) {
     return result;
   }
 
-  // 쿠팡 탭 찾기
-  const coupangTabId = await findCoupangTab();
-  if (!coupangTabId) {
-    throw new Error('쿠팡 탭을 찾을 수 없습니다. supplier.coupang.com에 로그인해주세요.');
-  }
-
-  // vendorId 가져오기
+  // vendorId 가져오기 (Direct API 방식 - 쿠팡 탭 불필요)
   if (!cachedVendorId) {
-    const vendorResult = await chrome.tabs.sendMessage(coupangTabId, {
-      action: 'getVendorId'
-    });
+    console.log('🔍 vendorId 가져오는 중 (Direct API)...');
+    const vendorResult = await getVendorIdDirect();
 
     if (!vendorResult || !vendorResult.success) {
-      throw new Error('vendorId를 가져올 수 없습니다. 쿠팡 페이지를 새로고침 해주세요.');
+      // fallback: 기존 방식 (content script)
+      console.log('⚠️ Direct API 실패, content script 방식으로 시도...');
+      const coupangTabId = await findCoupangTab();
+      if (coupangTabId) {
+        const vendorResultFallback = await chrome.tabs.sendMessage(coupangTabId, {
+          action: 'getVendorId'
+        });
+        if (vendorResultFallback && vendorResultFallback.success) {
+          cachedVendorId = vendorResultFallback.vendorId;
+        }
+      }
+
+      if (!cachedVendorId) {
+        throw new Error('vendorId를 가져올 수 없습니다. 쿠팡에 로그인해주세요.');
+      }
+    } else {
+      cachedVendorId = vendorResult.vendorId;
     }
-    cachedVendorId = vendorResult.vendorId;
     console.log('✅ vendorId:', cachedVendorId);
   }
 
-  // 각 견적서 상태 확인
+  // 각 견적서 상태 확인 (Direct API 방식)
   for (const [quoteId, productIds] of Object.entries(quoteGroups)) {
-    console.log(`\n🔍 견적서 ${quoteId} 확인 중...`);
+    console.log(`\n🔍 견적서 ${quoteId} 확인 중... (Direct API)`);
     result.checkedCount++;
 
     try {
-      const statusResult = await chrome.tabs.sendMessage(coupangTabId, {
-        action: 'checkQuotationStatus',
-        quotationId: quoteId,
-        vendorId: cachedVendorId
-      });
+      // Direct API로 승인 상태 확인 (페이지 캐시 문제 우회)
+      const statusResult = await checkQuotationStatusDirect(quoteId, cachedVendorId);
 
       if (statusResult && statusResult.success) {
         console.log(`   📊 결과: ${statusResult.message}`);
@@ -470,9 +712,9 @@ async function handleManualApprovalCheck(products) {
         console.log(`   ⚠️ 상태 확인 실패: ${statusResult?.error || '알 수 없는 오류'}`);
       }
 
-      // Rate limiting: 2-4초 대기 (마지막 견적서가 아닌 경우)
+      // Rate limiting: 1-2초 대기 (Direct API는 더 빠르게 가능)
       if (Object.keys(quoteGroups).indexOf(quoteId) < quoteIds.length - 1) {
-        await sleep(2000 + Math.random() * 2000);
+        await sleep(1000 + Math.random() * 1000);
       }
 
     } catch (error) {
