@@ -3449,14 +3449,43 @@
           </div>
 
           <div class="settings-section">
-            <h3>품질표시사항 기본 내용</h3>
-            <p style="font-size: 13px; color: #666; margin-bottom: 12px;">
-              품질표시사항에 기본으로 표시될 내용을 설정합니다.
+            <h3>품질표시사항 기본값 설정</h3>
+            <p style="font-size: 13px; color: #666; margin-bottom: 16px;">
+              품질표시사항에 기본으로 표시될 값을 설정합니다. (상품명, 색상, 사이즈는 자동 생성)
             </p>
-            <div id="defaultQualityRows">
-              <!-- 품질표시사항 행들이 여기에 동적으로 추가됨 -->
+
+            <div class="settings-field">
+              <label>제조국</label>
+              <input type="text" id="qtCountry" placeholder="Made in China" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
             </div>
-            <button class="btn btn-primary btn-sm" onclick="addDefaultQualityRow()" style="margin-top: 12px;">+ 행 추가</button>
+
+            <div class="settings-field">
+              <label>제조사</label>
+              <input type="text" id="qtManufacturer" placeholder="브랜드명" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+            </div>
+
+            <div class="settings-field">
+              <label>취급시 주의사항</label>
+              <input type="text" id="qtCaution" placeholder="상세페이지 참조" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+            </div>
+
+            <div class="settings-field">
+              <label>품질보증기준</label>
+              <input type="text" id="qtWarranty" placeholder="관련법 및 소비자 분쟁해결 규정에 따름" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+            </div>
+
+            <div class="settings-field">
+              <label>A/S 책임자와 전화번호</label>
+              <input type="text" id="qtAS" placeholder="상호명 / 전화번호" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+            </div>
+
+            <div class="settings-field" style="margin-top: 20px;">
+              <label style="margin-bottom: 12px; display: block;">추가 항목</label>
+              <div id="qtCustomRows" style="display: flex; flex-direction: column; gap: 8px;">
+                <!-- 커스텀 행들이 여기에 추가됨 -->
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="addQualityTableCustomRow()" style="margin-top: 12px;">+ 항목 추가</button>
+            </div>
           </div>
         </div>
       </div>
@@ -3595,12 +3624,15 @@
         { type: 'option-blocks', label: '옵션 블록들' },
         { type: 'quality-table', label: '품질표시사항' }
       ],
-      defaultQualityRows: [
-        { label: '제품명', value: '' },
-        { label: '제조사', value: '' },
-        { label: '원산지', value: '' },
-        { label: '제조년월', value: '' }
-      ]
+      // 품질표시사항 설정
+      qualityTable: {
+        제조국: 'Made in China',
+        제조사: '',
+        취급시주의사항: '상세페이지 참조',
+        품질보증기준: '관련법 및 소비자 분쟁해결 규정에 따름',
+        AS책임자: '',
+        customRows: [] // { label: '', value: '' } 형태로 추가 가능
+      }
     };
 
     // 설정 로드 (localStorage에서)
@@ -3868,6 +3900,14 @@
       settings.shipmentCost = parseFloat(document.getElementById('settingsShipmentCost').value) || 0;
       settings.minMargin = parseFloat(document.getElementById('settingsMinMargin').value) || 3000;
 
+      // 품질표시사항 설정 저장
+      if (!settings.qualityTable) settings.qualityTable = {};
+      settings.qualityTable.제조국 = document.getElementById('qtCountry').value || 'Made in China';
+      settings.qualityTable.제조사 = document.getElementById('qtManufacturer').value || '';
+      settings.qualityTable.취급시주의사항 = document.getElementById('qtCaution').value || '상세페이지 참조';
+      settings.qualityTable.품질보증기준 = document.getElementById('qtWarranty').value || '관련법 및 소비자 분쟁해결 규정에 따름';
+      settings.qualityTable.AS책임자 = document.getElementById('qtAS').value || '';
+
       // 로컬스토리지에 저장
       saveSettingsToStorage();
 
@@ -4000,37 +4040,56 @@
 
     // 품질표시사항 행 렌더링
     function renderDefaultQualityRows() {
-      const container = document.getElementById('defaultQualityRows');
+      // 품질표시사항 설정값 표시
+      const qt = settings.qualityTable || {};
+
+      document.getElementById('qtCountry').value = qt.제조국 || 'Made in China';
+      document.getElementById('qtManufacturer').value = qt.제조사 || '';
+      document.getElementById('qtCaution').value = qt.취급시주의사항 || '상세페이지 참조';
+      document.getElementById('qtWarranty').value = qt.품질보증기준 || '관련법 및 소비자 분쟁해결 규정에 따름';
+      document.getElementById('qtAS').value = qt.AS책임자 || '';
+
+      // 커스텀 행 렌더링
+      renderQualityTableCustomRows();
+    }
+
+    // 품질표시사항 커스텀 행 렌더링
+    function renderQualityTableCustomRows() {
+      const container = document.getElementById('qtCustomRows');
       container.innerHTML = '';
 
-      settings.defaultQualityRows.forEach((row, index) => {
+      const qt = settings.qualityTable || {};
+      const customRows = qt.customRows || [];
+
+      customRows.forEach((row, index) => {
         const rowDiv = document.createElement('div');
-        rowDiv.style.cssText = 'display: flex; gap: 12px; margin-bottom: 12px;';
+        rowDiv.style.cssText = 'display: flex; gap: 12px; align-items: center;';
 
         const labelInput = document.createElement('input');
         labelInput.type = 'text';
         labelInput.placeholder = '항목명';
-        labelInput.value = row.label;
+        labelInput.value = row.label || '';
         labelInput.style.cssText = 'flex: 1; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;';
         labelInput.oninput = (e) => {
-          settings.defaultQualityRows[index].label = e.target.value;
+          settings.qualityTable.customRows[index].label = e.target.value;
         };
 
         const valueInput = document.createElement('input');
         valueInput.type = 'text';
-        valueInput.placeholder = '기본값 (비어있어도 됨)';
-        valueInput.value = row.value;
+        valueInput.placeholder = '기본값';
+        valueInput.value = row.value || '';
         valueInput.style.cssText = 'flex: 2; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;';
         valueInput.oninput = (e) => {
-          settings.defaultQualityRows[index].value = e.target.value;
+          settings.qualityTable.customRows[index].value = e.target.value;
         };
 
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'btn btn-secondary btn-sm';
         deleteBtn.textContent = '🗑';
+        deleteBtn.style.cssText = 'padding: 8px 12px;';
         deleteBtn.onclick = () => {
-          settings.defaultQualityRows.splice(index, 1);
-          renderDefaultQualityRows();
+          settings.qualityTable.customRows.splice(index, 1);
+          renderQualityTableCustomRows();
         };
 
         rowDiv.appendChild(labelInput);
@@ -4038,6 +4097,15 @@
         rowDiv.appendChild(deleteBtn);
         container.appendChild(rowDiv);
       });
+    }
+
+    // 품질표시사항 커스텀 행 추가
+    function addQualityTableCustomRow() {
+      if (!settings.qualityTable) settings.qualityTable = {};
+      if (!settings.qualityTable.customRows) settings.qualityTable.customRows = [];
+
+      settings.qualityTable.customRows.push({ label: '', value: '' });
+      renderQualityTableCustomRows();
     }
 
     // 메인 탭 전환
@@ -5724,21 +5792,56 @@
     // 품질표시사항 추가
     function addQualityTable() {
       const productTitle = productData.title || productData.titleCn || '제품명';
+
+      // 옵션1/옵션2 유니크 값 추출
+      const uniqueOption1Values = [];
+      const uniqueOption2Values = [];
+      if (productData.results && productData.results.length > 0) {
+        const opt1Set = new Set();
+        const opt2Set = new Set();
+        productData.results.forEach(option => {
+          const opt1 = option.optionName1 || option.optionName1Cn;
+          const opt2 = option.optionName2 || option.optionName2Cn;
+          if (opt1 && !opt1Set.has(opt1)) {
+            opt1Set.add(opt1);
+            uniqueOption1Values.push(opt1);
+          }
+          if (opt2 && !opt2Set.has(opt2)) {
+            opt2Set.add(opt2);
+            uniqueOption2Values.push(opt2);
+          }
+        });
+      }
+
+      const colorValue = uniqueOption1Values.length > 0 ? uniqueOption1Values.join(', ') : '상세페이지 참조';
+      const sizeValue = uniqueOption2Values.length > 0 ? uniqueOption2Values.join(', ') : '상세페이지 참조';
+
+      const qt = settings.qualityTable || {};
+
+      const qualityRows = [
+        { label: '상품명', value: productTitle },
+        { label: '색상', value: colorValue },
+        { label: '사이즈', value: sizeValue },
+        { label: '제조국', value: qt.제조국 || 'Made in China' },
+        { label: '제조사', value: qt.제조사 || '' },
+        { label: '취급시 주의사항', value: qt.취급시주의사항 || '상세페이지 참조' },
+        { label: '품질보증기준', value: qt.품질보증기준 || '관련법 및 소비자 분쟁해결 규정에 따름' },
+        { label: 'A/S 책임자와 전화번호', value: qt.AS책임자 || '' }
+      ];
+
+      // 커스텀 행 추가
+      if (qt.customRows && qt.customRows.length > 0) {
+        qt.customRows.forEach(row => {
+          if (row.label) {
+            qualityRows.push({ label: row.label, value: row.value || '' });
+          }
+        });
+      }
+
       addDetailPageItem({
         type: 'quality-table',
         title: '품질표시사항',
-        rows: [
-          { label: '상품명', value: productTitle },
-          { label: '소재', value: '면 100%' },
-          { label: '색상', value: '상세페이지 참조' },
-          { label: '치수', value: '상세페이지 참조' },
-          { label: '제조국', value: 'Made in China' },
-          { label: '제조사', value: '브랜드명' },
-          { label: '세탁방법 및 취급시 주의사항', value: '상세페이지 참조' },
-          { label: '제조연월', value: '수입 시 통관일자로 갈음' },
-          { label: '품질보증기준', value: '관련법 및 소비자 분쟁해결 규정에 따름' },
-          { label: 'A/S 책임자와 전화번호', value: '상호명 / 전화번호' }
-        ]
+        rows: qualityRows
       });
     }
 
@@ -5811,21 +5914,56 @@
       }
 
       // 5. 품질표시사항 추가
+      // 옵션1 유니크 값들 (색상용)
+      const uniqueOption1Values = [];
+      const uniqueOption2Values = [];
+      if (productData.results && productData.results.length > 0) {
+        const opt1Set = new Set();
+        const opt2Set = new Set();
+        productData.results.forEach(option => {
+          const opt1 = option.optionName1 || option.optionName1Cn;
+          const opt2 = option.optionName2 || option.optionName2Cn;
+          if (opt1 && !opt1Set.has(opt1)) {
+            opt1Set.add(opt1);
+            uniqueOption1Values.push(opt1);
+          }
+          if (opt2 && !opt2Set.has(opt2)) {
+            opt2Set.add(opt2);
+            uniqueOption2Values.push(opt2);
+          }
+        });
+      }
+
+      const colorValue = uniqueOption1Values.length > 0 ? uniqueOption1Values.join(', ') : '상세페이지 참조';
+      const sizeValue = uniqueOption2Values.length > 0 ? uniqueOption2Values.join(', ') : '상세페이지 참조';
+
+      // 품질표시사항 설정 가져오기
+      const qt = settings.qualityTable || {};
+
+      const qualityRows = [
+        { label: '상품명', value: productTitle },
+        { label: '색상', value: colorValue },
+        { label: '사이즈', value: sizeValue },
+        { label: '제조국', value: qt.제조국 || 'Made in China' },
+        { label: '제조사', value: qt.제조사 || '' },
+        { label: '취급시 주의사항', value: qt.취급시주의사항 || '상세페이지 참조' },
+        { label: '품질보증기준', value: qt.품질보증기준 || '관련법 및 소비자 분쟁해결 규정에 따름' },
+        { label: 'A/S 책임자와 전화번호', value: qt.AS책임자 || '' }
+      ];
+
+      // 설정에서 추가한 커스텀 행 추가
+      if (qt.customRows && qt.customRows.length > 0) {
+        qt.customRows.forEach(row => {
+          if (row.label) {
+            qualityRows.push({ label: row.label, value: row.value || '' });
+          }
+        });
+      }
+
       detailPageItems.push({
         type: 'quality-table',
         title: '품질표시사항',
-        rows: [
-          { label: '상품명', value: productTitle },
-          { label: '소재', value: '면 100%' },
-          { label: '색상', value: '상세페이지 참조' },
-          { label: '치수', value: '상세페이지 참조' },
-          { label: '제조국', value: 'Made in China' },
-          { label: '제조사', value: '브랜드명' },
-          { label: '세탁방법 및<br>취급시 주의사항', value: '상세페이지 참조' },
-          { label: '제조연월', value: '수입 시 통관일자로 갈음' },
-          { label: '품질보증기준', value: '관련법 및 소비자 분쟁해결 규정에 따름' },
-          { label: 'A/S 책임자와<br>전화번호', value: '상호명 / 전화번호' }
-        ]
+        rows: qualityRows
       });
 
       renderDetailCanvas();
