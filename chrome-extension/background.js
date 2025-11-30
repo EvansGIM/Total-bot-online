@@ -50,32 +50,85 @@ console.log('✅ SheetJS loaded:', typeof XLSX);
 // ===== 쿠팡 API 직접 호출 함수 (캐시 문제 우회) =====
 
 /**
- * 쿠팡 쿠키를 가져와서 직접 API 호출
- * content script를 거치지 않아 페이지 캐시 문제 우회
+ * 쿠팡 탭에서 API 호출 실행 (캐시/CORS 문제 우회)
+ * 쿠팡 페이지 컨텍스트에서 fetch를 실행하여 쿠키 자동 포함
  */
 async function coupangApiFetch(url, options = {}) {
-  // 쿠팡 쿠키 가져오기
-  const cookies = await chrome.cookies.getAll({ domain: '.coupang.com' });
-  const cookieString = cookies.map(c => `${c.name}=${c.value}`).join('; ');
+  // 쿠팡 탭 찾기 또는 생성
+  let coupangTabId = await findCoupangTab();
 
-  if (!cookieString) {
-    throw new Error('쿠팡 로그인 쿠키가 없습니다. 쿠팡에 로그인해주세요.');
+  if (!coupangTabId) {
+    // 쿠팡 탭이 없으면 새로 열기
+    console.log('📌 쿠팡 탭이 없어서 새로 생성합니다...');
+    const newTab = await chrome.tabs.create({
+      url: 'https://supplier.coupang.com/',
+      active: false
+    });
+    coupangTabId = newTab.id;
+
+    // 페이지 로드 대기
+    await new Promise(resolve => {
+      const listener = (tabId, info) => {
+        if (tabId === coupangTabId && info.status === 'complete') {
+          chrome.tabs.onUpdated.removeListener(listener);
+          resolve();
+        }
+      };
+      chrome.tabs.onUpdated.addListener(listener);
+    });
+
+    // 추가 대기
+    await sleep(2000);
   }
 
-  const headers = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'Cookie': cookieString,
-    ...options.headers
-  };
+  // 쿠팡 탭에서 fetch 실행 (scripting API 사용)
+  const results = await chrome.scripting.executeScript({
+    target: { tabId: coupangTabId },
+    func: async (fetchUrl, fetchOptions) => {
+      try {
+        const response = await fetch(fetchUrl, {
+          method: fetchOptions.method || 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...fetchOptions.headers
+          },
+          body: fetchOptions.body,
+          credentials: 'include'
+        });
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-    credentials: 'omit' // 쿠키를 직접 설정했으므로 omit
+        const text = await response.text();
+        return {
+          ok: response.ok,
+          status: response.status,
+          statusText: response.statusText,
+          text: text
+        };
+      } catch (error) {
+        return {
+          ok: false,
+          error: error.message
+        };
+      }
+    },
+    args: [url, options]
   });
 
-  return response;
+  if (!results || results.length === 0 || results[0].result.error) {
+    const errorMsg = results?.[0]?.result?.error || '스크립트 실행 실패';
+    throw new Error(errorMsg);
+  }
+
+  const result = results[0].result;
+
+  // Response-like 객체 반환
+  return {
+    ok: result.ok,
+    status: result.status,
+    statusText: result.statusText,
+    text: async () => result.text,
+    json: async () => JSON.parse(result.text)
+  };
 }
 
 /**
