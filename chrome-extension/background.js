@@ -70,10 +70,10 @@ async function getOrCreateApiTab() {
     }
   }
 
-  // 새 API 전용 탭 생성 (about:blank로 시작해서 쿠팡 API 페이지로)
+  // 새 API 전용 탭 생성 - 실제 HTML 페이지 필요 (CORS)
   console.log('📌 API 전용 탭 생성 중...');
   const newTab = await chrome.tabs.create({
-    url: 'https://supplier.coupang.com/favicon.ico', // 가벼운 리소스로 세션 확립
+    url: 'https://supplier.coupang.com/qvt/wims', // 상품 등록 상태 확인 페이지 (가볍고 API와 같은 origin)
     active: false
   });
   apiTabId = newTab.id;
@@ -92,10 +92,12 @@ async function getOrCreateApiTab() {
     setTimeout(() => {
       chrome.tabs.onUpdated.removeListener(listener);
       resolve();
-    }, 10000);
+    }, 15000);
   });
 
-  await sleep(500);
+  // 페이지 완전 로드 대기
+  await sleep(3000);
+  console.log('✅ API 전용 탭 준비 완료:', apiTabId);
   return apiTabId;
 }
 
@@ -142,8 +144,8 @@ async function coupangApiFetch(url, options = {}) {
         };
       }
     },
-    args: [url, options],
-    world: 'MAIN' // 페이지 컨텍스트에서 실행
+    args: [url, options]
+    // ISOLATED world 사용 (기본값) - CSP 제한 없음
   });
 
   if (!results || results.length === 0) {
