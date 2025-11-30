@@ -11,7 +11,8 @@ const fs = require('fs').promises;
 const path = require('path');
 
 // Gemini API 클라이언트 초기화
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyAgVUOctLOaPiA87MdXrjLEbXDQCmWwvj0');
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyAgVUOctLOaPiA87MdXrjLEbXDQCmWwvj0';
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 /**
  * POST /api/gemini/generate-image
@@ -39,25 +40,44 @@ router.post('/generate-image', async (req, res) => {
       productName
     });
 
-    // Gemini 2.5 Flash 모델 사용
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    // 이미지 생성용 모델 사용 (gemini-2.0-flash-exp - 이미지 생성 지원)
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash-exp',
+      generationConfig: {
+        responseModalities: ['Text', 'Image']
+      }
+    });
 
     // 프롬프트 개선: 상품 판매용 이미지임을 강조
     const productInfo = productName ? `\nPRODUCT: ${productName}\n` : '';
-    const fullPrompt = `IMPORTANT: This is for creating a PRODUCT SALES IMAGE for e-commerce/online shopping.${productInfo}Using the provided image, ${prompt}`;
+    const fullPrompt = `IMPORTANT: This is for creating a PRODUCT SALES IMAGE for e-commerce/online shopping.${productInfo}
+
+Using the provided image, ${prompt}
+
+IMPORTANT INSTRUCTIONS:
+1. Generate a NEW image based on the input image
+2. Keep the product as the main focus
+3. Make it professional and suitable for e-commerce
+4. Return the generated image`;
 
     // Base64 이미지 데이터 처리
     let imageBase64 = imageData;
+    let mimeType = 'image/png';
     if (imageData.startsWith('data:image')) {
-      // data:image/png;base64, 부분 제거
-      imageBase64 = imageData.split(',')[1];
+      const matches = imageData.match(/^data:image\/(\w+);base64,(.+)$/);
+      if (matches) {
+        mimeType = `image/${matches[1]}`;
+        imageBase64 = matches[2];
+      } else {
+        imageBase64 = imageData.split(',')[1];
+      }
     }
 
     // 이미지 파트 생성
     const imagePart = {
       inlineData: {
         data: imageBase64,
-        mimeType: 'image/png'
+        mimeType: mimeType
       }
     };
 
@@ -76,25 +96,48 @@ router.post('/generate-image', async (req, res) => {
         ]);
 
         const response = await result.response;
+        console.log('[Gemini API] 응답 구조:', JSON.stringify({
+          hasCandidates: !!response.candidates,
+          candidatesLength: response.candidates?.length,
+          hasContent: !!response.candidates?.[0]?.content,
+          partsLength: response.candidates?.[0]?.content?.parts?.length
+        }));
 
         // 응답에서 이미지 추출
         const candidates = response.candidates;
         if (!candidates || candidates.length === 0) {
-          throw new Error('응답에 이미지가 없습니다.');
+          throw new Error('응답에 후보가 없습니다.');
         }
 
-        const parts = candidates[0].content.parts;
-        let generatedImageData = null;
+        const content = candidates[0].content;
+        if (!content || !content.parts) {
+          throw new Error('응답에 콘텐츠가 없습니다.');
+        }
 
-        for (const part of parts) {
-          if (part.inlineData) {
-            generatedImageData = part.inlineData.data;
-            break;
+        const parts = content.parts;
+        let generatedImageData = null;
+        let responseText = '';
+
+        // parts 배열 순회하며 이미지 찾기
+        if (Array.isArray(parts)) {
+          for (const part of parts) {
+            if (part.text) {
+              responseText += part.text;
+            }
+            if (part.inlineData && part.inlineData.data) {
+              generatedImageData = part.inlineData.data;
+              console.log('[Gemini API] 이미지 데이터 발견');
+              break;
+            }
           }
         }
 
         if (!generatedImageData) {
-          throw new Error('응답에서 이미지를 찾을 수 없습니다.');
+          // 텍스트 응답만 있는 경우 로그
+          if (responseText) {
+            console.log('[Gemini API] 텍스트 응답:', responseText.substring(0, 200));
+          }
+          throw new Error('응답에서 이미지를 찾을 수 없습니다. 모델이 이미지 생성을 지원하지 않을 수 있습니다.');
         }
 
         console.log('[Gemini API] 이미지 생성 성공');
@@ -108,9 +151,10 @@ router.post('/generate-image', async (req, res) => {
       } catch (error) {
         lastError = error;
         const errorMessage = error.message || String(error);
+        console.error(`[Gemini API] 시도 ${attempt + 1} 실패:`, errorMessage);
 
         // 500 에러 또는 INTERNAL 에러인 경우에만 재시도
-        if ((errorMessage.includes('500') || errorMessage.includes('INTERNAL')) && attempt < maxRetries - 1) {
+        if ((errorMessage.includes('500') || errorMessage.includes('INTERNAL') || errorMessage.includes('parts is not iterable')) && attempt < maxRetries - 1) {
           console.log(`[Gemini API] 서버 오류 발생, ${retryDelay / 1000}초 후 재시도...`);
           await new Promise(resolve => setTimeout(resolve, retryDelay));
           continue;
@@ -131,6 +175,8 @@ router.post('/generate-image', async (req, res) => {
       userMessage = 'API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요.';
     } else if (errorMessage.includes('404') || errorMessage.includes('NOT_FOUND')) {
       userMessage = '모델을 찾을 수 없습니다. API 키를 확인해주세요.';
+    } else if (errorMessage.includes('이미지를 찾을 수 없습니다')) {
+      userMessage = '이 모델은 이미지 생성을 지원하지 않습니다. 배경 제거 기능을 대신 사용해주세요.';
     }
 
     res.status(500).json({
