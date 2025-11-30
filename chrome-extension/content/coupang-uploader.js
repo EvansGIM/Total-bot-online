@@ -5,44 +5,54 @@
  * - 견적서 ID 획득
  */
 
-// ===== IndexedDB 대용량 데이터 읽기용 =====
-const UPLOAD_DB_NAME = 'TotalBotUploadData';
-const UPLOAD_STORE_NAME = 'uploadData';
-
-function openUploadDB() {
+// ===== 청크 방식 데이터 로드 =====
+async function requestDataChunk(type, index = 0) {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(UPLOAD_DB_NAME, 1);
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains(UPLOAD_STORE_NAME)) {
-        db.createObjectStore(UPLOAD_STORE_NAME, { keyPath: 'id' });
+    chrome.runtime.sendMessage(
+      { action: 'getUploadDataChunk', type, index },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else if (response && response.success) {
+          resolve(response.data);
+        } else {
+          reject(new Error(response?.error || '데이터 요청 실패'));
+        }
       }
-    };
+    );
   });
 }
 
-async function getUploadDataFromDB() {
-  const db = await openUploadDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(UPLOAD_STORE_NAME, 'readonly');
-    const store = tx.objectStore(UPLOAD_STORE_NAME);
-    const request = store.get('current');
-    request.onsuccess = () => {
-      db.close();
-      if (request.result) {
-        const { id, ...data } = request.result; // id 필드 제외
-        resolve(data);
-      } else {
-        reject(new Error('IndexedDB에 업로드 데이터가 없습니다'));
-      }
-    };
-    request.onerror = () => {
-      db.close();
-      reject(request.error);
-    };
-  });
+async function loadUploadDataInChunks(dataInfo) {
+  console.log('📦 청크 방식으로 데이터 로드 중...', dataInfo);
+
+  // Excel 파일들
+  const excelFiles = await requestDataChunk('excelFiles');
+  console.log(`   ✅ Excel 파일 ${excelFiles.length}개 로드`);
+
+  // 상품 이미지들 (하나씩)
+  const productImages = [];
+  for (let i = 0; i < dataInfo.productImageCount; i++) {
+    const img = await requestDataChunk('productImage', i);
+    productImages.push(img);
+    if ((i + 1) % 20 === 0 || i === dataInfo.productImageCount - 1) {
+      console.log(`   📷 상품 이미지 ${i + 1}/${dataInfo.productImageCount} 로드`);
+    }
+  }
+
+  // 라벨컷 이미지들 (하나씩)
+  const labelImages = [];
+  for (let i = 0; i < dataInfo.labelImageCount; i++) {
+    const img = await requestDataChunk('labelImage', i);
+    labelImages.push(img);
+  }
+  console.log(`   ✅ 라벨컷 이미지 ${labelImages.length}개 로드`);
+
+  // 상품 정보
+  const products = await requestDataChunk('products');
+  console.log(`   ✅ 상품 정보 ${products.length}개 로드`);
+
+  return { excelFiles, productImages, labelImages, products };
 }
 
 // 중복 로드 방지
@@ -62,14 +72,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('📩 Coupang Uploader received message:', message);
 
   if (message.action === 'uploadToCoupang') {
-    // IndexedDB에서 데이터 읽기 또는 직접 전달받은 데이터 사용
+    // 청크 방식으로 데이터 로드 또는 직접 전달받은 데이터 사용
     (async () => {
       try {
         let data;
-        if (message.useIndexedDB) {
-          console.log('📦 IndexedDB에서 대용량 데이터 읽는 중...');
-          data = await getUploadDataFromDB();
-          console.log('✅ IndexedDB 데이터 로드 완료');
+        if (message.useChunkedTransfer) {
+          console.log('📦 청크 방식으로 대용량 데이터 로드 중...');
+          data = await loadUploadDataInChunks(message.dataInfo);
+          console.log('✅ 청크 데이터 로드 완료');
         } else {
           data = message.data;
         }
