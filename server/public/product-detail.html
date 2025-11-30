@@ -893,6 +893,9 @@
           <button class="btn btn-primary" onclick="addBlock('text')">
             <span>📝</span> 텍스트 추가
           </button>
+          <button class="btn btn-warning" onclick="resetOptionsBlock()">
+            <span>🔄</span> 옵션 블록 리셋
+          </button>
           <button class="btn btn-secondary" onclick="downloadDetailImages()">
             <span>📥</span> 다운로드
           </button>
@@ -1170,6 +1173,24 @@
       // detailHtml을 파싱해서 블록으로 변환
       detailBlocks = parseHtmlToBlocks(p.detailHtml || '');
 
+      // 옵션 블록이 없으면 자동 생성해서 추가
+      const hasOptionsBlock = detailBlocks.some(b => b.type === 'options');
+      if (!hasOptionsBlock && p.results && p.results.length > 0) {
+        // 적절한 위치에 옵션 블록 삽입 (제목 다음, 또는 첫 번째 이미지 다음)
+        let insertIndex = 0;
+        for (let i = 0; i < detailBlocks.length; i++) {
+          if (detailBlocks[i].type === 'heading' && detailBlocks[i].level === 'h1') {
+            insertIndex = i + 1;
+            break;
+          }
+          if (detailBlocks[i].type === 'image') {
+            insertIndex = i + 1;
+            break;
+          }
+        }
+        detailBlocks.splice(insertIndex, 0, generateOptionsBlock(p));
+      }
+
       if (detailBlocks.length === 0) {
         editor.innerHTML = `
           <div class="empty-state">
@@ -1183,6 +1204,76 @@
         renderBlocks();
         updatePreview();
       }
+    }
+
+    // 옵션 블록 생성 (상품 데이터에서)
+    function generateOptionsBlock(product) {
+      const options = product.results || [];
+      if (options.length === 0) return null;
+
+      // 옵션 테이블 HTML 생성
+      const tableHtml = `
+        <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
+          <thead>
+            <tr style="background: #f5f5f5;">
+              <th style="padding: 12px; border: 1px solid #ddd; text-align: left;">옵션</th>
+              <th style="padding: 12px; border: 1px solid #ddd; text-align: right;">가격</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${options.map(opt => {
+              const opt1 = opt.optionName1 || opt.optionName1Cn || '';
+              const opt2 = opt.optionName2 || opt.optionName2Cn || '';
+              const fullName = opt2 ? `${opt1} - ${opt2}` : opt1;
+              const price = opt.price ? Number(opt.price).toLocaleString() + '원' : '-';
+              return `
+                <tr>
+                  <td style="padding: 12px; border: 1px solid #ddd;">${fullName}</td>
+                  <td style="padding: 12px; border: 1px solid #ddd; text-align: right;">${price}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+
+      return {
+        type: 'options',
+        content: tableHtml,
+        title: '구매 옵션'
+      };
+    }
+
+    // 옵션 블록 리셋
+    function resetOptionsBlock() {
+      if (!currentProduct || !currentProduct.results || currentProduct.results.length === 0) {
+        showToast('옵션 데이터가 없습니다.', 'warning');
+        return;
+      }
+
+      // 기존 옵션 블록 찾아서 제거
+      detailBlocks = detailBlocks.filter(b => b.type !== 'options');
+
+      // 새 옵션 블록 생성
+      const newOptionsBlock = generateOptionsBlock(currentProduct);
+
+      // 적절한 위치에 삽입
+      let insertIndex = 0;
+      for (let i = 0; i < detailBlocks.length; i++) {
+        if (detailBlocks[i].type === 'heading' && detailBlocks[i].level === 'h1') {
+          insertIndex = i + 1;
+          break;
+        }
+        if (detailBlocks[i].type === 'image') {
+          insertIndex = i + 1;
+          break;
+        }
+      }
+
+      detailBlocks.splice(insertIndex, 0, newOptionsBlock);
+      renderBlocks();
+      updatePreview();
+      showToast('옵션 블록이 리셋되었습니다.', 'success');
     }
 
     // HTML을 블록으로 파싱 (순서 유지, 이미지/텍스트/테이블 등 모두 파싱)
@@ -1372,6 +1463,26 @@
               </div>
             </div>
           `;
+        } else if (block.type === 'options') {
+          // 옵션 전용 블록 - 삭제와 순서 변경만 가능
+          return `
+            <div class="editor-block" ${dragAttrs} style="border: 2px solid #f59e0b;">
+              <div class="block-header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;">
+                <span class="block-type" style="color: white;">🛒 옵션 블록</span>
+                <div class="block-actions">
+                  <button onclick="moveBlockUp(${index})" style="background: rgba(255,255,255,0.2); color: white;">↑</button>
+                  <button onclick="moveBlockDown(${index})" style="background: rgba(255,255,255,0.2); color: white;">↓</button>
+                  <button class="danger" onclick="deleteBlock(${index})">삭제</button>
+                </div>
+              </div>
+              <div class="block-content" style="overflow-x: auto;">
+                <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #92400e;">
+                  ${block.title || '구매 옵션'} (${currentProduct?.results?.length || 0}개)
+                </div>
+                ${block.content}
+              </div>
+            </div>
+          `;
         } else if (block.type === 'table') {
           return `
             <div class="editor-block" ${dragAttrs}>
@@ -1442,6 +1553,13 @@
           const level = block.level || 'h2';
           const fontSize = level === 'h1' ? '24px' : level === 'h2' ? '20px' : '16px';
           return `<${level} style="font-size: ${fontSize}; font-weight: bold; margin: 16px 0 8px 0; color: #333;">${block.content}</${level}>`;
+        } else if (block.type === 'options') {
+          return `
+            <div style="margin-bottom: 16px;">
+              <h2 style="font-size: 18px; font-weight: bold; margin-bottom: 12px; color: #333;">${block.title || '구매 옵션'}</h2>
+              ${block.content}
+            </div>
+          `;
         } else if (block.type === 'table') {
           return `<div style="margin-bottom: 12px; overflow-x: auto;">${block.content}</div>`;
         } else if (block.type === 'list') {
@@ -1599,6 +1717,14 @@
           const level = block.level || 'h2';
           const fontSize = level === 'h1' ? '28px' : level === 'h2' ? '20px' : '16px';
           return `<${level} style="font-size: ${fontSize}; font-weight: bold; margin-bottom: 12px; color: #333;">${block.content}</${level}>`;
+        } else if (block.type === 'options') {
+          // 옵션 블록은 제목 + 테이블로 저장
+          return `
+            <div style="margin-bottom: 30px;">
+              <h2 style="font-size: 20px; margin-bottom: 12px; color: #333;">${block.title || '구매 옵션'}</h2>
+              ${block.content}
+            </div>
+          `;
         } else if (block.type === 'table') {
           return block.content; // 테이블은 원본 HTML 그대로
         } else if (block.type === 'list') {
