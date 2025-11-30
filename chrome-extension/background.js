@@ -516,7 +516,7 @@ async function findCoupangTab() {
     try {
       await chrome.scripting.executeScript({
         target: { tabId: coupangTab.id },
-        files: ['content-coupang.js']
+        files: ['content/content-coupang.js']
       });
       console.log('✅ Content script 주입 완료');
 
@@ -1043,7 +1043,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             console.log('🔄 Content script 자동 주입 시도...');
             chrome.scripting.executeScript({
               target: { tabId: coupangTab.id },
-              files: ['content-coupang.js']
+              files: ['content/content-coupang.js']
             }).then(() => {
               console.log('✅ Content script 주입 완료, 메시지 재전송...');
               // 잠시 대기 후 메시지 재전송
@@ -3856,7 +3856,7 @@ async function ensureContentScript(tabId) {
   try {
     await chrome.scripting.executeScript({
       target: { tabId: tabId },
-      files: ['content-coupang.js']
+      files: ['content/content-coupang.js']
     });
     console.log('✅ Content script injected successfully');
 
