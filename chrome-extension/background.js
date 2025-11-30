@@ -3343,6 +3343,17 @@ async function handleCoupangLogin(credentials) {
     }
 
     if (response && response.success) {
+      // 로그인 성공 후 /qvt/registration으로 이동 (QVT API 세션 확보)
+      console.log('🔄 로그인 성공, /qvt/registration으로 이동하여 QVT 세션 확보...');
+      try {
+        await chrome.tabs.update(coupangTab, { url: 'https://supplier.coupang.com/qvt/registration' });
+        await waitForTabLoad(coupangTab);
+        await ensureContentScript(coupangTab);
+        console.log('✅ QVT 페이지 로드 완료');
+      } catch (e) {
+        console.warn('⚠️ QVT 페이지 이동 실패:', e.message);
+      }
+
       showNotification('쿠팡 로그인 성공', '로그인이 완료되었습니다.');
       return { success: true };
     } else {
