@@ -3271,9 +3271,10 @@ async function handleCoupangLogin(credentials) {
   try {
     console.log('🔐 Starting Coupang login...');
 
-    // 로그인 전 쿠팡 캐시 쿠키 전체 삭제 (깨끗한 상태로 시작)
-    console.log('🧹 로그인 전 쿠팡 쿠키 정리...');
-    await clearCoupangCookies();
+    // 쿠키 삭제 비활성화 - 전체 쿠키 삭제가 봇 탐지에 걸릴 수 있음
+    // 대신 기존 세션을 유지하고 로그인 시도
+    // console.log('🧹 로그인 전 쿠팡 쿠키 정리...');
+    // await clearCoupangCookies();
 
     // 메인 페이지로 이동 (자연스럽게 OAuth 로그인 페이지로 리다이렉트됨)
     // 직접 OAuth URL 접근 시 Akamai 보안 차단 우회
