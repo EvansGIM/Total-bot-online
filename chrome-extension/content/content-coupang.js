@@ -332,10 +332,15 @@ async function doLogin(username, password) {
     const currentUrl = window.location.href;
     console.log('🔍 Current URL:', currentUrl);
 
+    // 비밀번호 만료 페이지인 경우 - 비밀번호 변경 필요
+    if (currentUrl.includes('/password-expired') && currentUrl.includes('supplier.coupang.com')) {
+      console.log('⚠️ Password expired! User needs to change password.');
+      throw new Error('비밀번호가 만료되었습니다. 쿠팡 윙에서 비밀번호를 변경해주세요.');
+    }
+
     // 이미 로그인 성공 페이지인 경우
     const successPatterns = [
       '/dashboard',
-      '/password-expired',
       '/qvt/',
       '/home',
       '/registration'
@@ -633,6 +638,11 @@ function sleep(ms) {
  */
 async function searchCoupangCategories(keyword) {
   try {
+    // 비밀번호 만료 페이지 체크
+    if (window.location.href.includes('/password-expired')) {
+      throw new Error('비밀번호가 만료되었습니다. 쿠팡 윙에서 비밀번호를 변경해주세요.');
+    }
+
     console.log('🔍 Searching for keyword:', keyword);
 
     const url = `https://supplier.coupang.com/qvt/kan-categories/search?keyword=${encodeURIComponent(keyword)}`;
