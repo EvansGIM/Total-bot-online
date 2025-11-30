@@ -10235,13 +10235,13 @@
       showAlert(`AI가 ${uniqueValues.length}개의 옵션을 분석중입니다...`, 'info');
 
       try {
-        // AI API 호출
-        const response = await fetch('/api/ai-rename', {
+        // AI API 호출 (Gemini 사용)
+        const response = await fetch('/api/gemini/rename-options', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             optionValues: uniqueValues,
-            type: type
+            mode: 'auto'  // 자동 중국어→한국어 변환
           })
         });
 
