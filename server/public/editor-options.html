@@ -9204,7 +9204,7 @@
             ">
               <h2 style="margin: 0; font-size: 24px;">✂️ 배경 제거 (누끼)</h2>
               <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 14px;">
-                Pixian.ai를 사용하여 이미지 배경을 자동으로 제거합니다
+                이미지 배경을 자동으로 제거합니다
               </p>
             </div>
 
@@ -9450,8 +9450,53 @@
       // 모달 닫기
       closeBgRemoveModal();
 
+      // 상세페이지 detailPageItems의 이미지도 업데이트
+      let needCanvasRefresh = false;
+
+      if (bgRemoveImageType === 'option') {
+        imagesToProcess.forEach(item => {
+          const oldUrl = item.url;
+          const sampleIdx = item.indices[0];
+          const newUrl = productData.results[sampleIdx]?.imageLink || productData.results[sampleIdx]?.titleImage?.[0];
+
+          if (newUrl && newUrl !== oldUrl) {
+            detailPageItems.forEach(block => {
+              if (block.type === 'option-block' && block.imageSrc === oldUrl) {
+                block.imageSrc = newUrl;
+                needCanvasRefresh = true;
+              }
+            });
+          }
+        });
+      } else if (bgRemoveImageType === 'additional') {
+        imagesToProcess.forEach(item => {
+          const oldUrl = item.url;
+          let newUrl;
+          if (item.isMain) {
+            newUrl = productData.mainImage;
+          } else {
+            const imgIndex = item.index - 1;
+            newUrl = productData.images?.[imgIndex];
+          }
+
+          if (newUrl && newUrl !== oldUrl) {
+            detailPageItems.forEach(block => {
+              if ((block.type === 'image' || block.type === 'brand-image') && block.imageSrc === oldUrl) {
+                block.imageSrc = newUrl;
+                needCanvasRefresh = true;
+              }
+            });
+          }
+        });
+      }
+
+      if (needCanvasRefresh) {
+        renderDetailCanvas();
+      }
+
       // UI 갱신
-      displayProduct(productData);
+      refreshImageTabs();           // 이미지 탭 새로고침
+      renderDetailSources();        // 상세페이지 소스 이미지 새로고침
       scheduleAutoSave();
 
       // 결과 알림
