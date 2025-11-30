@@ -2573,9 +2573,14 @@
           <div class="image-section">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
               <h3 style="margin: 0;">추가 이미지</h3>
-              <button class="btn btn-primary" onclick="openAIImageEditor('additional')" style="font-size: 13px; padding: 6px 12px;">
-                🎨 AI 편집
-              </button>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-secondary" onclick="removeBackgroundBatch('additional')" style="font-size: 13px; padding: 6px 12px;">
+                  ✂️ 배경제거
+                </button>
+                <button class="btn btn-primary" onclick="openAIImageEditor('additional')" style="font-size: 13px; padding: 6px 12px;">
+                  🎨 AI 편집
+                </button>
+              </div>
             </div>
             <div class="images-grid" id="additionalImagesGridTab">
               <!-- 추가 이미지들이 여기에 동적으로 추가됨 -->
@@ -2586,9 +2591,14 @@
           <div class="image-section">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
               <h3 style="margin: 0;">옵션 이미지</h3>
-              <button class="btn btn-primary" onclick="openAIImageEditor('option')" style="font-size: 13px; padding: 6px 12px;">
-                🎨 AI 편집
-              </button>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-secondary" onclick="removeBackgroundBatch('option')" style="font-size: 13px; padding: 6px 12px;">
+                  ✂️ 배경제거
+                </button>
+                <button class="btn btn-primary" onclick="openAIImageEditor('option')" style="font-size: 13px; padding: 6px 12px;">
+                  🎨 AI 편집
+                </button>
+              </div>
             </div>
             <div class="images-grid" id="optionImagesGridTab">
               <!-- 옵션 이미지 유니크 값들이 여기에 동적으로 추가됨 -->
@@ -9074,6 +9084,124 @@
       setTimeout(() => {
         alert.remove();
       }, 5000);
+    }
+
+    // 배경 제거 일괄 처리
+    async function removeBackgroundBatch(imageType) {
+      // 이미지 타입에 따라 다른 이미지 목록 가져오기
+      let imagesToProcess = [];
+      let imageIndices = []; // 원본 배열에서의 인덱스 저장
+
+      if (imageType === 'additional') {
+        // 추가 이미지들
+        imagesToProcess = (productData.images || []).map((img, idx) => ({ url: img, index: idx }));
+      } else if (imageType === 'option') {
+        // 옵션 이미지들 (유니크 값만)
+        const uniqueOptionImages = new Map();
+        productData.results.forEach((option, idx) => {
+          const imgSrc = option.imageLink || option.titleImage?.[0] || '';
+          if (imgSrc && !uniqueOptionImages.has(imgSrc)) {
+            uniqueOptionImages.set(imgSrc, { url: imgSrc, indices: [idx] });
+          } else if (imgSrc) {
+            uniqueOptionImages.get(imgSrc).indices.push(idx);
+          }
+        });
+        imagesToProcess = Array.from(uniqueOptionImages.values());
+      }
+
+      if (imagesToProcess.length === 0) {
+        showAlert('처리할 이미지가 없습니다.', 'error');
+        return;
+      }
+
+      // 확인 모달
+      const confirmed = confirm(`선택한 ${imageType === 'additional' ? '추가' : '옵션'} 이미지 ${imagesToProcess.length}개의 배경을 제거하시겠습니까?\n\n※ Pixian.ai API를 사용합니다.`);
+      if (!confirmed) return;
+
+      // 진행 상태 표시
+      const progressModal = document.createElement('div');
+      progressModal.id = 'bg-remove-progress';
+      progressModal.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 10000;">
+          <div style="background: white; padding: 30px; border-radius: 12px; text-align: center; min-width: 300px;">
+            <h3 style="margin: 0 0 20px 0;">✂️ 배경 제거 중...</h3>
+            <div id="bg-remove-status" style="margin-bottom: 15px; color: #666;">준비 중...</div>
+            <div style="width: 100%; height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden;">
+              <div id="bg-remove-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); transition: width 0.3s;"></div>
+            </div>
+            <div id="bg-remove-count" style="margin-top: 10px; font-size: 14px; color: #888;">0 / ${imagesToProcess.length}</div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(progressModal);
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (let i = 0; i < imagesToProcess.length; i++) {
+        const item = imagesToProcess[i];
+        const statusEl = document.getElementById('bg-remove-status');
+        const barEl = document.getElementById('bg-remove-bar');
+        const countEl = document.getElementById('bg-remove-count');
+
+        statusEl.textContent = `처리 중: ${i + 1}번째 이미지...`;
+        barEl.style.width = `${((i + 1) / imagesToProcess.length) * 100}%`;
+        countEl.textContent = `${i + 1} / ${imagesToProcess.length}`;
+
+        try {
+          const response = await authFetch('/api/remove-background', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageUrl: item.url })
+          });
+
+          const result = await response.json();
+
+          if (result.success && result.result) {
+            // 결과 이미지로 교체
+            if (imageType === 'additional') {
+              productData.images[item.index] = result.result;
+            } else if (imageType === 'option') {
+              // 동일한 이미지를 사용하는 모든 옵션 업데이트
+              item.indices.forEach(idx => {
+                if (productData.results[idx].imageLink) {
+                  productData.results[idx].imageLink = result.result;
+                }
+                if (productData.results[idx].titleImage) {
+                  productData.results[idx].titleImage[0] = result.result;
+                }
+              });
+            }
+            successCount++;
+          } else {
+            console.error('[배경제거] 실패:', result.message);
+            failCount++;
+          }
+        } catch (error) {
+          console.error('[배경제거] 오류:', error);
+          failCount++;
+        }
+      }
+
+      // 진행 모달 제거
+      progressModal.remove();
+
+      // UI 갱신
+      if (imageType === 'additional') {
+        renderAdditionalImagesGridTab();
+      } else {
+        renderOptionImagesGridTab();
+      }
+
+      // 자동 저장
+      scheduleAutoSave();
+
+      // 결과 알림
+      if (failCount === 0) {
+        showAlert(`✅ ${successCount}개 이미지 배경 제거 완료!`, 'success');
+      } else {
+        showAlert(`⚠️ 완료: ${successCount}개 성공, ${failCount}개 실패`, 'warning');
+      }
     }
 
     // AI 이미지 편집 모달 열기

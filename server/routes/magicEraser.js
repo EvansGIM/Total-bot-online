@@ -78,6 +78,86 @@ router.post('/magic-erase', async (req, res) => {
 });
 
 /**
+ * POST /api/remove-background
+ * Pixian.ai API를 사용한 배경 제거 (누끼)
+ * Body: { imageUrl: "https://..." } 또는 { imageBase64: "data:image/..." }
+ */
+router.post('/remove-background', async (req, res) => {
+  try {
+    const { imageUrl, imageBase64 } = req.body;
+
+    if (!imageUrl && !imageBase64) {
+      return res.status(400).json({
+        success: false,
+        message: '이미지 URL 또는 Base64 데이터가 필요합니다.'
+      });
+    }
+
+    console.log('[Remove BG] 배경 제거 요청 받음');
+
+    const axios = require('axios');
+    const FormData = require('form-data');
+
+    // Pixian.ai API 설정
+    const PIXIAN_API_URL = 'https://api.pixian.ai/api/v2/remove-background';
+    const PIXIAN_USERNAME = 'pxshrb4abjc56ma';
+    const PIXIAN_PASSWORD = '27796ibp17pm6ldg1tse0nbb6svefh6aeius61auk5732fumss2p';
+
+    const form = new FormData();
+
+    if (imageUrl) {
+      // URL로 이미지 전달
+      form.append('image.url', imageUrl);
+    } else if (imageBase64) {
+      // Base64를 버퍼로 변환하여 전달
+      const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+      form.append('image', imageBuffer, {
+        filename: 'image.png',
+        contentType: 'image/png'
+      });
+    }
+
+    // Pixian API 호출
+    const response = await axios.post(PIXIAN_API_URL, form, {
+      headers: {
+        ...form.getHeaders()
+      },
+      auth: {
+        username: PIXIAN_USERNAME,
+        password: PIXIAN_PASSWORD
+      },
+      responseType: 'arraybuffer',
+      timeout: 60000 // 60초 타임아웃
+    });
+
+    if (response.status === 200) {
+      // 결과를 Base64로 변환
+      const resultBase64 = `data:image/png;base64,${Buffer.from(response.data).toString('base64')}`;
+      console.log('[Remove BG] 배경 제거 성공');
+
+      res.json({
+        success: true,
+        result: resultBase64
+      });
+    } else {
+      console.error('[Remove BG] API 실패:', response.status);
+      res.status(500).json({
+        success: false,
+        message: `Pixian API 오류: ${response.status}`
+      });
+    }
+
+  } catch (error) {
+    console.error('[Remove BG] 오류:', error.message);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+/**
  * GET /api/magic-erase/test
  * 설치 상태 확인
  */
