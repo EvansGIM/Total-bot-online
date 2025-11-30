@@ -430,40 +430,32 @@ async function checkUploadedProductsApproval() {
 
     console.log(`📋 확인할 견적서: ${Object.keys(quoteGroups).length}개`);
 
-    // 3. 쿠팡 탭 찾기
-    const coupangTabId = await findCoupangTab();
-    if (!coupangTabId) {
-      console.log('⚠️ 쿠팡 탭을 찾을 수 없습니다. 쿠팡에 로그인해주세요.');
-      return;
-    }
-
-    // 4. vendorId 가져오기
+    // 3. vendorId 가져오기 (Direct API 방식)
     if (!cachedVendorId) {
-      const vendorResult = await chrome.tabs.sendMessage(coupangTabId, {
-        action: 'getVendorId'
-      });
+      console.log('🔍 vendorId 가져오는 중 (Direct API)...');
+      const vendorResult = await getVendorIdDirect();
 
       if (!vendorResult || !vendorResult.success) {
-        console.log('⚠️ vendorId를 가져올 수 없습니다.');
+        console.log('⚠️ vendorId를 가져올 수 없습니다. 쿠팡에 로그인해주세요.');
         return;
       }
       cachedVendorId = vendorResult.vendorId;
       console.log('✅ vendorId:', cachedVendorId);
     }
 
-    // 5. 각 견적서 상태 확인
+    // 4. 각 견적서 상태 확인 (Direct API 방식)
     for (const [quoteId, productIds] of Object.entries(quoteGroups)) {
-      console.log(`\n🔍 견적서 ${quoteId} 확인 중...`);
+      console.log(`\n🔍 견적서 ${quoteId} 확인 중... (Direct API)`);
 
       try {
-        const statusResult = await chrome.tabs.sendMessage(coupangTabId, {
-          action: 'checkQuotationStatus',
-          quotationId: quoteId,
-          vendorId: cachedVendorId
-        });
+        const statusResult = await checkQuotationStatusDirect(quoteId, cachedVendorId);
 
         if (statusResult && statusResult.success) {
           console.log(`   📊 결과: ${statusResult.message}`);
+          console.log(`   📊 SKU: ${statusResult.totalSku}개, 심사중: ${statusResult.pending}개, 승인: ${statusResult.approved}개`);
+
+          // SKU 상태 업데이트
+          await updateProductsSkuStatus(productIds, statusResult);
 
           // 승인 완료 시 상태 변경
           if (statusResult.isApproved) {
@@ -474,8 +466,8 @@ async function checkUploadedProductsApproval() {
           console.log(`   ⚠️ 상태 확인 실패: ${statusResult?.error || '알 수 없는 오류'}`);
         }
 
-        // Rate limiting: 2-4초 대기
-        await sleep(2000 + Math.random() * 2000);
+        // Rate limiting: 1-2초 대기
+        await sleep(1000 + Math.random() * 1000);
 
       } catch (error) {
         console.error(`   ❌ 견적서 ${quoteId} 확인 오류:`, error);
