@@ -4504,6 +4504,27 @@
       return items;
     }
 
+    // 옵션 탭의 옵션명을 상세페이지 아이템에 동기화
+    function syncOptionNamesToDetailPage() {
+      if (!productData.results || !detailPageItems) return;
+
+      // productData.results에서 유니크한 옵션명 목록 생성
+      const currentOptionNames = [...new Set(
+        productData.results.map(opt => opt.optionName1 || opt.optionName1Cn || '')
+      )].filter(name => name);
+
+      // detailPageItems의 option-block들 찾기
+      const optionBlocks = detailPageItems.filter(item => item.type === 'option-block');
+
+      // 순서대로 매칭하여 옵션명 동기화
+      optionBlocks.forEach((block, index) => {
+        if (currentOptionNames[index] && block.optionName !== currentOptionNames[index]) {
+          console.log(`[Sync] 옵션명 동기화: "${block.optionName}" → "${currentOptionNames[index]}"`);
+          block.optionName = currentOptionNames[index];
+        }
+      });
+    }
+
     // 상세페이지 에디터 초기화
     function initDetailPageEditor() {
       renderDetailSources();
@@ -4512,6 +4533,10 @@
       if (productData.detailPageItems && productData.detailPageItems.length > 0) {
         console.log('[Editor] 저장된 detailPageItems 불러오기 (' + productData.detailPageItems.length + '개)');
         detailPageItems = productData.detailPageItems;
+
+        // 옵션 탭에서 수정된 옵션명을 상세페이지에 동기화
+        syncOptionNamesToDetailPage();
+
         // 품질표시사항에 현재 설정값 적용
         updateQualityTableFromSettings(detailPageItems);
         renderDetailCanvas();
