@@ -106,10 +106,21 @@ async function getOrCreateApiTab() {
  * 기존 쿠팡 탭의 캐시/JavaScript 에러를 피함
  */
 async function coupangApiFetch(url, options = {}) {
+  // 먼저 캐시 쿠키 삭제
+  await clearCoupangCacheCookies();
+
   const tabId = await getOrCreateApiTab();
 
   if (!tabId) {
     throw new Error('API 탭을 생성할 수 없습니다');
+  }
+
+  // API 탭 새로고침하여 캐시된 상태 초기화
+  try {
+    await chrome.tabs.reload(tabId, { bypassCache: true });
+    await sleep(2000); // 새로고침 대기
+  } catch (e) {
+    console.log('⚠️ 탭 새로고침 실패, 계속 진행');
   }
 
   console.log(`📡 [API Tab ${tabId}] Fetching: ${url}`);
@@ -386,7 +397,68 @@ let coupangOperationCount = 0;
 const COOKIE_CLEAR_THRESHOLD = 10; // 10번 작업 후 쿠키 삭제
 
 /**
- * 쿠팡 관련 쿠키 삭제
+ * 캐시 관련 쿠키만 선택적 삭제 (로그인 유지)
+ * 페이지 캐시 문제를 일으키는 쿠키들만 삭제
+ */
+async function clearCoupangCacheCookies() {
+  console.log('🧹 쿠팡 캐시 쿠키 삭제 중...');
+
+  // 삭제할 캐시 관련 쿠키 패턴 (로그인 쿠키는 제외)
+  const cachePatterns = [
+    /^_ga/,           // Google Analytics
+    /^_gid/,
+    /^_gat/,
+    /^PCID/,          // 페이지 캐시 ID
+    /^SEARCHPAGE/,    // 검색 페이지 캐시
+    /^x-coupang-/,    // 쿠팡 캐시 관련
+    /^wcs_/,          // 웹 캐시
+    /^ab\./,          // A/B 테스트
+    /^_fbp/,          // Facebook pixel
+    /^_tt_/,          // TikTok
+    /cache/i,         // 캐시 관련
+    /^recent/i,       // 최근 항목
+  ];
+
+  // 유지해야 할 로그인 관련 쿠키
+  const keepPatterns = [
+    /^SUID/,          // 세션 ID
+    /^SID/,
+    /session/i,
+    /^token/i,
+    /^auth/i,
+    /^login/i,
+    /^JSESSIONID/,
+  ];
+
+  let deletedCount = 0;
+  const cookies = await chrome.cookies.getAll({ domain: '.coupang.com' });
+
+  for (const cookie of cookies) {
+    const name = cookie.name;
+
+    // 유지해야 할 쿠키인지 확인
+    const shouldKeep = keepPatterns.some(pattern => pattern.test(name));
+    if (shouldKeep) continue;
+
+    // 삭제해야 할 캐시 쿠키인지 확인
+    const shouldDelete = cachePatterns.some(pattern => pattern.test(name));
+    if (shouldDelete) {
+      try {
+        const url = `https://${cookie.domain.startsWith('.') ? cookie.domain.slice(1) : cookie.domain}${cookie.path}`;
+        await chrome.cookies.remove({ url, name });
+        deletedCount++;
+      } catch (e) {
+        // 무시
+      }
+    }
+  }
+
+  console.log(`🧹 캐시 쿠키 ${deletedCount}개 삭제 완료`);
+  return deletedCount;
+}
+
+/**
+ * 쿠팡 관련 쿠키 전체 삭제
  */
 async function clearCoupangCookies() {
   console.log('🧹 쿠팡 쿠키 삭제 시작...');
