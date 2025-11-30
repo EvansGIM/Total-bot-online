@@ -1185,7 +1185,7 @@
       }
     }
 
-    // HTML을 블록으로 파싱
+    // HTML을 블록으로 파싱 (순서 유지, 이미지/텍스트/테이블 등 모두 파싱)
     function parseHtmlToBlocks(html) {
       if (!html || html.trim() === '') return [];
 
@@ -1193,24 +1193,100 @@
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
 
-      // img 태그와 텍스트 노드를 순서대로 파싱
-      const children = tempDiv.querySelectorAll('img, p, div, span, h1, h2, h3, h4, h5, h6');
+      // 최상위 컨테이너 찾기 (보통 max-width div)
+      let container = tempDiv.querySelector('div[style*="max-width"]') || tempDiv;
 
-      // 먼저 이미지들만 추출
-      tempDiv.querySelectorAll('img').forEach(img => {
-        const src = img.getAttribute('src');
-        if (src) {
-          blocks.push({ type: 'image', content: src });
+      // 자식 요소들을 순서대로 처리
+      function processNode(node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const text = node.textContent.trim();
+          if (text) {
+            blocks.push({ type: 'text', content: text });
+          }
+          return;
         }
-      });
 
-      // 이미지가 없으면 전체 HTML에서 텍스트 추출 시도
-      if (blocks.length === 0) {
-        const text = tempDiv.textContent.trim();
-        if (text) {
-          blocks.push({ type: 'text', content: text });
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+        const tagName = node.tagName.toLowerCase();
+
+        // 이미지 처리
+        if (tagName === 'img') {
+          const src = node.getAttribute('src');
+          if (src) {
+            blocks.push({ type: 'image', content: src });
+          }
+          return;
         }
+
+        // 제목 처리
+        if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
+          const text = node.textContent.trim();
+          if (text) {
+            blocks.push({ type: 'heading', content: text, level: tagName });
+          }
+          return;
+        }
+
+        // 테이블 처리
+        if (tagName === 'table') {
+          blocks.push({ type: 'table', content: node.outerHTML });
+          return;
+        }
+
+        // ul/ol 리스트 처리
+        if (tagName === 'ul' || tagName === 'ol') {
+          blocks.push({ type: 'list', content: node.outerHTML });
+          return;
+        }
+
+        // div, p 등 컨테이너 처리
+        if (['div', 'p', 'section', 'article'].includes(tagName)) {
+          // 내부에 이미지가 있으면 이미지 추출
+          const imgs = node.querySelectorAll('img');
+          if (imgs.length > 0) {
+            imgs.forEach(img => {
+              const src = img.getAttribute('src');
+              if (src) {
+                blocks.push({ type: 'image', content: src });
+              }
+            });
+          }
+
+          // 내부에 테이블이 있으면 테이블 추출
+          const tables = node.querySelectorAll('table');
+          if (tables.length > 0) {
+            tables.forEach(table => {
+              blocks.push({ type: 'table', content: table.outerHTML });
+            });
+          }
+
+          // 내부에 리스트가 있으면 리스트 추출
+          const lists = node.querySelectorAll('ul, ol');
+          if (lists.length > 0) {
+            lists.forEach(list => {
+              blocks.push({ type: 'list', content: list.outerHTML });
+            });
+          }
+
+          // 이미지/테이블/리스트 외의 텍스트가 있으면 추출
+          if (imgs.length === 0 && tables.length === 0 && lists.length === 0) {
+            const text = node.textContent.trim();
+            if (text) {
+              // 스타일 정보도 보존
+              const style = node.getAttribute('style') || '';
+              blocks.push({ type: 'text', content: text, style: style });
+            }
+          }
+          return;
+        }
+
+        // 기타 요소는 자식 순회
+        node.childNodes.forEach(child => processNode(child));
       }
+
+      // 컨테이너의 직접 자식들을 순서대로 처리
+      container.childNodes.forEach(child => processNode(child));
 
       return blocks;
     }
@@ -1231,14 +1307,16 @@
       }
 
       editor.innerHTML = detailBlocks.map((block, index) => {
-        if (block.type === 'image') {
-          return `
-            <div class="editor-block" draggable="true" data-index="${index}"
+        const dragAttrs = `draggable="true" data-index="${index}"
                  ondragstart="handleDragStart(event, ${index})"
                  ondragend="handleDragEnd(event)"
                  ondragover="handleDragOver(event, ${index})"
                  ondragleave="handleDragLeave(event)"
-                 ondrop="handleDrop(event, ${index})">
+                 ondrop="handleDrop(event, ${index})"`;
+
+        if (block.type === 'image') {
+          return `
+            <div class="editor-block" ${dragAttrs}>
               <div class="block-header">
                 <span class="block-type">🖼️ 이미지</span>
                 <div class="block-actions">
@@ -1255,14 +1333,60 @@
               </div>
             </div>
           `;
-        } else {
+        } else if (block.type === 'heading') {
           return `
-            <div class="editor-block" draggable="true" data-index="${index}"
-                 ondragstart="handleDragStart(event, ${index})"
-                 ondragend="handleDragEnd(event)"
-                 ondragover="handleDragOver(event, ${index})"
-                 ondragleave="handleDragLeave(event)"
-                 ondrop="handleDrop(event, ${index})">
+            <div class="editor-block" ${dragAttrs}>
+              <div class="block-header">
+                <span class="block-type">📌 제목 (${block.level || 'h2'})</span>
+                <div class="block-actions">
+                  <button onclick="moveBlockUp(${index})">↑</button>
+                  <button onclick="moveBlockDown(${index})">↓</button>
+                  <button class="danger" onclick="deleteBlock(${index})">삭제</button>
+                </div>
+              </div>
+              <div class="block-content">
+                <input type="text" value="${escapeHtmlAttr(block.content)}"
+                       onchange="updateBlockContent(${index}, this.value); updatePreview()"
+                       style="width: 100%; padding: 12px; font-size: 18px; font-weight: bold; border: 1px solid #e5e8eb; border-radius: 6px;">
+              </div>
+            </div>
+          `;
+        } else if (block.type === 'table') {
+          return `
+            <div class="editor-block" ${dragAttrs}>
+              <div class="block-header">
+                <span class="block-type">📊 테이블</span>
+                <div class="block-actions">
+                  <button onclick="moveBlockUp(${index})">↑</button>
+                  <button onclick="moveBlockDown(${index})">↓</button>
+                  <button class="danger" onclick="deleteBlock(${index})">삭제</button>
+                </div>
+              </div>
+              <div class="block-content" style="overflow-x: auto;">
+                ${block.content}
+              </div>
+            </div>
+          `;
+        } else if (block.type === 'list') {
+          return `
+            <div class="editor-block" ${dragAttrs}>
+              <div class="block-header">
+                <span class="block-type">📋 리스트</span>
+                <div class="block-actions">
+                  <button onclick="moveBlockUp(${index})">↑</button>
+                  <button onclick="moveBlockDown(${index})">↓</button>
+                  <button class="danger" onclick="deleteBlock(${index})">삭제</button>
+                </div>
+              </div>
+              <div class="block-content">
+                ${block.content}
+              </div>
+            </div>
+          `;
+        } else {
+          // text 블록
+          return `
+            <div class="editor-block" ${dragAttrs}>
               <div class="block-header">
                 <span class="block-type">📝 텍스트</span>
                 <div class="block-actions">
@@ -1292,11 +1416,29 @@
 
       previewContent.innerHTML = detailBlocks.map((block, index) => {
         if (block.type === 'image') {
-          return `<img src="${block.content}" alt="상세이미지 ${index + 1}" style="width: 100%; display: block; margin-bottom: 4px;">`;
+          return `<img src="${block.content}" alt="상세이미지 ${index + 1}" style="width: 100%; display: block; margin-bottom: 8px;">`;
+        } else if (block.type === 'heading') {
+          const level = block.level || 'h2';
+          const fontSize = level === 'h1' ? '24px' : level === 'h2' ? '20px' : '16px';
+          return `<${level} style="font-size: ${fontSize}; font-weight: bold; margin: 16px 0 8px 0; color: #333;">${block.content}</${level}>`;
+        } else if (block.type === 'table') {
+          return `<div style="margin-bottom: 12px; overflow-x: auto;">${block.content}</div>`;
+        } else if (block.type === 'list') {
+          return `<div style="margin-bottom: 12px;">${block.content}</div>`;
         } else {
-          return `<div style="padding: 12px; background: #f9f9f9; margin-bottom: 4px; border-radius: 4px; font-size: 14px; line-height: 1.6;">${block.content.replace(/\n/g, '<br>')}</div>`;
+          return `<div style="padding: 12px; background: #f9f9f9; margin-bottom: 8px; border-radius: 4px; font-size: 14px; line-height: 1.6;">${block.content.replace(/\n/g, '<br>')}</div>`;
         }
       }).join('');
+    }
+
+    // HTML 속성값 이스케이프
+    function escapeHtmlAttr(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
     }
 
     // 드래그 앤 드롭 핸들러
@@ -1428,14 +1570,27 @@
         return;
       }
 
-      // 블록을 HTML로 변환
-      const html = detailBlocks.map(block => {
+      // 블록을 HTML로 변환 (원본 구조 유지)
+      const htmlParts = detailBlocks.map(block => {
         if (block.type === 'image') {
-          return `<img src="${block.content}" style="width: 100%; display: block;">`;
+          return `<div style="margin-bottom: 20px; text-align: center;"><img src="${block.content}" style="max-width: 100%; height: auto; border-radius: 8px;"></div>`;
+        } else if (block.type === 'heading') {
+          const level = block.level || 'h2';
+          const fontSize = level === 'h1' ? '28px' : level === 'h2' ? '20px' : '16px';
+          return `<${level} style="font-size: ${fontSize}; font-weight: bold; margin-bottom: 12px; color: #333;">${block.content}</${level}>`;
+        } else if (block.type === 'table') {
+          return block.content; // 테이블은 원본 HTML 그대로
+        } else if (block.type === 'list') {
+          return block.content; // 리스트도 원본 HTML 그대로
         } else {
-          return `<div style="padding: 12px; font-size: 14px; line-height: 1.6;">${block.content.replace(/\n/g, '<br>')}</div>`;
+          // 텍스트 블록
+          const style = block.style || 'padding: 12px; font-size: 14px; line-height: 1.6;';
+          return `<div style="${style}">${block.content.replace(/\n/g, '<br>')}</div>`;
         }
-      }).join('\n');
+      });
+
+      // 전체를 래퍼로 감싸기
+      const html = `<div style="max-width: 800px; margin: 0 auto; font-family: Arial, sans-serif;">\n${htmlParts.join('\n')}\n</div>`;
 
       try {
         const response = await authFetch(`/api/products/${currentProduct.id}`, {
