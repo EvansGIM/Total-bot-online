@@ -1014,12 +1014,13 @@ async function getVendorIdFromPage() {
       return { success: true, vendorId: sessionStorageVendorId };
     }
 
-    // 3. 페이지 소스에서 패턴 매칭으로 추출
+    // 3. 페이지 소스에서 패턴 매칭으로 추출 (vendorId 형식: A01275313)
     const pageSource = document.body.innerHTML;
     const vendorIdPatterns = [
-      /vendorId['":\s]+['"]?(\d+)['"]?/i,
-      /vendor_id['":\s]+['"]?(\d+)['"]?/i,
-      /"vendorId"\s*:\s*"?(\d+)"?/i
+      /"vendorId"\s*:\s*"([A-Z]\d+)"/i,           // "vendorId":"A01275313"
+      /vendorId['":\s]+['"]?([A-Z]\d+)['"]?/i,   // vendorId: 'A01275313'
+      /vendor_id['":\s]+['"]?([A-Z]\d+)['"]?/i,  // vendor_id: A01275313
+      /"vendorId"\s*:\s*"?([A-Z0-9]+)"?/i,       // 더 넓은 패턴
     ];
 
     for (const pattern of vendorIdPatterns) {
@@ -1030,12 +1031,19 @@ async function getVendorIdFromPage() {
       }
     }
 
-    // 4. sc_lid 쿠키에서 추출 시도
+    // 4. 전역 변수에서 시도 (쿠팡 페이지에 vendorId가 있을 수 있음)
+    if (typeof window.__INITIAL_STATE__ !== 'undefined' && window.__INITIAL_STATE__?.user?.vendorId) {
+      const vendorId = window.__INITIAL_STATE__.user.vendorId;
+      console.log('✅ Found vendorId in __INITIAL_STATE__:', vendorId);
+      return { success: true, vendorId };
+    }
+
+    // 5. sc_vendor_id 쿠키에서 추출 시도 (sc_lid는 userId)
     const cookies = document.cookie.split(';');
     for (const cookie of cookies) {
       const [name, value] = cookie.trim().split('=');
-      if (name === 'sc_lid' && value) {
-        console.log('✅ Found vendorId in sc_lid cookie:', value);
+      if ((name === 'sc_vendor_id' || name === 'vendorId') && value && /^[A-Z]\d+$/.test(value)) {
+        console.log('✅ Found vendorId in cookie:', value);
         return { success: true, vendorId: value };
       }
     }

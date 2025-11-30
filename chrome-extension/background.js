@@ -345,6 +345,7 @@ function analyzeApprovalStatusBg(apiResponse, quotationId) {
 
 /**
  * vendorId 직접 가져오기 (쿠키에서 또는 API로)
+ * vendorId 형식: A01275313 (문자+숫자)
  */
 async function getVendorIdDirect() {
   try {
@@ -353,6 +354,7 @@ async function getVendorIdDirect() {
 
     if (response.ok) {
       const data = await response.json();
+      console.log('📥 [Direct API] /me response:', data);
       if (data.vendorId) {
         console.log('✅ [Direct API] vendorId from /me:', data.vendorId);
         return { success: true, vendorId: data.vendorId };
@@ -363,12 +365,14 @@ async function getVendorIdDirect() {
     const pageResponse = await coupangApiFetch('https://supplier.coupang.com/');
     if (pageResponse.ok) {
       const html = await pageResponse.text();
+      console.log('📥 [Direct API] Page HTML length:', html.length);
 
-      // vendorId 패턴 찾기
+      // vendorId 패턴 찾기 (A01275313 형식 - 문자+숫자)
       const patterns = [
-        /vendorId['":\s]+['"]?(\d+)['"]?/i,
-        /vendor_id['":\s]+['"]?(\d+)['"]?/i,
-        /"vendorId"\s*:\s*"?(\d+)"?/i
+        /"vendorId"\s*:\s*"([A-Z]\d+)"/i,           // "vendorId":"A01275313"
+        /vendorId['":\s]+['"]?([A-Z]\d+)['"]?/i,   // vendorId: 'A01275313'
+        /vendor_id['":\s]+['"]?([A-Z]\d+)['"]?/i,  // vendor_id: A01275313
+        /"vendorId"\s*:\s*"?([A-Z0-9]+)"?/i,       // 더 넓은 패턴
       ];
 
       for (const pattern of patterns) {
@@ -377,6 +381,12 @@ async function getVendorIdDirect() {
           console.log('✅ [Direct API] vendorId from page:', match[1]);
           return { success: true, vendorId: match[1] };
         }
+      }
+
+      // 디버깅: vendorId가 포함된 부분 출력
+      const vendorIdIndex = html.indexOf('vendorId');
+      if (vendorIdIndex !== -1) {
+        console.log('🔍 [Direct API] vendorId context:', html.substring(vendorIdIndex, vendorIdIndex + 50));
       }
     }
 
@@ -3236,6 +3246,10 @@ function showNotification(title, message) {
 async function handleCoupangLogin(credentials) {
   try {
     console.log('🔐 Starting Coupang login...');
+
+    // 로그인 전 쿠팡 캐시 쿠키 전체 삭제 (깨끗한 상태로 시작)
+    console.log('🧹 로그인 전 쿠팡 쿠키 정리...');
+    await clearCoupangCookies();
 
     // 쿠팡 OAuth 로그인 URL
     const oauthUrl = 'https://xauth.coupang.com/auth/realms/seller/protocol/openid-connect/auth?' +
