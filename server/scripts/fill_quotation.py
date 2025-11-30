@@ -135,19 +135,24 @@ def fill_quotation_excel(excel_path, products_data, category, search_tags, size,
 
 if __name__ == '__main__':
     if len(sys.argv) != 7:
-        print("Usage: fill_quotation.py <excel_path> <products_json> <category> <search_tags> <size> <weight>")
+        print("Usage: fill_quotation.py <excel_path> <products_json_file> <category> <search_tags> <size> <weight>")
         sys.exit(1)
 
     excel_path = sys.argv[1]
-    products_json = sys.argv[2]  # JSON 문자열
+    products_json_file = sys.argv[2]  # JSON 파일 경로
     category = sys.argv[3]
     search_tags = sys.argv[4]
     size = sys.argv[5]
     weight = sys.argv[6]
 
-    # JSON 파싱
+    # JSON 파일에서 데이터 로드
     try:
-        products_data = json.loads(products_json)
+        with open(products_json_file, 'r', encoding='utf-8') as f:
+            products_data = json.load(f)
+        print(f"📂 상품 데이터 로드 완료: {len(products_data)}개 상품")
+    except FileNotFoundError:
+        print(f"❌ JSON 파일을 찾을 수 없음: {products_json_file}")
+        sys.exit(1)
     except json.JSONDecodeError as e:
         print(f"❌ JSON 파싱 오류: {e}")
         sys.exit(1)

@@ -252,12 +252,15 @@ router.post('/fill-coupang', async (req, res) => {
       const searchTagsStr = searchTags.join(', ');
       const sizeStr = `${size.width}x${size.height}x${size.depth}`;
       const weightStr = `${weight}g`;
-      const productsJson = JSON.stringify(products);  // 상품 데이터를 JSON 문자열로
+
+      // 상품 데이터를 임시 파일로 저장 (명령줄 인수 크기 제한 회피)
+      const tempDataFile = path.join(os.tmpdir(), `totalbot_products_${Date.now()}.json`);
+      await fs.writeFile(tempDataFile, JSON.stringify(products), 'utf-8');
 
       const pythonArgs = [
         pythonScript,
         filePath,
-        productsJson,
+        tempDataFile,  // JSON 파일 경로로 전달
         fileInfo.category,
         searchTagsStr,
         sizeStr,
@@ -265,6 +268,7 @@ router.post('/fill-coupang', async (req, res) => {
       ];
 
       console.log('   🐍 Python 실행');
+      console.log(`   📁 임시 데이터 파일: ${tempDataFile}`);
 
       try {
         await new Promise((resolve, reject) => {
@@ -305,6 +309,13 @@ router.post('/fill-coupang', async (req, res) => {
           success: false,
           error: error.message
         });
+      } finally {
+        // 임시 데이터 파일 삭제
+        try {
+          await fs.unlink(tempDataFile);
+        } catch (e) {
+          // ignore
+        }
       }
     }
 
