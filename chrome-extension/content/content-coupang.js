@@ -748,18 +748,26 @@ async function checkQuotationApprovalStatus(quotationId, vendorId) {
 
     console.log('📤 API Request:', JSON.stringify(requestBody, null, 2));
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      credentials: 'include',
-      body: JSON.stringify(requestBody)
-    });
+    let response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(requestBody)
+      });
+    } catch (fetchError) {
+      console.error('❌ Fetch error:', fetchError);
+      throw new Error(`네트워크 오류: ${fetchError.message}. 쿠팡 로그인 상태를 확인하세요.`);
+    }
 
     if (!response.ok) {
-      throw new Error(`API request failed: ${response.status}`);
+      const errorText = await response.text().catch(() => '');
+      console.error('❌ API response not ok:', response.status, errorText);
+      throw new Error(`API request failed: ${response.status} - ${errorText || '로그인이 필요할 수 있습니다'}`);
     }
 
     const data = await response.json();
