@@ -9472,22 +9472,40 @@
           const result = await response.json();
 
           if (result.success && result.result) {
+            // base64 이미지를 서버에 업로드하여 URL로 변환
+            let imageUrl = result.result;
+            try {
+              const uploadResp = await authFetch('/api/upload/image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: result.result })
+              });
+              const uploadResult = await uploadResp.json();
+              if (uploadResult.success && uploadResult.url) {
+                // 상대경로를 절대경로로 변환
+                imageUrl = window.location.origin + uploadResult.url;
+                console.log('[배경제거] 이미지 업로드 완료:', imageUrl);
+              }
+            } catch (uploadErr) {
+              console.warn('[배경제거] 이미지 업로드 실패, base64 사용:', uploadErr);
+            }
+
             if (bgRemoveImageType === 'additional') {
               if (item.isMain) {
-                productData.mainImage = result.result;
+                productData.mainImage = imageUrl;
               } else {
                 const imgIndex = item.index - 1;
                 if (imgIndex >= 0 && productData.images) {
-                  productData.images[imgIndex] = result.result;
+                  productData.images[imgIndex] = imageUrl;
                 }
               }
             } else if (bgRemoveImageType === 'option') {
               item.indices.forEach(idx => {
                 if (productData.results[idx].imageLink) {
-                  productData.results[idx].imageLink = result.result;
+                  productData.results[idx].imageLink = imageUrl;
                 }
                 if (productData.results[idx].titleImage) {
-                  productData.results[idx].titleImage[0] = result.result;
+                  productData.results[idx].titleImage[0] = imageUrl;
                 }
               });
             }
@@ -9809,9 +9827,26 @@
           const result = await response.json();
 
           if (result.success) {
+            // base64 이미지를 서버에 업로드하여 URL로 변환
+            let imageUrl = result.imageData;
+            try {
+              const uploadResp = await fetch('/api/upload/image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: result.imageData })
+              });
+              const uploadResult = await uploadResp.json();
+              if (uploadResult.success && uploadResult.url) {
+                imageUrl = window.location.origin + uploadResult.url;
+                console.log('[AI 이미지] 이미지 업로드 완료:', imageUrl);
+              }
+            } catch (uploadErr) {
+              console.warn('[AI 이미지] 이미지 업로드 실패, base64 사용:', uploadErr);
+            }
+
             // 생성된 이미지로 교체
             if (imageType === 'additional') {
-              productData.images[index] = result.imageData;
+              productData.images[index] = imageUrl;
             } else if (imageType === 'option') {
               // 옵션 이미지 업데이트
               const oldUrl = imagesToEdit[index];
@@ -9819,9 +9854,9 @@
                 const optionImgSrc = option.imageLink || option.titleImage?.[0] || '';
                 if (optionImgSrc === oldUrl) {
                   if (option.imageLink) {
-                    option.imageLink = result.imageData;
+                    option.imageLink = imageUrl;
                   } else if (option.titleImage && option.titleImage.length > 0) {
-                    option.titleImage[0] = result.imageData;
+                    option.titleImage[0] = imageUrl;
                   }
                 }
               });

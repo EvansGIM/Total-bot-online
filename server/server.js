@@ -21,8 +21,8 @@ const TOTALBOT_API = 'https://114.202.247.228';
 
 // 미들웨어
 app.use(cors());
-app.use(express.json({ limit: '50mb' })); // 이미지 업로드를 위해 크기 제한 증가
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '100mb' })); // 이미지 업로드를 위해 크기 제한 증가
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
 // 정적 파일 제공 (업로드된 이미지 등)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -70,6 +70,7 @@ const ordersRoutes = require('./routes/orders');
 const settingsRoutes = require('./routes/settings');
 const sizeChartRoutes = require('./routes/sizeChart');
 const priceHistoryRoutes = require('./routes/priceHistory');
+const uploadRoutes = require('./routes/upload');
 
 // 라우트 등록
 console.log('✅ Magic Eraser 라우트 로드됨:', typeof magicEraserRoutes);
@@ -88,7 +89,9 @@ app.use('/api/orders', ordersRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/size-chart', sizeChartRoutes);
 app.use('/api/price-history', priceHistoryRoutes);
+app.use('/api/upload', uploadRoutes);
 console.log('✅ Magic Eraser 라우트 등록 완료');
+console.log('✅ Upload 라우트 등록 완료');
 console.log('✅ Price History 라우트 등록 완료');
 console.log('✅ Size Chart 라우트 등록 완료');
 console.log('✅ Settings 라우트 등록 완료');
