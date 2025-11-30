@@ -894,12 +894,15 @@
         `).join('');
       }
 
-      // 옵션 이미지 (results 배열의 option1Img 또는 imageLink 사용)
+      // 옵션 이미지 (results 배열의 option1Img 또는 imageLink 사용) - 중복 제거
       const options = p.results || [];
       const optionImages = [];
+      const seenUrls = new Set(); // 중복 URL 체크용
+
       options.forEach((opt, i) => {
         const imgUrl = opt.option1Img || opt.imageLink || opt.optionImage || opt.image;
-        if (imgUrl) {
+        if (imgUrl && !seenUrls.has(imgUrl)) {
+          seenUrls.add(imgUrl);
           const optName = opt.optionName1 || opt.optionName1Cn || opt.name || `옵션${i + 1}`;
           optionImages.push({ url: imgUrl, name: optName });
         }
@@ -1164,13 +1167,17 @@
         images.push({ url: img, name: `main_${i + 1}` });
       });
 
-      // 옵션 이미지 (results의 option1Img 또는 imageLink 사용)
+      // 옵션 이미지 (results의 option1Img 또는 imageLink 사용) - 중복 제거
       const options = p.results || [];
-      options.forEach((opt, i) => {
+      const seenUrls = new Set();
+      let optIndex = 1;
+      options.forEach((opt) => {
         const imgUrl = opt.option1Img || opt.imageLink || opt.optionImage || opt.image;
-        if (imgUrl) {
+        if (imgUrl && !seenUrls.has(imgUrl)) {
+          seenUrls.add(imgUrl);
           const optName = opt.optionName1 || opt.optionName1Cn || opt.name || '';
-          images.push({ url: imgUrl, name: `option_${i + 1}_${optName}`.replace(/[^a-zA-Z0-9가-힣_]/g, '') });
+          images.push({ url: imgUrl, name: `option_${optIndex}_${optName}`.replace(/[^a-zA-Z0-9가-힣_]/g, '') });
+          optIndex++;
         }
       });
 
