@@ -58,15 +58,23 @@ if __name__ == '__main__':
     if len(sys.argv) != 3:
         print(json.dumps({
             "success": False,
-            "error": "Usage: edit_excel.py <file_path> <cell_updates_json>"
+            "error": "Usage: edit_excel.py <file_path> <cell_updates_json_file>"
         }))
         sys.exit(1)
 
     file_path = sys.argv[1]
-    cell_updates_json = sys.argv[2]
+    cell_updates_file = sys.argv[2]  # JSON 파일 경로
 
+    # JSON 파일에서 데이터 로드
     try:
-        cell_updates = json.loads(cell_updates_json)
+        with open(cell_updates_file, 'r', encoding='utf-8') as f:
+            cell_updates = json.load(f)
+    except FileNotFoundError:
+        print(json.dumps({
+            "success": False,
+            "error": f"JSON 파일을 찾을 수 없음: {cell_updates_file}"
+        }))
+        sys.exit(1)
     except json.JSONDecodeError as e:
         print(json.dumps({
             "success": False,

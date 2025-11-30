@@ -384,12 +384,16 @@ router.post('/edit-excel', upload.single('file'), async (req, res) => {
 
     // Python 스크립트 실행
     const pythonScript = path.join(__dirname, '../scripts/edit_excel.py');
-    const cellUpdatesJson = JSON.stringify(cellUpdates);
+
+    // cellUpdates를 임시 파일로 저장 (명령줄 인수 크기 제한 회피)
+    const cellUpdatesFile = path.join(os.tmpdir(), `totalbot_cellupdates_${Date.now()}.json`);
+    await fs.writeFile(cellUpdatesFile, JSON.stringify(cellUpdates), 'utf-8');
 
     console.log('🐍 Python 스크립트 실행 중...');
+    console.log(`📁 임시 셀 업데이트 파일: ${cellUpdatesFile}`);
 
     const result = await new Promise((resolve, reject) => {
-      const python = spawn('python3', [pythonScript, xlsxPath, cellUpdatesJson]);
+      const python = spawn('python3', [pythonScript, xlsxPath, cellUpdatesFile]);
 
       let stdout = '';
       let stderr = '';
@@ -421,6 +425,13 @@ router.post('/edit-excel', upload.single('file'), async (req, res) => {
     }
 
     console.log(`✅ ${result.updated}개 셀 수정 완료`);
+
+    // 임시 셀 업데이트 파일 삭제
+    try {
+      await fs.unlink(cellUpdatesFile);
+    } catch (e) {
+      // ignore
+    }
 
     // 수정된 파일 전송
     const outputFilename = originalName.replace('.xlsx', '_edited.xlsx');
