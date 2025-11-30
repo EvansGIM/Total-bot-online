@@ -765,15 +765,16 @@
     // 상품 정보 렌더링
     function renderProductInfo() {
       const p = currentProduct;
-      const mainImage = p.mainImages?.[0] || p.images?.[0] || '';
+      const mainImage = p.mainImage || p.images?.[0] || '';
+      const optionCount = p.results?.length || p.options?.length || 0;
 
-      document.getElementById('pageTitle').textContent = p.title || '상품 상세';
+      document.getElementById('pageTitle').textContent = p.title || p.titleCn || '상품 상세';
 
       document.getElementById('productInfoCard').innerHTML = `
         <img class="product-thumb" src="${mainImage}" alt=""
              onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23f0f0f0%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 font-size=%2240%22 text-anchor=%22middle%22 fill=%22%23ccc%22>📦</text></svg>'">
         <div class="product-details">
-          <h2 class="product-title">${p.title || '제목 없음'}</h2>
+          <h2 class="product-title">${p.title || p.titleCn || '제목 없음'}</h2>
           <div class="product-meta">
             <div class="meta-item">
               <span class="meta-label">견적서 ID</span>
@@ -784,15 +785,15 @@
               <span class="meta-value">${p.uploadedAt ? new Date(p.uploadedAt).toLocaleString('ko-KR') : '-'}</span>
             </div>
             <div class="meta-item">
-              <span class="meta-label">SKU 수</span>
-              <span class="meta-value">${p.skuStatus?.totalSku || p.options?.length || '-'}개</span>
+              <span class="meta-label">옵션 수</span>
+              <span class="meta-value">${p.skuStatus?.totalSku || optionCount || '-'}개</span>
             </div>
             <div class="meta-item">
               <span class="meta-label">승인 상태</span>
               <span class="meta-value">${getStatusText(p)}</span>
             </div>
           </div>
-          ${p.originalTitle ? `<div class="original-name">📝 원본명: ${p.originalTitle}</div>` : ''}
+          ${p.titleCn ? `<div class="original-name">📝 원본명: ${p.titleCn}</div>` : ''}
         </div>
       `;
     }
@@ -812,8 +813,8 @@
     function renderOptionImages() {
       const p = currentProduct;
 
-      // 메인 이미지
-      const mainImages = p.mainImages || [];
+      // 메인 이미지 (images 배열 사용)
+      const mainImages = p.images || [];
       const mainGrid = document.getElementById('mainImagesGrid');
 
       if (mainImages.length === 0) {
@@ -830,12 +831,13 @@
         `).join('');
       }
 
-      // 옵션 이미지
-      const options = p.options || [];
+      // 옵션 이미지 (results 배열 사용)
+      const options = p.results || p.options || [];
       const optionImages = [];
       options.forEach((opt, i) => {
-        if (opt.image) {
-          optionImages.push({ url: opt.image, name: opt.name || `옵션${i + 1}` });
+        if (opt.optionImage || opt.image) {
+          const optName = opt.optionName1 || opt.optionName1Cn || opt.name || `옵션${i + 1}`;
+          optionImages.push({ url: opt.optionImage || opt.image, name: optName });
         }
       });
 
@@ -877,7 +879,7 @@
     function renderSkuTable() {
       const p = currentProduct;
       const skuStatus = p.skuStatus;
-      const options = p.options || [];
+      const options = p.results || p.options || [];
 
       // 반려 섹션
       const rejectionSection = document.getElementById('rejectionSection');
@@ -896,15 +898,20 @@
         if (options.length === 0) {
           tbody.innerHTML = '<tr><td colspan="5" class="empty-state">SKU 정보가 없습니다.</td></tr>';
         } else {
-          tbody.innerHTML = options.map((opt, i) => `
-            <tr>
-              <td>-</td>
-              <td>${opt.name || `옵션 ${i + 1}`}</td>
-              <td>${opt.price ? opt.price.toLocaleString() + '원' : '-'}</td>
-              <td><span class="sku-status pending">미확인</span></td>
-              <td>-</td>
-            </tr>
-          `).join('');
+          tbody.innerHTML = options.map((opt, i) => {
+            const optName = opt.optionName1 || opt.optionName1Cn || opt.name || `옵션 ${i + 1}`;
+            const optName2 = opt.optionName2 || opt.optionName2Cn || '';
+            const fullName = optName2 ? `${optName} / ${optName2}` : optName;
+            return `
+              <tr>
+                <td>-</td>
+                <td>${fullName}</td>
+                <td>${opt.price ? Number(opt.price).toLocaleString() + '원' : '-'}</td>
+                <td><span class="sku-status pending">미확인</span></td>
+                <td>-</td>
+              </tr>
+            `;
+          }).join('');
         }
       } else {
         tbody.innerHTML = skuStatus.skuDetails.map(sku => {
@@ -939,7 +946,7 @@
       document.getElementById('originalInfo').innerHTML = `
         <div class="meta-item">
           <span class="meta-label">원본 상품명 (중국어)</span>
-          <span class="meta-value">${p.originalTitle || p.rawTitle || '-'}</span>
+          <span class="meta-value">${p.titleCn || p.originalTitle || p.rawTitle || '-'}</span>
         </div>
         <div class="meta-item">
           <span class="meta-label">번역된 상품명</span>
@@ -948,7 +955,7 @@
         <div class="meta-item">
           <span class="meta-label">원본 링크</span>
           <span class="meta-value">
-            ${p.sourceUrl ? `<a href="${p.sourceUrl}" target="_blank">${p.sourceUrl}</a>` : '-'}
+            ${p.url || p.sourceUrl ? `<a href="${p.url || p.sourceUrl}" target="_blank">${p.url || p.sourceUrl}</a>` : '-'}
           </span>
         </div>
         <div class="meta-item">
@@ -957,11 +964,11 @@
         </div>
         <div class="meta-item">
           <span class="meta-label">원본 가격</span>
-          <span class="meta-value">${p.originalPrice ? p.originalPrice + ' CNY' : '-'}</span>
+          <span class="meta-value">${p.priceMin ? p.priceMin + ' ~ ' + (p.priceMax || p.priceMin) + ' CNY' : (p.originalPrice ? p.originalPrice + ' CNY' : '-')}</span>
         </div>
         <div class="meta-item">
           <span class="meta-label">수집 일시</span>
-          <span class="meta-value">${p.createdAt ? new Date(p.createdAt).toLocaleString('ko-KR') : '-'}</span>
+          <span class="meta-value">${p.savedAt || p.createdAt ? new Date(p.savedAt || p.createdAt).toLocaleString('ko-KR') : '-'}</span>
         </div>
         <div class="meta-item">
           <span class="meta-label">상품 ID</span>
@@ -969,7 +976,7 @@
         </div>
         <div class="meta-item">
           <span class="meta-label">원본 상품 ID</span>
-          <span class="meta-value">${p.sourceId || p.originalId || '-'}</span>
+          <span class="meta-value">${p.productId || p.sourceId || p.originalId || '-'}</span>
         </div>
       `;
     }
@@ -1010,14 +1017,16 @@
       const images = [];
 
       // 메인 이미지
-      (p.mainImages || []).forEach((img, i) => {
+      (p.images || []).forEach((img, i) => {
         images.push({ url: img, name: `main_${i + 1}` });
       });
 
       // 옵션 이미지
-      (p.options || []).forEach((opt, i) => {
-        if (opt.image) {
-          images.push({ url: opt.image, name: `option_${i + 1}_${opt.name || ''}`.replace(/[^a-zA-Z0-9가-힣_]/g, '') });
+      const options = p.results || p.options || [];
+      options.forEach((opt, i) => {
+        if (opt.optionImage || opt.image) {
+          const optName = opt.optionName1 || opt.optionName1Cn || opt.name || '';
+          images.push({ url: opt.optionImage || opt.image, name: `option_${i + 1}_${optName}`.replace(/[^a-zA-Z0-9가-힣_]/g, '') });
         }
       });
 
