@@ -2565,13 +2565,30 @@ async function handleFillQuotationExcels(data) {
       const product = products[productIndex];
       const options = product.results || [];
 
-      // 1. 추가 이미지들 (images 배열) - 상품의 추가 이미지
+      // 1. 추가 이미지들 (images 배열) - 선택된 추가 이미지만
       if (product.images && Array.isArray(product.images)) {
+        // 선택된 이미지 인덱스 Set (없으면 전체 선택)
+        const selectedSet = product.selectedAdditionalImages
+          ? new Set(product.selectedAdditionalImages)
+          : new Set(product.images.map((_, idx) => idx));
+
         product.images.forEach((imgUrl, imgIndex) => {
-          if (imgUrl) {
+          // 선택된 이미지만 업로드
+          if (imgUrl && selectedSet.has(imgIndex)) {
+            // 확장자 추출 (기본은 png)
+            let ext = 'png';
+            if (imgUrl) {
+              const urlMatch = imgUrl.match(/\.([a-zA-Z]+)(?:\?|$)/);
+              if (urlMatch) {
+                ext = urlMatch[1].toLowerCase();
+                if (!['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+                  ext = 'png';
+                }
+              }
+            }
             imagesToDownload.push({
               url: imgUrl,
-              filename: `additional_${productIndex + 1}_${imgIndex + 1}.png`,
+              filename: `additional_${productIndex + 1}_${imgIndex + 1}.${ext}`,
               type: 'additional',
               productIndex
             });
@@ -3183,7 +3200,31 @@ function getValueForMapping(mapping, context) {
       return productIndex + 1;
 
     case 'calc:additional_image':
-      // 추가 이미지 파일명 (add_ 접두사) - 현재는 빈 값
+      // 선택된 추가 이미지 파일명 (쉼표로 구분, 확장명 포함)
+      if (product && product.images && Array.isArray(product.images)) {
+        const selectedSet = product.selectedAdditionalImages
+          ? new Set(product.selectedAdditionalImages)
+          : new Set(product.images.map((_, idx) => idx)); // 선택 정보 없으면 전체 선택
+
+        const filenames = [];
+        product.images.forEach((imgUrl, imgIndex) => {
+          if (imgUrl && selectedSet.has(imgIndex)) {
+            // 확장자 추출 (기본은 png)
+            let ext = 'png';
+            if (imgUrl) {
+              const urlMatch = imgUrl.match(/\.([a-zA-Z]+)(?:\?|$)/);
+              if (urlMatch) {
+                ext = urlMatch[1].toLowerCase();
+                if (!['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+                  ext = 'png';
+                }
+              }
+            }
+            filenames.push(`additional_${productIndex + 1}_${imgIndex + 1}.${ext}`);
+          }
+        });
+        return filenames.join(',');
+      }
       return '';
 
     case 'calc:size_chart_image':
