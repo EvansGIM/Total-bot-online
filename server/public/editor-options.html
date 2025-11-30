@@ -8681,6 +8681,9 @@
       // 선택된 추가 이미지 저장 (견적서용)
       productData.selectedAdditionalImages = Array.from(selectedAdditionalImages);
 
+      // 편집 완료 상태 표시
+      productData.isEdited = true;
+
       // detailPageItems를 HTML로 변환해서 productData.detailHtml에 저장 (이미지 생성용)
       if (detailPageItems && detailPageItems.length > 0) {
         productData.detailHtml = generateDetailPageHtml(detailPageItems);

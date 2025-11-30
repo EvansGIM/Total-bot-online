@@ -1323,6 +1323,11 @@
       background: #d1fae5;
       color: #065f46;
     }
+
+    .status-badge.edited {
+      background: #e0e7ff;
+      color: #3730a3;
+    }
   </style>
 </head>
 <body>
@@ -1795,7 +1800,11 @@
     let currentTab = 'collected';
 
     // 상태 라벨 반환
-    function getStatusLabel(status) {
+    function getStatusLabel(status, isEdited) {
+      // 편집 완료 상태 우선 표시
+      if (isEdited && status === 'collected') {
+        return '편집완료';
+      }
       const labels = {
         'collected': '수집됨',
         'uploaded': '심사중',
@@ -2162,7 +2171,7 @@
                 <td>${product.url ? `<a href="${product.url}" target="_blank" rel="noopener noreferrer" class="platform-link" title="원본 링크로 이동"><span class="platform-badge badge-${product.platform?.split('-')[0] || 'unknown'}">${getPlatformName(product.platform)}</span></a>` : `<span class="platform-badge badge-${product.platform?.split('-')[0] || 'unknown'}">${getPlatformName(product.platform)}</span>`}</td>
                 <td>${product.results?.length || 0}개</td>
                 <td style="font-weight: bold; color: #e63946;">¥${displayPrice}</td>
-                <td><span class="status-badge ${product.status || 'collected'}">${getStatusLabel(product.status || 'collected')}</span></td>
+                <td><span class="status-badge ${product.isEdited && (product.status || 'collected') === 'collected' ? 'edited' : (product.status || 'collected')}">${getStatusLabel(product.status || 'collected', product.isEdited)}</span></td>
                 <td>${product.savedAt ? new Date(product.savedAt).toLocaleDateString() : '-'}</td>
                 <td>
                   <div class="actions">
