@@ -328,14 +328,55 @@ async function performLogin() {
  */
 async function doLogin(username, password) {
   try {
+    // 먼저 현재 URL 확인 - 이미 로그인 되어있으면 성공 반환
+    const currentUrl = window.location.href;
+    console.log('🔍 Current URL:', currentUrl);
+
+    // 이미 로그인 성공 페이지인 경우
+    const successPatterns = [
+      '/dashboard',
+      '/password-expired',
+      '/qvt/',
+      '/home',
+      '/registration'
+    ];
+
+    for (const pattern of successPatterns) {
+      if (currentUrl.includes(pattern) && currentUrl.includes('supplier.coupang.com')) {
+        console.log('✅ Already logged in! URL contains:', pattern);
+        return true;
+      }
+    }
+
+    // 로그인 페이지가 아닌 경우 (xauth.coupang.com이 아님)
+    if (!currentUrl.includes('xauth.coupang.com')) {
+      console.log('⚠️ Not on login page, navigating to login...');
+      // 이미 쿠팡 supplier 사이트인 경우 - 로그인 필요 없음 (세션 유효)
+      if (currentUrl.includes('supplier.coupang.com')) {
+        console.log('✅ Already on supplier site, session may be valid');
+        return true;
+      }
+    }
+
+    // 페이지 완전 로드 대기
+    await sleep(1000);
 
     // 로그인 필드 대기 (최대 10초)
+    console.log('🔍 Looking for login fields...');
     const usernameField = await waitForElement('input[name="username"]', 10000);
     const passwordField = await waitForElement('input[name="password"]', 5000);
     const submitButton = await waitForElement('button[type="submit"]', 5000);
 
     if (!usernameField || !passwordField || !submitButton) {
-      console.error('❌ Login fields not found');
+      console.error('❌ Login fields not found on page');
+      console.log('   Available inputs:', document.querySelectorAll('input').length);
+      console.log('   Available buttons:', document.querySelectorAll('button').length);
+
+      // 로그인 폼이 없지만 supplier 사이트면 이미 로그인된 것
+      if (window.location.href.includes('supplier.coupang.com')) {
+        console.log('✅ No login form but on supplier site - already logged in');
+        return true;
+      }
       return false;
     }
 
