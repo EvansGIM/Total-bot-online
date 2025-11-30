@@ -25,16 +25,26 @@ async function ensureDataExists() {
     try {
       await fs.access(USERS_FILE);
     } catch {
-      // 파일이 없으면 기본 admin 유저로 초기화
-      const defaultPassword = await bcrypt.hash('admin123', 10);
+      // 파일이 없으면 기본 유저로 초기화
+      const adminPassword = await bcrypt.hash('admin123', 10);
+      const testPassword = await bcrypt.hash('test123', 10);
       const defaultUsers = [
         {
           id: 1,
           username: 'admin',
-          password: defaultPassword,
+          password: adminPassword,
           name: '관리자',
           grade: 'premium',
           is_admin: true,
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 2,
+          username: 'test',
+          password: testPassword,
+          name: '테스트',
+          grade: 'basic',
+          is_admin: false,
           createdAt: new Date().toISOString()
         }
       ];
