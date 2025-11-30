@@ -69,6 +69,7 @@ const geminiRoutes = require('./routes/gemini');
 const ordersRoutes = require('./routes/orders');
 const settingsRoutes = require('./routes/settings');
 const sizeChartRoutes = require('./routes/sizeChart');
+const priceHistoryRoutes = require('./routes/priceHistory');
 
 // 라우트 등록
 console.log('✅ Magic Eraser 라우트 로드됨:', typeof magicEraserRoutes);
@@ -86,7 +87,9 @@ app.use('/api/gemini', geminiRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/size-chart', sizeChartRoutes);
+app.use('/api/price-history', priceHistoryRoutes);
 console.log('✅ Magic Eraser 라우트 등록 완료');
+console.log('✅ Price History 라우트 등록 완료');
 console.log('✅ Size Chart 라우트 등록 완료');
 console.log('✅ Settings 라우트 등록 완료');
 console.log('✅ Gemini 라우트 등록 완료');

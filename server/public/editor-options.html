@@ -2689,27 +2689,30 @@
 
           <!-- 가격 수집 탭 -->
           <div id="price-collect-tab" class="edit-tab-content">
-            <div class="price-collect-section">
-              <div class="edit-section-title">
-                <span class="icon">💰</span>
-                쿠팡 가격 비교
-              </div>
-              <p class="hint" style="margin-bottom: 15px;">쿠팡에서 경쟁 상품 가격을 수집하고 내 판매가와 비교합니다.</p>
+            <div class="price-collect-layout" style="display: grid; grid-template-columns: 1fr 280px; gap: 20px;">
+              <!-- 좌측: 가격 수집 메인 영역 -->
+              <div class="price-collect-main">
+                <div class="price-collect-section">
+                  <div class="edit-section-title">
+                    <span class="icon">💰</span>
+                    쿠팡 가격 비교
+                  </div>
+                  <p class="hint" style="margin-bottom: 15px;">쿠팡에서 경쟁 상품 가격을 수집하고 내 판매가와 비교합니다.</p>
 
-              <div class="bulk-edit-group" style="margin-bottom: 10px;">
-                <input type="text" id="priceCollectKeyword" placeholder="검색 키워드 입력 (예: 자켓, 원피스)" style="flex: 1; min-width: 200px;">
-                <button class="btn-action btn-action-primary" onclick="collectCoupangPrices()" id="priceCollectBtn">
-                  <span id="priceCollectIcon">🔍</span>
-                  <span id="priceCollectText">가격 수집</span>
-                </button>
-              </div>
-              <div style="margin-bottom: 15px;">
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #666; cursor: pointer;">
-                  <input type="checkbox" id="useIncognitoMode" style="width: 16px; height: 16px; cursor: pointer;">
-                  <span>🔒 시크릿 모드로 검색</span>
-                  <span style="color: #999; font-size: 11px;">(개인화 검색 제외)</span>
-                </label>
-              </div>
+                  <div class="bulk-edit-group" style="margin-bottom: 10px;">
+                    <input type="text" id="priceCollectKeyword" placeholder="검색 키워드 입력 (예: 자켓, 원피스)" style="flex: 1; min-width: 200px;">
+                    <button class="btn-action btn-action-primary" onclick="collectCoupangPrices()" id="priceCollectBtn">
+                      <span id="priceCollectIcon">🔍</span>
+                      <span id="priceCollectText">가격 수집</span>
+                    </button>
+                  </div>
+                  <div style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #666; cursor: pointer;">
+                      <input type="checkbox" id="useIncognitoMode" style="width: 16px; height: 16px; cursor: pointer;">
+                      <span>🔒 시크릿 모드로 검색</span>
+                      <span style="color: #999; font-size: 11px;">(개인화 검색 제외)</span>
+                    </label>
+                  </div>
 
               <!-- 수집 결과 영역 -->
               <div id="priceCollectResult" style="display: none;">
@@ -2861,6 +2864,26 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div><!-- price-collect-main 끝 -->
+
+              <!-- 우측: 검색 히스토리 -->
+              <div class="price-history-sidebar" style="background: #f8f9fa; border-radius: 12px; padding: 15px; height: fit-content;">
+                <div class="history-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                  <div style="font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+                    <span>📋</span> 검색 히스토리
+                  </div>
+                  <button onclick="clearAllPriceHistory()" style="background: none; border: none; color: #999; font-size: 12px; cursor: pointer;" title="전체 삭제">
+                    🗑️
+                  </button>
+                </div>
+                <div id="priceHistoryList" style="max-height: 400px; overflow-y: auto;">
+                  <div style="color: #888; text-align: center; padding: 30px 10px; font-size: 13px;">
+                    가격 수집 기록이 없습니다
+                  </div>
+                </div>
+              </div>
+            </div><!-- price-collect-layout 끝 -->
           </div>
         </div>
 
@@ -6775,6 +6798,11 @@
       if (tabName === 'mapping') {
         renderMappingLists();
       }
+
+      // 가격 수집 탭인 경우 히스토리 로드
+      if (tabName === 'price-collect') {
+        loadPriceHistory();
+      }
     }
 
     // 일괄 치환
@@ -7084,6 +7112,15 @@
 
           const itemCount = priceData.all.totalItems || result.rawCount || result.count || 0;
           showAlert(`가격 수집 완료! ${itemCount}개 상품 가격 수집됨`, 'success');
+
+          // 히스토리에 저장
+          savePriceHistory(keyword, [], {
+            minPrice: priceData.all.min,
+            avgPrice: priceData.all.average,
+            midPrice: priceData.all.median,
+            maxPrice: priceData.all.max,
+            productCount: itemCount
+          });
         } else {
           showAlert(result?.error || '가격 수집 실패 - 검색 결과가 없거나 확장 프로그램이 연결되지 않았습니다.', 'error');
         }
@@ -9276,6 +9313,228 @@
         scheduleAutoSave();
       }
     }
+
+    // ========== 가격 수집 히스토리 ==========
+    let currentHistoryId = null; // 현재 열린 히스토리 ID
+    let currentHistoryData = null; // 현재 열린 히스토리 데이터
+
+    // 히스토리 목록 로드
+    async function loadPriceHistory() {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await fetch('/api/price-history', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) return;
+
+        const result = await response.json();
+        renderPriceHistoryList(result.history || []);
+      } catch (error) {
+        console.error('히스토리 로드 오류:', error);
+      }
+    }
+
+    // 히스토리 목록 렌더링
+    function renderPriceHistoryList(history) {
+      const container = document.getElementById('priceHistoryList');
+      if (!container) return;
+
+      if (!history || history.length === 0) {
+        container.innerHTML = '<div style="color: #888; text-align: center; padding: 30px 10px; font-size: 13px;">가격 수집 기록이 없습니다</div>';
+        return;
+      }
+
+      container.innerHTML = history.map(item => {
+        const date = new Date(item.createdAt);
+        const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+
+        return `
+          <div class="history-item" onclick="openPriceHistoryDetail('${item.id}')"
+               style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; cursor: pointer; transition: background 0.2s;"
+               onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='transparent'">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-weight: 600; font-size: 13px; color: #333;">${item.keyword}</span>
+              <span style="font-size: 11px; color: #999;">${dateStr}</span>
+            </div>
+            <div style="display: flex; gap: 8px; font-size: 11px; color: #666;">
+              <span>최저 ${formatPrice(item.minPrice)}</span>
+              <span>~</span>
+              <span>최고 ${formatPrice(item.maxPrice)}</span>
+              <span style="margin-left: auto;">${item.productCount}개</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 히스토리 상세 보기
+    async function openPriceHistoryDetail(historyId) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`/api/price-history/${historyId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+          showAlert('히스토리를 불러올 수 없습니다.', 'error');
+          return;
+        }
+
+        const result = await response.json();
+        currentHistoryId = historyId;
+        currentHistoryData = result.data;
+
+        // 모달 데이터 설정
+        document.getElementById('historyModalKeyword').textContent = result.data.keyword;
+        document.getElementById('historyMinPrice').textContent = formatPrice(result.data.minPrice);
+        document.getElementById('historyAvgPrice').textContent = formatPrice(result.data.avgPrice);
+        document.getElementById('historyMidPrice').textContent = formatPrice(result.data.midPrice);
+        document.getElementById('historyMaxPrice').textContent = formatPrice(result.data.maxPrice);
+        document.getElementById('historyProductCount').textContent = result.data.productCount;
+
+        const date = new Date(result.data.createdAt);
+        document.getElementById('historyCreatedAt').textContent =
+          `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+
+        // 모달 열기
+        document.getElementById('priceHistoryModal').classList.add('active');
+      } catch (error) {
+        console.error('히스토리 상세 로드 오류:', error);
+        showAlert('히스토리 로드 중 오류가 발생했습니다.', 'error');
+      }
+    }
+
+    // 히스토리 모달 닫기
+    function closePriceHistoryModal() {
+      document.getElementById('priceHistoryModal').classList.remove('active');
+      currentHistoryId = null;
+      currentHistoryData = null;
+    }
+
+    // 히스토리 삭제
+    async function deletePriceHistoryItem() {
+      if (!currentHistoryId) return;
+
+      if (!confirm('이 검색 기록을 삭제하시겠습니까?')) return;
+
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`/api/price-history/${currentHistoryId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+          showAlert('삭제에 실패했습니다.', 'error');
+          return;
+        }
+
+        closePriceHistoryModal();
+        loadPriceHistory();
+        showAlert('히스토리가 삭제되었습니다.', 'success');
+      } catch (error) {
+        console.error('히스토리 삭제 오류:', error);
+        showAlert('삭제 중 오류가 발생했습니다.', 'error');
+      }
+    }
+
+    // 전체 히스토리 삭제
+    async function clearAllPriceHistory() {
+      if (!confirm('모든 검색 기록을 삭제하시겠습니까?')) return;
+
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/price-history', {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+          showAlert('삭제에 실패했습니다.', 'error');
+          return;
+        }
+
+        loadPriceHistory();
+        showAlert('모든 히스토리가 삭제되었습니다.', 'success');
+      } catch (error) {
+        console.error('히스토리 전체 삭제 오류:', error);
+        showAlert('삭제 중 오류가 발생했습니다.', 'error');
+      }
+    }
+
+    // 히스토리 데이터를 가격 수집 결과에 로드
+    function loadHistoryToCollect() {
+      if (!currentHistoryData) return;
+
+      // collectedPriceData에 데이터 적용
+      collectedPriceData.all = {
+        status: 'success',
+        min: currentHistoryData.minPrice,
+        max: currentHistoryData.maxPrice,
+        average: currentHistoryData.avgPrice,
+        median: currentHistoryData.midPrice,
+        totalItems: currentHistoryData.productCount
+      };
+
+      // UI 업데이트
+      document.getElementById('allMinPrice').textContent = formatPrice(currentHistoryData.minPrice);
+      document.getElementById('allAvgPrice').textContent = formatPrice(currentHistoryData.avgPrice);
+      document.getElementById('allMidPrice').textContent = formatPrice(currentHistoryData.midPrice);
+      document.getElementById('allMaxPrice').textContent = formatPrice(currentHistoryData.maxPrice);
+      document.getElementById('allCount').textContent = currentHistoryData.productCount;
+
+      // 기준가 버튼 업데이트
+      document.getElementById('basePriceMin').textContent = formatPrice(currentHistoryData.minPrice);
+      document.getElementById('basePriceAvg').textContent = formatPrice(currentHistoryData.avgPrice);
+      document.getElementById('basePriceMid').textContent = formatPrice(currentHistoryData.midPrice);
+      document.getElementById('basePriceMax').textContent = formatPrice(currentHistoryData.maxPrice);
+
+      // 검색 키워드 설정
+      document.getElementById('priceCollectKeyword').value = currentHistoryData.keyword;
+
+      // 결과 영역 표시
+      document.getElementById('priceCollectResult').style.display = 'block';
+
+      // 내 판매가 계산
+      calculateMyPrices();
+
+      // 초기 미리보기 업데이트
+      updatePricePreview();
+
+      closePriceHistoryModal();
+      showAlert(`"${currentHistoryData.keyword}" 검색 결과를 불러왔습니다.`, 'success');
+    }
+
+    // 가격 수집 결과 히스토리에 저장
+    async function savePriceHistory(keyword, results, stats) {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        await fetch('/api/price-history', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ keyword, results, stats })
+        });
+
+        // 히스토리 목록 새로고침
+        loadPriceHistory();
+      } catch (error) {
+        console.error('히스토리 저장 오류:', error);
+      }
+    }
+
+    // 가격 포맷팅 헬퍼
+    function formatPrice(price) {
+      if (!price && price !== 0) return '-';
+      return Math.round(price).toLocaleString() + '원';
+    }
   </script>
 
   <!-- 커스텀 AI 모달 -->
@@ -9337,6 +9596,48 @@
       </div>
       <div class="custom-ai-footer">
         <button class="btn-custom-cancel" onclick="closeAIRenameModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 가격 히스토리 상세 모달 -->
+  <div id="priceHistoryModal" class="custom-ai-modal" onclick="if(event.target === this) closePriceHistoryModal()">
+    <div class="custom-ai-content" style="max-width: 700px;">
+      <div class="custom-ai-header">
+        <h3><span>📊</span> <span id="historyModalKeyword">키워드</span> 검색 결과</h3>
+        <button class="custom-ai-close" onclick="closePriceHistoryModal()">&times;</button>
+      </div>
+      <div class="custom-ai-body" style="max-height: 500px; overflow-y: auto;">
+        <!-- 요약 정보 -->
+        <div id="historyModalSummary" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
+          <div style="background: #f0f9ff; padding: 12px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 12px; color: #666;">최저가</div>
+            <div id="historyMinPrice" style="font-size: 18px; font-weight: 700; color: #2563eb;">-</div>
+          </div>
+          <div style="background: #f0fff4; padding: 12px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 12px; color: #666;">평균가</div>
+            <div id="historyAvgPrice" style="font-size: 18px; font-weight: 700; color: #059669;">-</div>
+          </div>
+          <div style="background: #fefce8; padding: 12px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 12px; color: #666;">중간가</div>
+            <div id="historyMidPrice" style="font-size: 18px; font-weight: 700; color: #ca8a04;">-</div>
+          </div>
+          <div style="background: #fef2f2; padding: 12px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 12px; color: #666;">최고가</div>
+            <div id="historyMaxPrice" style="font-size: 18px; font-weight: 700; color: #dc2626;">-</div>
+          </div>
+        </div>
+        <div style="font-size: 12px; color: #888; text-align: center;">
+          수집일시: <span id="historyCreatedAt">-</span> | 상품 수: <span id="historyProductCount">-</span>개
+        </div>
+      </div>
+      <div class="custom-ai-footer" style="display: flex; gap: 10px;">
+        <button class="btn-custom-cancel" onclick="deletePriceHistoryItem()" style="color: #dc2626;">
+          🗑️ 삭제
+        </button>
+        <button class="btn-custom-apply" onclick="loadHistoryToCollect()">
+          📥 이 데이터로 가격 설정
+        </button>
       </div>
     </div>
   </div>
