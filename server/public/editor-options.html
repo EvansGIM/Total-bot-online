@@ -9509,46 +9509,10 @@
       // 처리된 이미지 URL 매핑 생성 (oldUrl -> newUrl)
       const imageUpdateMap = new Map();
 
-      console.log('[배경제거 동기화] 시작, imageType:', bgRemoveImageType);
-      console.log('[배경제거 동기화] imagesToProcess 수:', imagesToProcess.length);
-      console.log('[배경제거 동기화] detailPageItems 수:', detailPageItems.length);
-
+      // 상세페이지 자동 동기화
       if (bgRemoveImageType === 'option') {
-        // 옵션 이미지: 처리된 각 이미지의 old -> new 매핑
-        imagesToProcess.forEach((item, idx) => {
-          const oldUrl = item.url;
-          const sampleIdx = item.indices[0];
-          const newUrl = productData.results[sampleIdx]?.imageLink || productData.results[sampleIdx]?.titleImage?.[0];
-          console.log(`[배경제거 동기화] 아이템 ${idx}: oldUrl=${oldUrl?.substring(0, 60)}...`);
-          console.log(`[배경제거 동기화] 아이템 ${idx}: newUrl 시작=${newUrl?.substring(0, 30)}...`);
-          if (newUrl && newUrl !== oldUrl) {
-            imageUpdateMap.set(oldUrl, newUrl);
-            console.log('[배경제거 동기화] 매핑 추가 완료');
-          }
-        });
-
-        console.log('[배경제거 동기화] 총 매핑 수:', imageUpdateMap.size);
-
-        // detailPageItems의 option-block들을 URL 매칭으로 업데이트
-        let updatedCount = 0;
-        detailPageItems.forEach((block, idx) => {
-          if (block.type === 'option-block') {
-            console.log(`[배경제거 동기화] 블록 ${idx}: type=${block.type}, imageSrc=${block.imageSrc?.substring(0, 60)}...`);
-            if (block.imageSrc) {
-              const newImg = imageUpdateMap.get(block.imageSrc);
-              if (newImg) {
-                console.log('[배경제거 동기화] ✅ 매칭 성공! 옵션:', block.optionName);
-                block.imageSrc = newImg;
-                updatedCount++;
-              } else {
-                console.log('[배경제거 동기화] ❌ 매칭 실패 - URL이 매핑에 없음');
-              }
-            }
-          }
-        });
-
-        console.log('[배경제거 동기화] 총 업데이트된 블록 수:', updatedCount);
-        renderDetailCanvas();
+        // 옵션 이미지 편집 후 자동 동기화
+        syncOptionImagesToDetailPage();
       } else if (bgRemoveImageType === 'additional') {
         // 추가 이미지는 URL 매칭으로 업데이트
         imagesToProcess.forEach(item => {
