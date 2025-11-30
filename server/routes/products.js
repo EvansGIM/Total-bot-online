@@ -491,16 +491,13 @@ function generateDetailPageHtml(product) {
 <html>
 <head>
   <meta charset="UTF-8">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
-    * { font-family: 'Noto Sans KR', sans-serif !important; }
+    * { font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif !important; }
     body { margin: 0; padding: 20px; background: white; }
   </style>
 </head>
 <body>
-<div style="max-width: 800px; margin: 0 auto; font-family: 'Noto Sans KR', sans-serif;">
+<div style="max-width: 800px; margin: 0 auto;">
   <h1 style="font-size: 28px; font-weight: bold; margin-bottom: 20px; color: #333;">
     ${title}
   </h1>
@@ -615,12 +612,9 @@ function generateLabelHtml(product) {
 <html>
 <head>
   <meta charset="UTF-8">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
-    * { font-family: 'Noto Sans KR', sans-serif !important; }
-    body { margin: 0; padding: 20px; font-family: 'Noto Sans KR', sans-serif; background: white; }
+    * { font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif !important; }
+    body { margin: 0; padding: 20px; background: white; }
     .label-container { max-width: 800px; margin: 0 auto; padding: 20px; background: #f9f9f9; border-radius: 8px; }
     h3 { font-size: 18px; margin: 0 0 10px 0; color: #333; }
   </style>
