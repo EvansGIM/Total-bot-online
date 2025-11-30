@@ -531,6 +531,215 @@
       margin-bottom: 16px;
     }
 
+    /* Detail Editor Styles */
+    .detail-editor-wrapper {
+      display: flex;
+      gap: 24px;
+      min-height: 600px;
+    }
+
+    .detail-editor {
+      flex: 1;
+      border: 2px dashed #e5e8eb;
+      border-radius: 12px;
+      padding: 16px;
+      background: #fafafa;
+      overflow-y: auto;
+      max-height: 800px;
+    }
+
+    .detail-preview-panel {
+      width: 400px;
+      flex-shrink: 0;
+      border: 1px solid #e5e8eb;
+      border-radius: 12px;
+      overflow: hidden;
+      background: white;
+    }
+
+    .preview-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 16px;
+      font-weight: 600;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .preview-content {
+      padding: 16px;
+      max-height: 750px;
+      overflow-y: auto;
+      background: white;
+    }
+
+    .preview-content img {
+      width: 100%;
+      height: auto;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    /* Editor Block */
+    .editor-block {
+      background: white;
+      border: 1px solid #e5e8eb;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      cursor: grab;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .editor-block:hover {
+      border-color: #667eea;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+    }
+
+    .editor-block.dragging {
+      opacity: 0.5;
+      cursor: grabbing;
+    }
+
+    .editor-block.drag-over {
+      border-color: #667eea;
+      border-style: dashed;
+      background: rgba(102, 126, 234, 0.05);
+    }
+
+    .block-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e8eb;
+      border-radius: 8px 8px 0 0;
+    }
+
+    .block-type {
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .block-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .block-actions button {
+      padding: 4px 8px;
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      background: #f0f0f0;
+      color: #666;
+      transition: all 0.2s;
+    }
+
+    .block-actions button:hover {
+      background: #e0e0e0;
+      color: #333;
+    }
+
+    .block-actions button.danger:hover {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .block-content {
+      padding: 12px;
+    }
+
+    .block-content img {
+      width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .block-content textarea {
+      width: 100%;
+      min-height: 100px;
+      border: 1px solid #e5e8eb;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 14px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    .block-content textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    /* Image URL Edit Modal */
+    .url-edit-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1001;
+    }
+
+    .url-edit-overlay.active {
+      display: flex;
+    }
+
+    .url-edit-modal {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      width: 500px;
+      max-width: 90%;
+    }
+
+    .url-edit-modal h3 {
+      margin-bottom: 16px;
+      font-size: 18px;
+    }
+
+    .url-edit-modal input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #e5e8eb;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+
+    .url-edit-modal input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .url-edit-modal .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    /* Drag placeholder */
+    .drag-placeholder {
+      border: 2px dashed #667eea;
+      border-radius: 8px;
+      background: rgba(102, 126, 234, 0.1);
+      margin-bottom: 12px;
+      height: 100px;
+    }
+
     /* Info Cards (원본 정보 탭) */
     .info-cards {
       display: grid;
@@ -607,6 +816,18 @@
     </div>
   </div>
 
+  <!-- URL Edit Modal -->
+  <div class="url-edit-overlay" id="urlEditModal">
+    <div class="url-edit-modal" onclick="event.stopPropagation()">
+      <h3>이미지 URL 변경</h3>
+      <input type="text" id="imageUrlInput" placeholder="새 이미지 URL을 입력하세요">
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeUrlEditModal()">취소</button>
+        <button class="btn btn-primary" onclick="confirmUrlChange()">변경</button>
+      </div>
+    </div>
+  </div>
+
   <div class="header">
     <div class="header-left">
       <button class="back-btn" onclick="goBack()">
@@ -663,15 +884,27 @@
       <!-- 상세페이지 탭 -->
       <div class="tab-content" id="tab-detail">
         <div class="action-bar">
-          <button class="btn btn-primary" onclick="downloadDetailImages()">
-            <span>📥</span> 상세이미지 다운로드
+          <button class="btn btn-success" onclick="saveDetailPage()" id="saveDetailBtn">
+            <span>💾</span> 저장
           </button>
-          <button class="btn btn-secondary" onclick="openInEditor('detail')">
-            <span>🎨</span> 편집기에서 열기
+          <button class="btn btn-primary" onclick="addBlock('image')">
+            <span>🖼️</span> 이미지 추가
+          </button>
+          <button class="btn btn-primary" onclick="addBlock('text')">
+            <span>📝</span> 텍스트 추가
+          </button>
+          <button class="btn btn-secondary" onclick="downloadDetailImages()">
+            <span>📥</span> 다운로드
           </button>
         </div>
-        <div class="detail-images-container" id="detailImagesContainer">
-          <div class="loading">상세 이미지 로딩 중</div>
+        <div class="detail-editor-wrapper">
+          <div class="detail-editor" id="detailEditor">
+            <div class="loading">상세페이지 로딩 중</div>
+          </div>
+          <div class="detail-preview-panel" id="detailPreviewPanel">
+            <div class="preview-header">미리보기</div>
+            <div class="preview-content" id="previewContent"></div>
+          </div>
         </div>
       </div>
 
@@ -778,6 +1011,9 @@
     }
 
     let currentProduct = null;
+    let detailBlocks = []; // 상세페이지 블록 데이터
+    let editingBlockIndex = null; // 현재 편집 중인 블록 인덱스
+    let draggedBlockIndex = null; // 드래그 중인 블록 인덱스
 
     // 뒤로가기
     function goBack() {
@@ -925,41 +1161,305 @@
       }
     }
 
-    // 상세페이지 렌더링 (편집기에서 만든 detailHtml)
+    // 상세페이지 렌더링 (편집기에서 만든 detailHtml) - 인라인 에디터
     function renderDetailImages() {
       const p = currentProduct;
-      const container = document.getElementById('detailImagesContainer');
+      const editor = document.getElementById('detailEditor');
+      const previewContent = document.getElementById('previewContent');
 
-      // 편집기에서 만든 detailHtml 확인
-      if (p.detailHtml && p.detailHtml.trim() !== '') {
-        // HTML을 iframe으로 표시 (스타일 격리)
-        container.innerHTML = `
-          <div class="detail-preview">
-            <iframe id="detailPreviewFrame" srcdoc="${escapeHtml(p.detailHtml)}"
-                    style="width: 100%; min-height: 600px; border: none; background: white;"></iframe>
-          </div>
-        `;
+      // detailHtml을 파싱해서 블록으로 변환
+      detailBlocks = parseHtmlToBlocks(p.detailHtml || '');
 
-        // iframe 높이 자동 조절
-        setTimeout(() => {
-          const iframe = document.getElementById('detailPreviewFrame');
-          if (iframe && iframe.contentWindow) {
-            try {
-              const height = iframe.contentWindow.document.body.scrollHeight;
-              iframe.style.height = Math.max(height + 50, 400) + 'px';
-            } catch (e) {
-              iframe.style.height = '800px';
-            }
-          }
-        }, 500);
-      } else {
-        container.innerHTML = `
+      if (detailBlocks.length === 0) {
+        editor.innerHTML = `
           <div class="empty-state">
             <div class="icon">📄</div>
             <p>상세페이지가 아직 편집되지 않았습니다.</p>
-            <p style="font-size: 13px; margin-top: 8px;">수집 상품 편집기에서 상세페이지를 만들어주세요.</p>
+            <p style="font-size: 13px; margin-top: 8px;">위 버튼을 눌러 이미지나 텍스트를 추가하세요.</p>
           </div>
         `;
+        previewContent.innerHTML = '<div class="empty-state"><p>미리보기가 없습니다</p></div>';
+      } else {
+        renderBlocks();
+        updatePreview();
+      }
+    }
+
+    // HTML을 블록으로 파싱
+    function parseHtmlToBlocks(html) {
+      if (!html || html.trim() === '') return [];
+
+      const blocks = [];
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+
+      // img 태그와 텍스트 노드를 순서대로 파싱
+      const children = tempDiv.querySelectorAll('img, p, div, span, h1, h2, h3, h4, h5, h6');
+
+      // 먼저 이미지들만 추출
+      tempDiv.querySelectorAll('img').forEach(img => {
+        const src = img.getAttribute('src');
+        if (src) {
+          blocks.push({ type: 'image', content: src });
+        }
+      });
+
+      // 이미지가 없으면 전체 HTML에서 텍스트 추출 시도
+      if (blocks.length === 0) {
+        const text = tempDiv.textContent.trim();
+        if (text) {
+          blocks.push({ type: 'text', content: text });
+        }
+      }
+
+      return blocks;
+    }
+
+    // 블록 렌더링
+    function renderBlocks() {
+      const editor = document.getElementById('detailEditor');
+
+      if (detailBlocks.length === 0) {
+        editor.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">📄</div>
+            <p>상세페이지가 비어있습니다.</p>
+            <p style="font-size: 13px; margin-top: 8px;">위 버튼을 눌러 이미지나 텍스트를 추가하세요.</p>
+          </div>
+        `;
+        return;
+      }
+
+      editor.innerHTML = detailBlocks.map((block, index) => {
+        if (block.type === 'image') {
+          return `
+            <div class="editor-block" draggable="true" data-index="${index}"
+                 ondragstart="handleDragStart(event, ${index})"
+                 ondragend="handleDragEnd(event)"
+                 ondragover="handleDragOver(event, ${index})"
+                 ondragleave="handleDragLeave(event)"
+                 ondrop="handleDrop(event, ${index})">
+              <div class="block-header">
+                <span class="block-type">🖼️ 이미지</span>
+                <div class="block-actions">
+                  <button onclick="moveBlockUp(${index})">↑</button>
+                  <button onclick="moveBlockDown(${index})">↓</button>
+                  <button onclick="editImageUrl(${index})">URL 변경</button>
+                  <button class="danger" onclick="deleteBlock(${index})">삭제</button>
+                </div>
+              </div>
+              <div class="block-content">
+                <img src="${block.content}" alt="상세이미지 ${index + 1}"
+                     onclick="openImageModal('${block.content}')"
+                     onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23f0f0f0%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 font-size=%2212%22 text-anchor=%22middle%22 fill=%22%23999%22>이미지 로드 실패</text></svg>'">
+              </div>
+            </div>
+          `;
+        } else {
+          return `
+            <div class="editor-block" draggable="true" data-index="${index}"
+                 ondragstart="handleDragStart(event, ${index})"
+                 ondragend="handleDragEnd(event)"
+                 ondragover="handleDragOver(event, ${index})"
+                 ondragleave="handleDragLeave(event)"
+                 ondrop="handleDrop(event, ${index})">
+              <div class="block-header">
+                <span class="block-type">📝 텍스트</span>
+                <div class="block-actions">
+                  <button onclick="moveBlockUp(${index})">↑</button>
+                  <button onclick="moveBlockDown(${index})">↓</button>
+                  <button class="danger" onclick="deleteBlock(${index})">삭제</button>
+                </div>
+              </div>
+              <div class="block-content">
+                <textarea onchange="updateBlockContent(${index}, this.value)"
+                          oninput="updatePreview()">${block.content}</textarea>
+              </div>
+            </div>
+          `;
+        }
+      }).join('');
+    }
+
+    // 미리보기 업데이트
+    function updatePreview() {
+      const previewContent = document.getElementById('previewContent');
+
+      if (detailBlocks.length === 0) {
+        previewContent.innerHTML = '<div class="empty-state"><p>미리보기가 없습니다</p></div>';
+        return;
+      }
+
+      previewContent.innerHTML = detailBlocks.map((block, index) => {
+        if (block.type === 'image') {
+          return `<img src="${block.content}" alt="상세이미지 ${index + 1}" style="width: 100%; display: block; margin-bottom: 4px;">`;
+        } else {
+          return `<div style="padding: 12px; background: #f9f9f9; margin-bottom: 4px; border-radius: 4px; font-size: 14px; line-height: 1.6;">${block.content.replace(/\n/g, '<br>')}</div>`;
+        }
+      }).join('');
+    }
+
+    // 드래그 앤 드롭 핸들러
+    function handleDragStart(event, index) {
+      draggedBlockIndex = index;
+      event.currentTarget.classList.add('dragging');
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', index);
+    }
+
+    function handleDragEnd(event) {
+      event.currentTarget.classList.remove('dragging');
+      document.querySelectorAll('.editor-block').forEach(el => {
+        el.classList.remove('drag-over');
+      });
+      draggedBlockIndex = null;
+    }
+
+    function handleDragOver(event, index) {
+      event.preventDefault();
+      if (draggedBlockIndex === null || draggedBlockIndex === index) return;
+      event.currentTarget.classList.add('drag-over');
+    }
+
+    function handleDragLeave(event) {
+      event.currentTarget.classList.remove('drag-over');
+    }
+
+    function handleDrop(event, targetIndex) {
+      event.preventDefault();
+      event.currentTarget.classList.remove('drag-over');
+
+      if (draggedBlockIndex === null || draggedBlockIndex === targetIndex) {
+        draggedBlockIndex = null;
+        return;
+      }
+
+      // 블록 순서 변경
+      const draggedBlock = detailBlocks[draggedBlockIndex];
+      detailBlocks.splice(draggedBlockIndex, 1);
+      detailBlocks.splice(targetIndex, 0, draggedBlock);
+
+      draggedBlockIndex = null;
+      renderBlocks();
+      updatePreview();
+      showToast('블록 순서가 변경되었습니다.', 'info');
+    }
+
+    // 블록 이동 (버튼)
+    function moveBlockUp(index) {
+      if (index <= 0) return;
+      [detailBlocks[index], detailBlocks[index - 1]] = [detailBlocks[index - 1], detailBlocks[index]];
+      renderBlocks();
+      updatePreview();
+    }
+
+    function moveBlockDown(index) {
+      if (index >= detailBlocks.length - 1) return;
+      [detailBlocks[index], detailBlocks[index + 1]] = [detailBlocks[index + 1], detailBlocks[index]];
+      renderBlocks();
+      updatePreview();
+    }
+
+    // 블록 삭제
+    function deleteBlock(index) {
+      if (!confirm('이 블록을 삭제하시겠습니까?')) return;
+      detailBlocks.splice(index, 1);
+      renderBlocks();
+      updatePreview();
+      showToast('블록이 삭제되었습니다.', 'info');
+    }
+
+    // 블록 내용 업데이트 (텍스트)
+    function updateBlockContent(index, content) {
+      detailBlocks[index].content = content;
+    }
+
+    // 이미지 URL 변경 모달
+    function editImageUrl(index) {
+      editingBlockIndex = index;
+      document.getElementById('imageUrlInput').value = detailBlocks[index].content;
+      document.getElementById('urlEditModal').classList.add('active');
+    }
+
+    function closeUrlEditModal() {
+      document.getElementById('urlEditModal').classList.remove('active');
+      editingBlockIndex = null;
+    }
+
+    function confirmUrlChange() {
+      const newUrl = document.getElementById('imageUrlInput').value.trim();
+      if (!newUrl) {
+        showToast('URL을 입력해주세요.', 'warning');
+        return;
+      }
+
+      if (editingBlockIndex !== null) {
+        detailBlocks[editingBlockIndex].content = newUrl;
+        renderBlocks();
+        updatePreview();
+        showToast('이미지 URL이 변경되었습니다.', 'success');
+      }
+
+      closeUrlEditModal();
+    }
+
+    // 블록 추가
+    function addBlock(type) {
+      if (type === 'image') {
+        const url = prompt('이미지 URL을 입력하세요:');
+        if (url && url.trim()) {
+          detailBlocks.push({ type: 'image', content: url.trim() });
+          renderBlocks();
+          updatePreview();
+          showToast('이미지가 추가되었습니다.', 'success');
+        }
+      } else if (type === 'text') {
+        detailBlocks.push({ type: 'text', content: '텍스트를 입력하세요...' });
+        renderBlocks();
+        updatePreview();
+        showToast('텍스트 블록이 추가되었습니다.', 'success');
+      }
+    }
+
+    // 상세페이지 저장
+    async function saveDetailPage() {
+      if (!currentProduct) {
+        showToast('상품 정보가 없습니다.', 'error');
+        return;
+      }
+
+      // 블록을 HTML로 변환
+      const html = detailBlocks.map(block => {
+        if (block.type === 'image') {
+          return `<img src="${block.content}" style="width: 100%; display: block;">`;
+        } else {
+          return `<div style="padding: 12px; font-size: 14px; line-height: 1.6;">${block.content.replace(/\n/g, '<br>')}</div>`;
+        }
+      }).join('\n');
+
+      try {
+        const response = await authFetch(`/api/products/${currentProduct.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            detailHtml: html
+          })
+        });
+
+        if (!response) return;
+
+        const data = await response.json();
+        if (data.success) {
+          currentProduct.detailHtml = html;
+          showToast('상세페이지가 저장되었습니다.', 'success');
+        } else {
+          throw new Error(data.error || '저장 실패');
+        }
+      } catch (error) {
+        console.error('저장 오류:', error);
+        showToast('저장에 실패했습니다: ' + error.message, 'error');
       }
     }
 
@@ -1279,6 +1779,7 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         closeImageModal();
+        closeUrlEditModal();
       }
     });
 

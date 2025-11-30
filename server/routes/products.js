@@ -180,7 +180,7 @@ router.post('/save', authMiddleware, async (req, res) => {
   }
 });
 
-// 상품 수정 (인증 필요)
+// 상품 수정 (인증 필요) - PUT
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -205,6 +205,35 @@ router.put('/:id', authMiddleware, async (req, res) => {
     res.json({ success: true, product: products[index] });
   } catch (error) {
     console.error('상품 수정 오류:', error);
+    res.status(500).json({ success: false, message: '상품 수정 실패' });
+  }
+});
+
+// 상품 부분 수정 (인증 필요) - PATCH (PUT과 동일한 동작)
+router.patch('/:id', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const products = await loadUserProducts(userId);
+    const index = products.findIndex(p => p.id === req.params.id);
+
+    if (index === -1) {
+      return res.status(404).json({ success: false, message: '상품을 찾을 수 없습니다.' });
+    }
+
+    products[index] = {
+      ...products[index],
+      ...req.body,
+      id: req.params.id,
+      userId: userId,
+      updatedAt: new Date().toISOString()
+    };
+
+    await saveUserProducts(userId, products);
+
+    console.log(`[Products API] 상품 부분 수정 완료 (User: ${userId}):`, req.params.id);
+    res.json({ success: true, product: products[index] });
+  } catch (error) {
+    console.error('상품 부분 수정 오류:', error);
     res.status(500).json({ success: false, message: '상품 수정 실패' });
   }
 });

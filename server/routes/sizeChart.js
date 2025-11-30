@@ -7,10 +7,19 @@
  */
 
 const express = require('express');
-const { createCanvas } = require('canvas');
 const crypto = require('crypto');
 
 const router = express.Router();
+
+// canvas 모듈 옵셔널 로드 (설치되지 않은 경우 서버 시작 실패 방지)
+let createCanvas = null;
+try {
+  const canvas = require('canvas');
+  createCanvas = canvas.createCanvas;
+  console.log('[SizeChart] canvas 모듈 로드 성공');
+} catch (e) {
+  console.warn('[SizeChart] canvas 모듈을 로드할 수 없습니다. 사이즈 차트 생성 기능이 비활성화됩니다.');
+}
 
 // ===== 유틸리티 함수 =====
 
@@ -417,6 +426,10 @@ function roundRect(ctx, x, y, width, height, radius) {
 
 // 단일 이미지 생성
 router.get('/generate', (req, res) => {
+  if (!createCanvas) {
+    return res.status(503).json({ success: false, message: 'canvas 모듈이 설치되지 않아 사이즈 차트를 생성할 수 없습니다.' });
+  }
+
   try {
     const filename = generateRandomFilename();
     const imageBuffer = createSizeChartImage();
@@ -437,6 +450,10 @@ router.get('/generate', (req, res) => {
 
 // 여러 이미지 생성
 router.post('/generate-batch', (req, res) => {
+  if (!createCanvas) {
+    return res.status(503).json({ success: false, message: 'canvas 모듈이 설치되지 않아 사이즈 차트를 생성할 수 없습니다.' });
+  }
+
   try {
     const { count = 1 } = req.body;
     const images = [];
