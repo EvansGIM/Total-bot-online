@@ -925,21 +925,51 @@
       }
     }
 
-    // 상세 이미지 렌더링
+    // 상세페이지 렌더링 (편집기에서 만든 detailHtml)
     function renderDetailImages() {
       const p = currentProduct;
-      const detailImages = p.detailImages || p.descriptionImages || [];
       const container = document.getElementById('detailImagesContainer');
 
-      if (detailImages.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="icon">📄</div><p>상세페이지 이미지가 없습니다.</p></div>';
+      // 편집기에서 만든 detailHtml 확인
+      if (p.detailHtml && p.detailHtml.trim() !== '') {
+        // HTML을 iframe으로 표시 (스타일 격리)
+        container.innerHTML = `
+          <div class="detail-preview">
+            <iframe id="detailPreviewFrame" srcdoc="${escapeHtml(p.detailHtml)}"
+                    style="width: 100%; min-height: 600px; border: none; background: white;"></iframe>
+          </div>
+        `;
+
+        // iframe 높이 자동 조절
+        setTimeout(() => {
+          const iframe = document.getElementById('detailPreviewFrame');
+          if (iframe && iframe.contentWindow) {
+            try {
+              const height = iframe.contentWindow.document.body.scrollHeight;
+              iframe.style.height = Math.max(height + 50, 400) + 'px';
+            } catch (e) {
+              iframe.style.height = '800px';
+            }
+          }
+        }, 500);
       } else {
-        container.innerHTML = detailImages.map((img, i) => `
-          <img class="detail-image" src="${img}" alt="상세 ${i + 1}"
-               onclick="openImageModal('${img}')"
-               onerror="this.style.display='none'">
-        `).join('');
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">📄</div>
+            <p>상세페이지가 아직 편집되지 않았습니다.</p>
+            <p style="font-size: 13px; margin-top: 8px;">수집 상품 편집기에서 상세페이지를 만들어주세요.</p>
+          </div>
+        `;
       }
+    }
+
+    // HTML 이스케이프 (srcdoc용)
+    function escapeHtml(html) {
+      return html
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
     }
 
     // SKU 테이블 렌더링
