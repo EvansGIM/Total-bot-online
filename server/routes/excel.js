@@ -18,7 +18,8 @@ const router = express.Router();
 const upload = multer({
   dest: 'uploads/temp/',
   limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024 // 10MB
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024, // 10MB
+    fieldSize: 100 * 1024 * 1024  // 100MB 필드 크기 제한
   },
   fileFilter: (req, file, cb) => {
     const allowedExtensions = ['.xlsx', '.xls'];

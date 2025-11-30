@@ -18,7 +18,10 @@ const fs = require('fs');
 // 파일 업로드 설정
 const upload = multer({
   dest: 'uploads/',
-  limits: { fileSize: 50 * 1024 * 1024 } // 50MB
+  limits: {
+    fileSize: 50 * 1024 * 1024,  // 50MB 파일 크기 제한
+    fieldSize: 100 * 1024 * 1024  // 100MB 필드 크기 제한
+  }
 });
 
 /**
