@@ -530,6 +530,69 @@
       font-size: 48px;
       margin-bottom: 16px;
     }
+
+    /* Info Cards (원본 정보 탭) */
+    .info-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .info-card {
+      background: #f9fafb;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #e5e8eb;
+    }
+
+    .info-card-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 16px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .info-card-body {
+      padding: 16px;
+    }
+
+    .info-row {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 12px;
+    }
+
+    .info-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .info-label {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+
+    .info-value {
+      font-size: 14px;
+      color: #333;
+      font-weight: 500;
+      word-break: break-word;
+    }
+
+    .info-value.chinese {
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .info-value a {
+      color: #667eea;
+      text-decoration: none;
+    }
+
+    .info-value a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -765,8 +828,8 @@
     // 상품 정보 렌더링
     function renderProductInfo() {
       const p = currentProduct;
-      const mainImage = p.mainImage || p.images?.[0] || '';
-      const optionCount = p.results?.length || p.options?.length || 0;
+      const mainImage = p.titleImage?.[0] || p.mainImage || p.images?.[0] || '';
+      const optionCount = p.results?.length || 0;
 
       document.getElementById('pageTitle').textContent = p.title || p.titleCn || '상품 상세';
 
@@ -813,8 +876,8 @@
     function renderOptionImages() {
       const p = currentProduct;
 
-      // 메인 이미지 (images 배열 사용)
-      const mainImages = p.images || [];
+      // 메인 이미지 (titleImage 배열 사용)
+      const mainImages = p.titleImage || p.images || [];
       const mainGrid = document.getElementById('mainImagesGrid');
 
       if (mainImages.length === 0) {
@@ -831,13 +894,14 @@
         `).join('');
       }
 
-      // 옵션 이미지 (results 배열 사용)
-      const options = p.results || p.options || [];
+      // 옵션 이미지 (results 배열의 option1Img 또는 imageLink 사용)
+      const options = p.results || [];
       const optionImages = [];
       options.forEach((opt, i) => {
-        if (opt.optionImage || opt.image) {
+        const imgUrl = opt.option1Img || opt.imageLink || opt.optionImage || opt.image;
+        if (imgUrl) {
           const optName = opt.optionName1 || opt.optionName1Cn || opt.name || `옵션${i + 1}`;
-          optionImages.push({ url: opt.optionImage || opt.image, name: optName });
+          optionImages.push({ url: imgUrl, name: optName });
         }
       });
 
@@ -942,43 +1006,122 @@
     // 원본 정보 렌더링
     function renderOriginalInfo() {
       const p = currentProduct;
+      // results 배열에서 첫 번째 항목의 link 사용
+      const sourceUrl = p.link || (p.results?.[0]?.link) || p.url || p.sourceUrl || '';
+      const sourceType = detectSourceType(sourceUrl);
 
       document.getElementById('originalInfo').innerHTML = `
-        <div class="meta-item">
-          <span class="meta-label">원본 상품명 (중국어)</span>
-          <span class="meta-value">${p.titleCn || p.originalTitle || p.rawTitle || '-'}</span>
+        <div class="action-bar" style="margin-bottom: 20px;">
+          ${sourceUrl ? `
+            <a href="${sourceUrl}" target="_blank" class="btn btn-primary">
+              <span>🔗</span> 원본 페이지 열기
+            </a>
+          ` : ''}
+          <button class="btn btn-secondary" onclick="copyToClipboard('${p.titleCn || ''}')">
+            <span>📋</span> 중국어명 복사
+          </button>
+          ${sourceUrl ? `
+            <button class="btn btn-secondary" onclick="copyToClipboard('${sourceUrl}')">
+              <span>🔗</span> 링크 복사
+            </button>
+          ` : ''}
         </div>
-        <div class="meta-item">
-          <span class="meta-label">번역된 상품명</span>
-          <span class="meta-value">${p.title || '-'}</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">원본 링크</span>
-          <span class="meta-value">
-            ${p.url || p.sourceUrl ? `<a href="${p.url || p.sourceUrl}" target="_blank">${p.url || p.sourceUrl}</a>` : '-'}
-          </span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">소싱처</span>
-          <span class="meta-value">${p.source || p.platform || '-'}</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">원본 가격</span>
-          <span class="meta-value">${p.priceMin ? p.priceMin + ' ~ ' + (p.priceMax || p.priceMin) + ' CNY' : (p.originalPrice ? p.originalPrice + ' CNY' : '-')}</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">수집 일시</span>
-          <span class="meta-value">${p.savedAt || p.createdAt ? new Date(p.savedAt || p.createdAt).toLocaleString('ko-KR') : '-'}</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">상품 ID</span>
-          <span class="meta-value">${p.id || '-'}</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">원본 상품 ID</span>
-          <span class="meta-value">${p.productId || p.sourceId || p.originalId || '-'}</span>
+
+        <div class="info-cards">
+          <div class="info-card">
+            <div class="info-card-header">📝 상품명</div>
+            <div class="info-card-body">
+              <div class="info-row">
+                <span class="info-label">원본 (중국어)</span>
+                <span class="info-value chinese">${p.titleCn || '-'}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">번역</span>
+                <span class="info-value">${p.title || '-'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-card-header">🔗 소싱 정보</div>
+            <div class="info-card-body">
+              <div class="info-row">
+                <span class="info-label">소싱처</span>
+                <span class="info-value">${sourceType}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">원본 링크</span>
+                <span class="info-value" style="word-break: break-all;">
+                  ${sourceUrl ? `<a href="${sourceUrl}" target="_blank" style="color: #667eea;">${sourceUrl.substring(0, 60)}${sourceUrl.length > 60 ? '...' : ''}</a>` : '-'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-card-header">💰 가격 정보</div>
+            <div class="info-card-body">
+              <div class="info-row">
+                <span class="info-label">원본 가격</span>
+                <span class="info-value">${getOriginalPrice(p)}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">옵션 수</span>
+                <span class="info-value">${p.results?.length || '-'}개</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-card-header">📅 기타 정보</div>
+            <div class="info-card-body">
+              <div class="info-row">
+                <span class="info-label">수집 일시</span>
+                <span class="info-value">${p.savedAt ? new Date(p.savedAt).toLocaleString('ko-KR') : '-'}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">상품 ID</span>
+                <span class="info-value" style="font-size: 12px;">${p.id || '-'}</span>
+              </div>
+            </div>
+          </div>
         </div>
       `;
+    }
+
+    function detectSourceType(url) {
+      if (!url) return '-';
+      if (url.includes('1688.com')) return '1688';
+      if (url.includes('taobao.com')) return '타오바오';
+      if (url.includes('tmall.com')) return '티몰';
+      if (url.includes('aliexpress.com')) return '알리익스프레스';
+      return '기타';
+    }
+
+    function getOriginalPrice(p) {
+      // results에서 가격 추출
+      if (p.results && p.results.length > 0) {
+        const prices = p.results
+          .flatMap(r => r.optionName2Price || [])
+          .filter(p => p && p !== '')
+          .map(p => parseFloat(p));
+
+        if (prices.length > 0) {
+          const min = Math.min(...prices);
+          const max = Math.max(...prices);
+          return min === max ? `¥${min}` : `¥${min} ~ ¥${max}`;
+        }
+      }
+      if (p.priceMin) return `¥${p.priceMin}` + (p.priceMax && p.priceMax !== p.priceMin ? ` ~ ¥${p.priceMax}` : '');
+      return '-';
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('클립보드에 복사되었습니다.', 'success');
+      }).catch(() => {
+        showToast('복사 실패', 'error');
+      });
     }
 
     // 이미지 모달
@@ -1016,17 +1159,18 @@
 
       const images = [];
 
-      // 메인 이미지
-      (p.images || []).forEach((img, i) => {
+      // 메인 이미지 (titleImage 사용)
+      (p.titleImage || p.images || []).forEach((img, i) => {
         images.push({ url: img, name: `main_${i + 1}` });
       });
 
-      // 옵션 이미지
-      const options = p.results || p.options || [];
+      // 옵션 이미지 (results의 option1Img 또는 imageLink 사용)
+      const options = p.results || [];
       options.forEach((opt, i) => {
-        if (opt.optionImage || opt.image) {
+        const imgUrl = opt.option1Img || opt.imageLink || opt.optionImage || opt.image;
+        if (imgUrl) {
           const optName = opt.optionName1 || opt.optionName1Cn || opt.name || '';
-          images.push({ url: opt.optionImage || opt.image, name: `option_${i + 1}_${optName}`.replace(/[^a-zA-Z0-9가-힣_]/g, '') });
+          images.push({ url: imgUrl, name: `option_${i + 1}_${optName}`.replace(/[^a-zA-Z0-9가-힣_]/g, '') });
         }
       });
 
