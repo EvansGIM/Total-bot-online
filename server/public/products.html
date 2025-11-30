@@ -2725,11 +2725,36 @@
         address: settings.address || ''
       }));
 
+      // defaultQualityRows를 qualityTable 형식으로 변환 (editor-options.html과 동기화)
+      const qualityTable = {};
+      if (settings.defaultQualityRows) {
+        settings.defaultQualityRows.forEach(row => {
+          switch(row.label) {
+            case '제조사':
+              qualityTable.제조사 = row.value || '';
+              break;
+            case '취급시 주의사항':
+              qualityTable.취급시주의사항 = row.value || '상세페이지 참조';
+              break;
+            case '제조 연월':
+              qualityTable.제조연월 = row.value || '';
+              break;
+            case '품질 보증기준':
+              qualityTable.품질보증기준 = row.value || '관련법 및 소비자 분쟁해결 규정에 따름';
+              break;
+            case 'A/S 책임자와 전화번호':
+              qualityTable.AS책임자 = row.value || '';
+              break;
+          }
+        });
+      }
+
       // 서버에 모든 설정 저장
       try {
         const serverSettings = {
           quotationMappings: window.quotationMappings || settings.quotationMappings,
           defaultQualityRows: settings.defaultQualityRows,
+          qualityTable: qualityTable,
           defaultDetailTemplate: settings.defaultDetailTemplate,
           brandImageUrl: settings.brandImageUrl || '',
           priceSettings: {

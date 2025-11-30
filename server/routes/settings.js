@@ -47,6 +47,14 @@ async function loadUserSettings(userId) {
         { label: '품질 보증기준', value: '관련법 및 소비자 분쟁해결 규정에 따름' },
         { label: 'A/S 책임자와 전화번호', value: '' }
       ],
+      qualityTable: {
+        제조사: '',
+        취급시주의사항: '상세페이지 참조',
+        제조연월: '',
+        품질보증기준: '관련법 및 소비자 분쟁해결 규정에 따름',
+        AS책임자: '',
+        customRows: []
+      },
       defaultDetailTemplate: [
         { type: 'brand-image', label: '브랜드 이미지' },
         { type: 'title', label: '제품명' },
