@@ -102,6 +102,22 @@ async function getOrCreateApiTab() {
 }
 
 /**
+ * API 전용 탭 닫기
+ */
+async function closeApiTab() {
+  if (apiTabId) {
+    try {
+      await chrome.tabs.remove(apiTabId);
+      console.log('🗑️ API 전용 탭 닫기 완료:', apiTabId);
+    } catch (e) {
+      // 이미 닫혔거나 유효하지 않음
+      console.log('⚠️ API 탭 닫기 실패 (이미 닫힌 듯):', e.message);
+    }
+    apiTabId = null;
+  }
+}
+
+/**
  * 쿠팡 API 호출 (깨끗한 탭에서 실행)
  * 기존 쿠팡 탭의 캐시/JavaScript 에러를 피함
  */
@@ -651,8 +667,13 @@ async function checkUploadedProductsApproval() {
 
     console.log('\n✅ 자동 승인 상태 확인 완료');
 
+    // 자동 확인 완료 후 API 탭 닫기
+    await closeApiTab();
+
   } catch (error) {
     console.error('❌ 자동 승인 확인 오류:', error);
+    // 오류 발생 시에도 API 탭 닫기
+    await closeApiTab();
   }
 }
 
@@ -892,6 +913,9 @@ async function handleManualApprovalCheck(products) {
   console.log('\n✅ 수동 승인 상태 확인 완료');
   console.log(`   확인된 견적서: ${result.checkedCount}개`);
   console.log(`   승인된 상품: ${result.approvedCount}개`);
+
+  // 확인 완료 후 API 탭 닫기
+  await closeApiTab();
 
   return result;
 }
