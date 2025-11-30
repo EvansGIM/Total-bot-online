@@ -1196,97 +1196,118 @@
       // 최상위 컨테이너 찾기 (보통 max-width div)
       let container = tempDiv.querySelector('div[style*="max-width"]') || tempDiv;
 
-      // 자식 요소들을 순서대로 처리
-      function processNode(node) {
-        if (node.nodeType === Node.TEXT_NODE) {
-          const text = node.textContent.trim();
-          if (text) {
-            blocks.push({ type: 'text', content: text });
-          }
-          return;
-        }
+      // 재귀적으로 모든 요소를 순서대로 처리
+      function processElement(element) {
+        const children = element.childNodes;
 
-        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        for (let i = 0; i < children.length; i++) {
+          const node = children[i];
 
-        const tagName = node.tagName.toLowerCase();
-
-        // 이미지 처리
-        if (tagName === 'img') {
-          const src = node.getAttribute('src');
-          if (src) {
-            blocks.push({ type: 'image', content: src });
-          }
-          return;
-        }
-
-        // 제목 처리
-        if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
-          const text = node.textContent.trim();
-          if (text) {
-            blocks.push({ type: 'heading', content: text, level: tagName });
-          }
-          return;
-        }
-
-        // 테이블 처리
-        if (tagName === 'table') {
-          blocks.push({ type: 'table', content: node.outerHTML });
-          return;
-        }
-
-        // ul/ol 리스트 처리
-        if (tagName === 'ul' || tagName === 'ol') {
-          blocks.push({ type: 'list', content: node.outerHTML });
-          return;
-        }
-
-        // div, p 등 컨테이너 처리
-        if (['div', 'p', 'section', 'article'].includes(tagName)) {
-          // 내부에 이미지가 있으면 이미지 추출
-          const imgs = node.querySelectorAll('img');
-          if (imgs.length > 0) {
-            imgs.forEach(img => {
-              const src = img.getAttribute('src');
-              if (src) {
-                blocks.push({ type: 'image', content: src });
-              }
-            });
+          // 텍스트 노드는 건너뛰기 (의미 있는 텍스트는 요소 안에 있음)
+          if (node.nodeType === Node.TEXT_NODE) {
+            const text = node.textContent.trim();
+            // 의미 있는 단독 텍스트만 추가 (최소 10자 이상)
+            if (text && text.length > 10 && !text.includes('\n')) {
+              blocks.push({ type: 'text', content: text });
+            }
+            continue;
           }
 
-          // 내부에 테이블이 있으면 테이블 추출
-          const tables = node.querySelectorAll('table');
-          if (tables.length > 0) {
-            tables.forEach(table => {
-              blocks.push({ type: 'table', content: table.outerHTML });
-            });
-          }
+          if (node.nodeType !== Node.ELEMENT_NODE) continue;
 
-          // 내부에 리스트가 있으면 리스트 추출
-          const lists = node.querySelectorAll('ul, ol');
-          if (lists.length > 0) {
-            lists.forEach(list => {
-              blocks.push({ type: 'list', content: list.outerHTML });
-            });
-          }
+          const tagName = node.tagName.toLowerCase();
 
-          // 이미지/테이블/리스트 외의 텍스트가 있으면 추출
-          if (imgs.length === 0 && tables.length === 0 && lists.length === 0) {
+          // 제목 처리 (h1~h6)
+          if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
             const text = node.textContent.trim();
             if (text) {
-              // 스타일 정보도 보존
+              blocks.push({ type: 'heading', content: text, level: tagName });
+            }
+            continue;
+          }
+
+          // 이미지 처리
+          if (tagName === 'img') {
+            const src = node.getAttribute('src');
+            if (src) {
+              blocks.push({ type: 'image', content: src });
+            }
+            continue;
+          }
+
+          // 테이블 처리
+          if (tagName === 'table') {
+            blocks.push({ type: 'table', content: node.outerHTML });
+            continue;
+          }
+
+          // 리스트 처리
+          if (tagName === 'ul' || tagName === 'ol') {
+            blocks.push({ type: 'list', content: node.outerHTML });
+            continue;
+          }
+
+          // div, p 등 컨테이너 처리
+          if (['div', 'p', 'section', 'article', 'span'].includes(tagName)) {
+            // 직접 자식으로 특수 요소가 있는지 확인
+            const directImg = node.querySelector(':scope > img');
+            const directTable = node.querySelector(':scope > table');
+            const directList = node.querySelector(':scope > ul, :scope > ol');
+            const directHeading = node.querySelector(':scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6');
+
+            // 복합 컨테이너면 재귀 처리
+            if (directImg || directTable || directList || directHeading || node.children.length > 1) {
+              processElement(node);
+              continue;
+            }
+
+            // 내부에 이미지만 있는 경우
+            const imgs = node.querySelectorAll('img');
+            if (imgs.length > 0) {
+              imgs.forEach(img => {
+                const src = img.getAttribute('src');
+                if (src) {
+                  blocks.push({ type: 'image', content: src });
+                }
+              });
+              continue;
+            }
+
+            // 내부에 테이블만 있는 경우
+            const tables = node.querySelectorAll('table');
+            if (tables.length > 0) {
+              tables.forEach(table => {
+                blocks.push({ type: 'table', content: table.outerHTML });
+              });
+              continue;
+            }
+
+            // 내부에 리스트만 있는 경우
+            const lists = node.querySelectorAll('ul, ol');
+            if (lists.length > 0) {
+              lists.forEach(list => {
+                blocks.push({ type: 'list', content: list.outerHTML });
+              });
+              continue;
+            }
+
+            // 순수 텍스트 컨테이너
+            const text = node.textContent.trim();
+            if (text) {
               const style = node.getAttribute('style') || '';
               blocks.push({ type: 'text', content: text, style: style });
             }
+            continue;
           }
-          return;
-        }
 
-        // 기타 요소는 자식 순회
-        node.childNodes.forEach(child => processNode(child));
+          // 기타 요소는 재귀 처리
+          if (node.children && node.children.length > 0) {
+            processElement(node);
+          }
+        }
       }
 
-      // 컨테이너의 직접 자식들을 순서대로 처리
-      container.childNodes.forEach(child => processNode(child));
+      processElement(container);
 
       return blocks;
     }
