@@ -6006,12 +6006,14 @@
         });
       }
 
-      // 2. 제품명 (타이틀)
+      // 2. 제품명 (타이틀) - 기본: 큰 사이즈(28px), 중앙 정렬
       const productTitle = productData.title || productData.titleCn || '제품명';
       detailPageItems.push({
         type: 'title',
         text: productTitle,
-        label: productTitle
+        label: productTitle,
+        fontSize: '28',
+        align: 'center'
       });
 
       // 3. 추가 이미지는 기본적으로 포함 안함 (사용자가 수동으로 추가)
