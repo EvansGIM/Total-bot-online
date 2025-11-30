@@ -9451,25 +9451,28 @@
       closeBgRemoveModal();
 
       // 상세페이지 detailPageItems의 이미지도 업데이트
-      // 옵션 이미지의 경우: optionName으로 매칭하여 최신 이미지로 동기화
+      // 처리된 이미지 URL 매핑 생성 (oldUrl -> newUrl)
+      const imageUpdateMap = new Map();
+
       if (bgRemoveImageType === 'option') {
-        // productData.results에서 옵션1별 최신 이미지 맵 생성
-        const option1ImageMap = new Map();
-        productData.results.forEach(option => {
-          const opt1 = option.optionName1 || option.optionName1Cn || '옵션1';
-          const img = option.imageLink || option.titleImage?.[0] || '';
-          if (img && !option1ImageMap.has(opt1)) {
-            option1ImageMap.set(opt1, img);
+        // 옵션 이미지: 처리된 각 이미지의 old -> new 매핑
+        imagesToProcess.forEach(item => {
+          const oldUrl = item.url;
+          const sampleIdx = item.indices[0];
+          const newUrl = productData.results[sampleIdx]?.imageLink || productData.results[sampleIdx]?.titleImage?.[0];
+          if (newUrl && newUrl !== oldUrl) {
+            imageUpdateMap.set(oldUrl, newUrl);
+            console.log('[배경제거 동기화] 매핑 추가:', oldUrl.substring(0, 50) + '... → base64');
           }
         });
 
-        // detailPageItems의 option-block들을 최신 이미지로 업데이트
+        // detailPageItems의 option-block들을 URL 매칭으로 업데이트
         detailPageItems.forEach(block => {
-          if (block.type === 'option-block' && block.optionName) {
-            const latestImg = option1ImageMap.get(block.optionName);
-            if (latestImg && latestImg !== block.imageSrc) {
-              console.log('[배경제거 동기화] 옵션 이미지 업데이트:', block.optionName);
-              block.imageSrc = latestImg;
+          if (block.type === 'option-block' && block.imageSrc) {
+            const newImg = imageUpdateMap.get(block.imageSrc);
+            if (newImg) {
+              console.log('[배경제거 동기화] 옵션 블록 이미지 업데이트:', block.optionName);
+              block.imageSrc = newImg;
             }
           }
         });
