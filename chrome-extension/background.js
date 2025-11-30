@@ -3427,12 +3427,25 @@ async function handleCategorySearch(keyword) {
     await ensureCoupangTab();
 
     // 탭 상태 확인
-    const tabInfo = await chrome.tabs.get(coupangTab);
+    let tabInfo = await chrome.tabs.get(coupangTab);
     console.log('📍 Tab info before sendMessage:', {
       id: coupangTab,
       url: tabInfo.url,
       status: tabInfo.status
     });
+
+    // /qvt/ 페이지가 아니면 이동 (QVT API 세션 필요)
+    if (tabInfo.url && !tabInfo.url.includes('/qvt/')) {
+      console.log('⚠️ Not on QVT page, navigating to /qvt/registration...');
+      await chrome.tabs.update(coupangTab, { url: 'https://supplier.coupang.com/qvt/registration' });
+      await waitForTabLoad(coupangTab);
+
+      // Content script 재주입
+      await ensureContentScript(coupangTab);
+
+      tabInfo = await chrome.tabs.get(coupangTab);
+      console.log('📍 Tab info after QVT navigation:', tabInfo.url);
+    }
 
     // Content script 로드 대기
     console.log('⏳ Waiting for content script...');
