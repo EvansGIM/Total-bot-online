@@ -2601,21 +2601,50 @@
       <div id="options-tab" class="main-tab-content active">
         <!-- 모던 옵션 일괄 편집 툴바 -->
         <div class="options-toolbar">
-          <div class="options-toolbar-header">
+          <div class="options-toolbar-header" style="display: flex; justify-content: space-between; align-items: center;">
             <h3>옵션 일괄 편집</h3>
+            <button class="btn-action btn-action-ai" onclick="openAIRenameModal()" style="padding: 8px 16px; font-size: 13px;">
+              <span>✨</span> AI 작명
+            </button>
           </div>
 
           <!-- 탭 선택 -->
           <div class="edit-tabs">
-            <button class="edit-tab active" onclick="switchEditTab('find-replace')">찾기/바꾸기</button>
-            <button class="edit-tab" onclick="switchEditTab('mapping')">이름 매핑</button>
+            <button class="edit-tab active" onclick="switchEditTab('mapping')">이름 매핑</button>
+            <button class="edit-tab" onclick="switchEditTab('find-replace')">찾기/바꾸기</button>
             <button class="edit-tab" onclick="switchEditTab('numbering')">순번 부여</button>
-            <button class="edit-tab" onclick="switchEditTab('ai-rename')">AI 작명</button>
             <button class="edit-tab" onclick="switchEditTab('price-collect')">가격 수집</button>
           </div>
 
+          <!-- 이름 매핑 탭 (좌우 레이아웃) -->
+          <div id="mapping-tab" class="edit-tab-content active">
+            <div class="mapping-dual-layout" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+              <!-- 옵션1 매핑 -->
+              <div class="mapping-column" style="background: #f8f9fa; border-radius: 8px; padding: 15px;">
+                <div class="edit-section-title" style="margin-bottom: 12px;">
+                  <span class="icon">🏷️</span>
+                  옵션1 매핑
+                </div>
+                <div id="option1MappingList" class="mapping-list" style="max-height: 300px; overflow-y: auto;">
+                  <!-- 옵션1 유니크 값들이 여기에 렌더링됨 -->
+                </div>
+              </div>
+              <!-- 옵션2 매핑 -->
+              <div class="mapping-column" style="background: #f8f9fa; border-radius: 8px; padding: 15px;">
+                <div class="edit-section-title" style="margin-bottom: 12px;">
+                  <span class="icon">🏷️</span>
+                  옵션2 매핑
+                </div>
+                <div id="option2MappingList" class="mapping-list" style="max-height: 300px; overflow-y: auto;">
+                  <!-- 옵션2 유니크 값들이 여기에 렌더링됨 -->
+                </div>
+              </div>
+            </div>
+            <p class="hint" style="margin-top: 12px;">각 옵션의 유니크 값을 직접 수정하면 동일한 값이 모두 변경됩니다. Enter 또는 포커스 아웃 시 자동 적용됩니다.</p>
+          </div>
+
           <!-- 찾기/바꾸기 탭 -->
-          <div id="find-replace-tab" class="edit-tab-content active">
+          <div id="find-replace-tab" class="edit-tab-content">
             <div class="edit-section-title">
               <span class="icon">🔍</span>
               텍스트 찾아 바꾸기
@@ -2633,24 +2662,6 @@
               </button>
             </div>
             <p class="hint">선택한 옵션의 모든 값에서 특정 텍스트를 찾아 일괄 변경합니다. 빈 칸으로 두면 해당 텍스트를 삭제합니다.</p>
-          </div>
-
-          <!-- 이름 매핑 탭 -->
-          <div id="mapping-tab" class="edit-tab-content">
-            <div class="edit-section-title">
-              <span class="icon">🏷️</span>
-              유니크 값 매핑
-            </div>
-            <div class="bulk-edit-group">
-              <select id="mappingTargetOption" class="option-select">
-                <option value="optionName1">옵션1</option>
-                <option value="optionName2">옵션2</option>
-              </select>
-              <button class="btn-action btn-action-primary" onclick="openMappingDialog()">
-                유니크 값 편집
-              </button>
-            </div>
-            <p class="hint">동일한 옵션 값들을 그룹으로 묶어 한 번에 새로운 이름으로 변경할 수 있습니다.</p>
           </div>
 
           <!-- 순번 부여 탭 -->
@@ -2674,33 +2685,6 @@
               </button>
             </div>
             <p class="hint">유니크한 옵션 값에 순차적으로 번호를 부여합니다. 예: "색상1", "색상2" 또는 "색상A", "색상B"</p>
-          </div>
-
-          <!-- AI 작명 탭 (새로 추가) -->
-          <div id="ai-rename-tab" class="edit-tab-content">
-            <div class="ai-section">
-              <div class="ai-section-header">
-                <span class="ai-badge">AI POWERED</span>
-                <span class="ai-section-title">중국어 → 한국어 자동 변환</span>
-                <button class="btn-custom-ai" onclick="openCustomAIModal()">
-                  <span>🎨</span> 커스텀
-                </button>
-              </div>
-              <p class="ai-description">
-                AI가 중국어 옵션명을 자연스러운 한국어로 변환합니다. 색상, 사이즈 등을 자동으로 인식하여 쇼핑몰에 적합한 형태로 변환해드립니다.
-              </p>
-              <div class="bulk-edit-group">
-                <select id="aiTargetOption" class="option-select">
-                  <option value="all" selected>전체 (옵션1+옵션2)</option>
-                  <option value="optionName1">옵션1</option>
-                  <option value="optionName2">옵션2</option>
-                </select>
-                <button class="btn-action btn-action-ai" onclick="applyAIRename()" id="aiRenameBtn">
-                  <span id="aiRenameIcon">✨</span>
-                  <span id="aiRenameText">AI 변환 시작</span>
-                </button>
-              </div>
-            </div>
           </div>
 
           <!-- 가격 수집 탭 -->
@@ -4284,6 +4268,9 @@
 
         // 옵션 렌더링
         renderOptions();
+
+        // 매핑 리스트 초기화 (기본 탭이 매핑이므로)
+        renderMappingLists();
 
         // 상세페이지 에디터 초기화
         initDetailPageEditor();
@@ -6783,6 +6770,11 @@
       // 선택한 탭 활성화
       event.target.classList.add('active');
       document.getElementById(`${tabName}-tab`).classList.add('active');
+
+      // 매핑 탭인 경우 리스트 렌더링
+      if (tabName === 'mapping') {
+        renderMappingLists();
+      }
     }
 
     // 일괄 치환
@@ -9128,6 +9120,162 @@
         btnText.textContent = 'AI 변환 적용';
       }
     }
+
+    // ========== AI 작명 모달 ==========
+    function openAIRenameModal() {
+      document.getElementById('aiRenameModal').classList.add('active');
+    }
+
+    function closeAIRenameModal() {
+      document.getElementById('aiRenameModal').classList.remove('active');
+    }
+
+    async function applyAIRenameFromModal(type) {
+      const targetOption = document.getElementById('aiTargetOption').value;
+
+      // 대상 옵션 필드 결정
+      const targetFields = targetOption === 'all'
+        ? ['optionName1', 'optionName2']
+        : [targetOption];
+
+      // 유니크한 옵션 값 수집
+      const uniqueValues = [];
+      const seen = new Set();
+
+      productData.results.forEach(opt => {
+        targetFields.forEach(field => {
+          const value = opt[field] || '';
+          if (value && !seen.has(value)) {
+            uniqueValues.push(value);
+            seen.add(value);
+          }
+        });
+      });
+
+      if (uniqueValues.length === 0) {
+        showAlert('변환할 옵션 값이 없습니다.', 'warning');
+        return;
+      }
+
+      closeAIRenameModal();
+      showAlert(`AI가 ${uniqueValues.length}개의 옵션을 분석중입니다...`, 'info');
+
+      try {
+        // AI API 호출
+        const response = await fetch('/api/ai-rename', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            optionValues: uniqueValues,
+            type: type
+          })
+        });
+
+        if (!response.ok) throw new Error('AI API 호출 실패');
+
+        const result = await response.json();
+        const mapping = result.mapping || {};
+
+        // 매핑 적용
+        let count = 0;
+        productData.results.forEach(opt => {
+          targetFields.forEach(field => {
+            const currentValue = opt[field];
+            if (currentValue && mapping[currentValue]) {
+              opt[field] = mapping[currentValue];
+              count++;
+            }
+          });
+        });
+
+        renderOptions();
+        renderMappingLists(); // 매핑 탭 업데이트
+        showAlert(`AI가 ${count}개 옵션을 변환했습니다.`, 'success');
+        if (count > 0) {
+          scheduleAutoSave();
+        }
+      } catch (error) {
+        console.error('AI 변환 오류:', error);
+        showAlert('AI 변환에 실패했습니다. 다시 시도해주세요.', 'error');
+      }
+    }
+
+    // ========== 매핑 리스트 렌더링 ==========
+    function renderMappingLists() {
+      renderSingleMappingList('optionName1', 'option1MappingList');
+      renderSingleMappingList('optionName2', 'option2MappingList');
+    }
+
+    function renderSingleMappingList(fieldName, containerId) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      // 유니크한 값 추출
+      const uniqueValues = [];
+      const seen = new Set();
+
+      productData.results.forEach(opt => {
+        const value = opt[fieldName] || '';
+        if (!seen.has(value)) {
+          uniqueValues.push(value);
+          seen.add(value);
+        }
+      });
+
+      container.innerHTML = '';
+
+      if (uniqueValues.length === 0) {
+        container.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">옵션이 없습니다</div>';
+        return;
+      }
+
+      uniqueValues.forEach((value, index) => {
+        const row = document.createElement('div');
+        row.className = 'mapping-row';
+        row.style.cssText = 'display: flex; align-items: center; gap: 8px; padding: 8px; background: white; border-radius: 6px; margin-bottom: 6px;';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = value;
+        input.className = 'mapping-input';
+        input.style.cssText = 'flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;';
+        input.dataset.field = fieldName;
+        input.dataset.originalValue = value;
+
+        // Enter 또는 blur 시 적용
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.target.blur();
+          }
+        });
+
+        input.addEventListener('blur', () => {
+          applyMappingChange(fieldName, value, input.value);
+        });
+
+        row.appendChild(input);
+        container.appendChild(row);
+      });
+    }
+
+    function applyMappingChange(fieldName, originalValue, newValue) {
+      if (originalValue === newValue) return;
+
+      let count = 0;
+      productData.results.forEach(opt => {
+        if (opt[fieldName] === originalValue) {
+          opt[fieldName] = newValue;
+          count++;
+        }
+      });
+
+      if (count > 0) {
+        renderOptions();
+        renderMappingLists(); // 매핑 리스트도 업데이트
+        showAlert(`${count}개 항목이 변경되었습니다.`, 'success');
+        scheduleAutoSave();
+      }
+    }
   </script>
 
   <!-- 커스텀 AI 모달 -->
@@ -9155,6 +9303,40 @@
           <span>✨</span>
           <span id="customAiBtnText">AI 변환 적용</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI 작명 모달 -->
+  <div id="aiRenameModal" class="custom-ai-modal" onclick="if(event.target === this) closeAIRenameModal()">
+    <div class="custom-ai-content">
+      <div class="custom-ai-header">
+        <h3><span>✨</span> AI 작명</h3>
+        <button class="custom-ai-close" onclick="closeAIRenameModal()">&times;</button>
+      </div>
+      <div class="custom-ai-body">
+        <p class="ai-description" style="margin-bottom: 15px;">
+          AI가 중국어 옵션명을 자연스러운 한국어로 변환합니다. 색상, 사이즈 등을 자동으로 인식하여 쇼핑몰에 적합한 형태로 변환해드립니다.
+        </p>
+        <div class="custom-ai-select-row" style="margin-bottom: 15px;">
+          <label>대상 옵션:</label>
+          <select id="aiTargetOption" class="custom-ai-select">
+            <option value="all" selected>전체 (옵션1+옵션2)</option>
+            <option value="optionName1">옵션1만</option>
+            <option value="optionName2">옵션2만</option>
+          </select>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button class="btn-action btn-action-ai" onclick="applyAIRenameFromModal('standard')" style="width: 100%; justify-content: center; padding: 12px;">
+            <span>🔄</span> 중국어 → 한국어 자동 변환
+          </button>
+          <button class="btn-action btn-action-primary" onclick="openCustomAIModal(); closeAIRenameModal();" style="width: 100%; justify-content: center; padding: 12px;">
+            <span>🎨</span> 커스텀 프롬프트로 변환
+          </button>
+        </div>
+      </div>
+      <div class="custom-ai-footer">
+        <button class="btn-custom-cancel" onclick="closeAIRenameModal()">닫기</button>
       </div>
     </div>
   </div>
