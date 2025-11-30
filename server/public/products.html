@@ -1427,6 +1427,10 @@
         <span class="menu-icon">⚙️</span>
         설정
       </a>
+      <a class="sidebar-menu-item" onclick="logout();" style="cursor: pointer; color: #dc3545;">
+        <span class="menu-icon">🚪</span>
+        로그아웃
+      </a>
     </div>
   </nav>
 
@@ -1715,6 +1719,16 @@
       const overlay = document.getElementById('sidebarOverlay');
       sidebar.classList.toggle('active');
       overlay.classList.toggle('active');
+    }
+
+    // 로그아웃
+    function logout() {
+      if (confirm('로그아웃 하시겠습니까?')) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('userName');
+        window.location.href = '/login.html';
+      }
     }
 
     // 이미지 호버 미리보기 표시

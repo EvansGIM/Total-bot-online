@@ -72,15 +72,6 @@
       background: #218838;
     }
 
-    .btn-logout {
-      background: #dc3545;
-      color: white;
-    }
-
-    .btn-logout:hover {
-      background: #c82333;
-    }
-
     .container {
       max-width: 1600px;
       margin: 0 auto;
@@ -2596,7 +2587,6 @@
     <div class="header-actions">
       <button class="btn btn-secondary" onclick="window.location.href='/products.html'">목록으로</button>
       <button class="btn btn-success" onclick="saveProduct()">저장</button>
-      <button class="btn btn-logout" onclick="logout()">로그아웃</button>
     </div>
   </div>
 
@@ -9312,16 +9302,6 @@
       setTimeout(() => {
         alert.remove();
       }, 5000);
-    }
-
-    // 로그아웃
-    function logout() {
-      if (confirm('로그아웃 하시겠습니까?')) {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userId');
-        localStorage.removeItem('userName');
-        window.location.href = '/login.html';
-      }
     }
 
     // 배경 제거 모달에서 선택된 이미지 인덱스
