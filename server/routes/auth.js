@@ -60,7 +60,27 @@ async function loadUsers() {
   try {
     await ensureDataExists();
     const data = await fs.readFile(USERS_FILE, 'utf-8');
-    return JSON.parse(data);
+    let users = JSON.parse(data);
+
+    // test 계정이 없으면 자동 추가
+    const hasTestUser = users.some(u => u.username === 'test');
+    if (!hasTestUser) {
+      const testPassword = await bcrypt.hash('test123', 10);
+      const maxId = users.reduce((max, u) => Math.max(max, u.id), 0);
+      users.push({
+        id: maxId + 1,
+        username: 'test',
+        password: testPassword,
+        name: '테스트',
+        grade: 'basic',
+        is_admin: false,
+        createdAt: new Date().toISOString()
+      });
+      await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
+      console.log('[Auth] test 계정 자동 추가됨');
+    }
+
+    return users;
   } catch (error) {
     console.error('유저 로드 오류:', error);
     return [];
