@@ -49,41 +49,72 @@ console.log('✅ SheetJS loaded:', typeof XLSX);
 
 // ===== 쿠팡 API 직접 호출 함수 (캐시 문제 우회) =====
 
+// API 전용 탭 ID 캐시
+let apiTabId = null;
+
 /**
- * 쿠팡 탭에서 API 호출 실행 (캐시/CORS 문제 우회)
- * 쿠팡 페이지 컨텍스트에서 fetch를 실행하여 쿠키 자동 포함
+ * 쿠팡 API 전용 깨끗한 탭 생성/재사용
+ * 기존 쿠팡 탭의 캐시/에러 상태를 피하기 위해 별도 탭 사용
  */
-async function coupangApiFetch(url, options = {}) {
-  // 쿠팡 탭 찾기 또는 생성
-  let coupangTabId = await findCoupangTab();
-
-  if (!coupangTabId) {
-    // 쿠팡 탭이 없으면 새로 열기
-    console.log('📌 쿠팡 탭이 없어서 새로 생성합니다...');
-    const newTab = await chrome.tabs.create({
-      url: 'https://supplier.coupang.com/',
-      active: false
-    });
-    coupangTabId = newTab.id;
-
-    // 페이지 로드 대기
-    await new Promise(resolve => {
-      const listener = (tabId, info) => {
-        if (tabId === coupangTabId && info.status === 'complete') {
-          chrome.tabs.onUpdated.removeListener(listener);
-          resolve();
-        }
-      };
-      chrome.tabs.onUpdated.addListener(listener);
-    });
-
-    // 추가 대기
-    await sleep(2000);
+async function getOrCreateApiTab() {
+  // 기존 API 탭이 유효한지 확인
+  if (apiTabId) {
+    try {
+      const tab = await chrome.tabs.get(apiTabId);
+      if (tab && tab.url && tab.url.includes('supplier.coupang.com')) {
+        return apiTabId;
+      }
+    } catch (e) {
+      // 탭이 닫혔거나 유효하지 않음
+      apiTabId = null;
+    }
   }
 
-  // 쿠팡 탭에서 fetch 실행 (scripting API 사용)
+  // 새 API 전용 탭 생성 (about:blank로 시작해서 쿠팡 API 페이지로)
+  console.log('📌 API 전용 탭 생성 중...');
+  const newTab = await chrome.tabs.create({
+    url: 'https://supplier.coupang.com/favicon.ico', // 가벼운 리소스로 세션 확립
+    active: false
+  });
+  apiTabId = newTab.id;
+
+  // 페이지 로드 대기
+  await new Promise(resolve => {
+    const listener = (tabId, info) => {
+      if (tabId === apiTabId && info.status === 'complete') {
+        chrome.tabs.onUpdated.removeListener(listener);
+        resolve();
+      }
+    };
+    chrome.tabs.onUpdated.addListener(listener);
+
+    // 타임아웃
+    setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(listener);
+      resolve();
+    }, 10000);
+  });
+
+  await sleep(500);
+  return apiTabId;
+}
+
+/**
+ * 쿠팡 API 호출 (깨끗한 탭에서 실행)
+ * 기존 쿠팡 탭의 캐시/JavaScript 에러를 피함
+ */
+async function coupangApiFetch(url, options = {}) {
+  const tabId = await getOrCreateApiTab();
+
+  if (!tabId) {
+    throw new Error('API 탭을 생성할 수 없습니다');
+  }
+
+  console.log(`📡 [API Tab ${tabId}] Fetching: ${url}`);
+
+  // 깨끗한 탭에서 fetch 실행
   const results = await chrome.scripting.executeScript({
-    target: { tabId: coupangTabId },
+    target: { tabId: tabId },
     func: async (fetchUrl, fetchOptions) => {
       try {
         const response = await fetch(fetchUrl, {
@@ -111,15 +142,22 @@ async function coupangApiFetch(url, options = {}) {
         };
       }
     },
-    args: [url, options]
+    args: [url, options],
+    world: 'MAIN' // 페이지 컨텍스트에서 실행
   });
 
-  if (!results || results.length === 0 || results[0].result.error) {
-    const errorMsg = results?.[0]?.result?.error || '스크립트 실행 실패';
-    throw new Error(errorMsg);
+  if (!results || results.length === 0) {
+    throw new Error('스크립트 실행 결과가 없습니다');
   }
 
   const result = results[0].result;
+
+  if (result.error) {
+    console.error('❌ [API Tab] Fetch error:', result.error);
+    throw new Error(result.error);
+  }
+
+  console.log(`✅ [API Tab] Response status: ${result.status}`);
 
   // Response-like 객체 반환
   return {
