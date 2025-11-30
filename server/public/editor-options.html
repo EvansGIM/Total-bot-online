@@ -9557,6 +9557,9 @@
       // UI 갱신
       refreshImageTabs();           // 이미지 탭 새로고침
       renderDetailSources();        // 상세페이지 소스 이미지 새로고침
+      if (bgRemoveImageType === 'option') {
+        renderOptions();            // 옵션 테이블 새로고침
+      }
       scheduleAutoSave();
 
       // 결과 알림
@@ -9886,6 +9889,12 @@
       if (successCount > 0) {
         // 이미지 탭 다시 렌더링
         refreshImageTabs();
+
+        // 옵션 이미지 편집 시 옵션 테이블과 상세페이지 동기화
+        if (imageType === 'option') {
+          renderOptions();  // 옵션 테이블 새로고침
+          syncOptionImagesToDetailPage();  // 상세페이지 자동 동기화
+        }
       }
     }
 
