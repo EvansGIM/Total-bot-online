@@ -4483,6 +4483,41 @@
 
       // 텍스트 버튼 드래그 이벤트 설정
       setupTextDragEvents();
+
+      // 상품명 변경 시 상세페이지 제품명 자동 업데이트
+      const productTitleInput = document.getElementById('productTitle');
+      if (productTitleInput) {
+        productTitleInput.addEventListener('input', (e) => {
+          const newTitle = e.target.value;
+          updateDetailPageTitle(newTitle);
+        });
+      }
+    }
+
+    // 상세페이지 제품명 업데이트
+    function updateDetailPageTitle(newTitle) {
+      let updated = false;
+      detailPageItems.forEach(item => {
+        // 'title' 타입 아이템의 텍스트 업데이트
+        if (item.type === 'title') {
+          item.text = newTitle;
+          item.label = newTitle;
+          updated = true;
+        }
+        // 품질표시사항의 상품명도 업데이트
+        if (item.type === 'quality-table' && item.rows) {
+          item.rows.forEach(row => {
+            if (row.label === '상품명') {
+              row.value = newTitle;
+              updated = true;
+            }
+          });
+        }
+      });
+
+      if (updated) {
+        renderDetailCanvas();
+      }
     }
 
     // 텍스트 버튼 드래그 이벤트 설정
