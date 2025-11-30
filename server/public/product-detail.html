@@ -1516,7 +1516,14 @@
             </div>
           `;
         } else {
-          // text 블록
+          // text 블록 - 스타일 설정 포함
+          const textStyle = block.textStyle || {};
+          const fontSize = textStyle.fontSize || '14';
+          const align = textStyle.align || 'left';
+          const color = textStyle.color || '#333333';
+          const fontWeight = textStyle.fontWeight || 'normal';
+          const border = textStyle.border || 'none';
+
           return `
             <div class="editor-block" ${dragAttrs}>
               <div class="block-header">
@@ -1528,8 +1535,71 @@
                 </div>
               </div>
               <div class="block-content">
+                <!-- 스타일 설정 영역 -->
+                <div class="text-style-controls" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; padding: 10px; background: #f5f5f5; border-radius: 6px;">
+                  <!-- 크기 -->
+                  <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <label style="font-size: 11px; color: #666;">크기</label>
+                    <select onchange="updateTextStyle(${index}, 'fontSize', this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                      <option value="12" ${fontSize === '12' ? 'selected' : ''}>작게 (12px)</option>
+                      <option value="14" ${fontSize === '14' ? 'selected' : ''}>보통 (14px)</option>
+                      <option value="18" ${fontSize === '18' ? 'selected' : ''}>크게 (18px)</option>
+                      <option value="custom" ${!['12','14','18'].includes(fontSize) ? 'selected' : ''}>직접입력</option>
+                    </select>
+                    <input type="number" value="${fontSize}" min="10" max="48"
+                           onchange="updateTextStyle(${index}, 'fontSize', this.value)"
+                           style="width: 60px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; margin-top: 2px;"
+                           placeholder="px">
+                  </div>
+
+                  <!-- 정렬 -->
+                  <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <label style="font-size: 11px; color: #666;">정렬</label>
+                    <select onchange="updateTextStyle(${index}, 'align', this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                      <option value="left" ${align === 'left' ? 'selected' : ''}>왼쪽</option>
+                      <option value="center" ${align === 'center' ? 'selected' : ''}>가운데</option>
+                      <option value="right" ${align === 'right' ? 'selected' : ''}>오른쪽</option>
+                    </select>
+                  </div>
+
+                  <!-- 글자색 -->
+                  <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <label style="font-size: 11px; color: #666;">색상</label>
+                    <select onchange="updateTextStyle(${index}, 'color', this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                      <option value="#333333" ${color === '#333333' ? 'selected' : ''}>검정</option>
+                      <option value="#666666" ${color === '#666666' ? 'selected' : ''}>회색</option>
+                      <option value="#1e90ff" ${color === '#1e90ff' ? 'selected' : ''}>파랑</option>
+                      <option value="#e74c3c" ${color === '#e74c3c' ? 'selected' : ''}>빨강</option>
+                      <option value="#27ae60" ${color === '#27ae60' ? 'selected' : ''}>초록</option>
+                      <option value="#f39c12" ${color === '#f39c12' ? 'selected' : ''}>주황</option>
+                    </select>
+                  </div>
+
+                  <!-- 굵기 -->
+                  <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <label style="font-size: 11px; color: #666;">굵기</label>
+                    <select onchange="updateTextStyle(${index}, 'fontWeight', this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                      <option value="normal" ${fontWeight === 'normal' ? 'selected' : ''}>보통</option>
+                      <option value="bold" ${fontWeight === 'bold' ? 'selected' : ''}>굵게</option>
+                    </select>
+                  </div>
+
+                  <!-- 테두리 -->
+                  <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <label style="font-size: 11px; color: #666;">테두리</label>
+                    <select onchange="updateTextStyle(${index}, 'border', this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                      <option value="none" ${border === 'none' ? 'selected' : ''}>없음</option>
+                      <option value="thin" ${border === 'thin' ? 'selected' : ''}>얇은선</option>
+                      <option value="box" ${border === 'box' ? 'selected' : ''}>박스</option>
+                      <option value="round" ${border === 'round' ? 'selected' : ''}>둥근박스</option>
+                      <option value="left-accent" ${border === 'left-accent' ? 'selected' : ''}>왼쪽강조</option>
+                    </select>
+                  </div>
+                </div>
+
                 <textarea onchange="updateBlockContent(${index}, this.value)"
-                          oninput="updatePreview()">${block.content}</textarea>
+                          oninput="updatePreview()"
+                          style="font-size: ${fontSize}px; text-align: ${align}; color: ${color}; font-weight: ${fontWeight};">${block.content}</textarea>
               </div>
             </div>
           `;
@@ -1565,7 +1635,39 @@
         } else if (block.type === 'list') {
           return `<div style="margin-bottom: 12px;">${block.content}</div>`;
         } else {
-          return `<div style="padding: 12px; background: #f9f9f9; margin-bottom: 8px; border-radius: 4px; font-size: 14px; line-height: 1.6;">${block.content.replace(/\n/g, '<br>')}</div>`;
+          // 텍스트 블록 - 스타일 적용
+          const ts = block.textStyle || {};
+          const fontSize = ts.fontSize || '14';
+          const align = ts.align || 'left';
+          const color = ts.color || '#333333';
+          const fontWeight = ts.fontWeight || 'normal';
+          const border = ts.border || 'none';
+
+          // 테두리 스타일 매핑
+          let borderStyle = '';
+          let bgStyle = '';
+          let radiusStyle = '';
+          switch (border) {
+            case 'thin':
+              borderStyle = 'border: 1px solid #ddd;';
+              break;
+            case 'box':
+              borderStyle = 'border: 2px solid #333;';
+              break;
+            case 'round':
+              borderStyle = 'border: 1px solid #ddd;';
+              radiusStyle = 'border-radius: 12px;';
+              bgStyle = 'background: #f9f9f9;';
+              break;
+            case 'left-accent':
+              borderStyle = 'border-left: 4px solid #667eea;';
+              bgStyle = 'background: #f5f7ff;';
+              break;
+            default:
+              break;
+          }
+
+          return `<div style="padding: 12px; margin-bottom: 8px; font-size: ${fontSize}px; line-height: 1.6; text-align: ${align}; color: ${color}; font-weight: ${fontWeight}; ${borderStyle} ${bgStyle} ${radiusStyle}">${block.content.replace(/\n/g, '<br>')}</div>`;
         }
       }).join('');
     }
@@ -1655,6 +1757,20 @@
       detailBlocks[index].content = content;
     }
 
+    // 텍스트 스타일 업데이트
+    function updateTextStyle(index, property, value) {
+      if (!detailBlocks[index].textStyle) {
+        detailBlocks[index].textStyle = {};
+      }
+
+      // 'custom' 선택시 무시 (직접 입력으로 처리)
+      if (value === 'custom') return;
+
+      detailBlocks[index].textStyle[property] = value;
+      renderBlocks();
+      updatePreview();
+    }
+
     // 이미지 URL 변경 모달
     function editImageUrl(index) {
       editingBlockIndex = index;
@@ -1695,7 +1811,17 @@
           showToast('이미지가 추가되었습니다.', 'success');
         }
       } else if (type === 'text') {
-        detailBlocks.push({ type: 'text', content: '텍스트를 입력하세요...' });
+        detailBlocks.push({
+          type: 'text',
+          content: '텍스트를 입력하세요...',
+          textStyle: {
+            fontSize: '14',
+            align: 'left',
+            color: '#333333',
+            fontWeight: 'normal',
+            border: 'none'
+          }
+        });
         renderBlocks();
         updatePreview();
         showToast('텍스트 블록이 추가되었습니다.', 'success');
@@ -1730,9 +1856,38 @@
         } else if (block.type === 'list') {
           return block.content; // 리스트도 원본 HTML 그대로
         } else {
-          // 텍스트 블록
-          const style = block.style || 'padding: 12px; font-size: 14px; line-height: 1.6;';
-          return `<div style="${style}">${block.content.replace(/\n/g, '<br>')}</div>`;
+          // 텍스트 블록 - 스타일 적용
+          const ts = block.textStyle || {};
+          const fontSize = ts.fontSize || '14';
+          const align = ts.align || 'left';
+          const color = ts.color || '#333333';
+          const fontWeight = ts.fontWeight || 'normal';
+          const border = ts.border || 'none';
+
+          // 테두리 스타일 매핑
+          let borderStyle = '';
+          let bgStyle = '';
+          let radiusStyle = '';
+          switch (border) {
+            case 'thin':
+              borderStyle = 'border: 1px solid #ddd;';
+              break;
+            case 'box':
+              borderStyle = 'border: 2px solid #333;';
+              break;
+            case 'round':
+              borderStyle = 'border: 1px solid #ddd; border-radius: 12px;';
+              bgStyle = 'background: #f9f9f9;';
+              break;
+            case 'left-accent':
+              borderStyle = 'border-left: 4px solid #667eea;';
+              bgStyle = 'background: #f5f7ff;';
+              break;
+            default:
+              break;
+          }
+
+          return `<div style="padding: 12px; font-size: ${fontSize}px; line-height: 1.6; text-align: ${align}; color: ${color}; font-weight: ${fontWeight}; ${borderStyle} ${bgStyle}">${block.content.replace(/\n/g, '<br>')}</div>`;
         }
       });
 
