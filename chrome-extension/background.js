@@ -3275,35 +3275,48 @@ async function handleCoupangLogin(credentials) {
     console.log('🧹 로그인 전 쿠팡 쿠키 정리...');
     await clearCoupangCookies();
 
-    // 쿠팡 OAuth 로그인 URL
-    const oauthUrl = 'https://xauth.coupang.com/auth/realms/seller/protocol/openid-connect/auth?' +
-      'response_type=code&client_id=supplier-hub&scope=openid&state=abc' +
-      '&redirect_uri=https://supplier.coupang.com/login/oauth2/code/keycloak';
+    // 메인 페이지로 이동 (자연스럽게 OAuth 로그인 페이지로 리다이렉트됨)
+    // 직접 OAuth URL 접근 시 Akamai 보안 차단 우회
+    const supplierUrl = 'https://supplier.coupang.com/';
 
     // 이미 열린 쿠팡 탭이 있는지 확인
     if (coupangTab) {
       try {
         await chrome.tabs.get(coupangTab);
         console.log('✅ Existing tab found, reusing:', coupangTab);
+        // 기존 탭을 메인 페이지로 이동
+        await chrome.tabs.update(coupangTab, { url: supplierUrl });
       } catch (e) {
         console.log('⚠️ Previous tab closed');
         coupangTab = null;
       }
     }
 
-    // 새 탭 생성 (백그라운드)
+    // 새 탭 생성
     if (!coupangTab) {
       console.log('🌐 Creating new tab for Coupang login...');
       const tab = await chrome.tabs.create({
-        url: oauthUrl,
-        active: false // 백그라운드에서 실행
+        url: supplierUrl,
+        active: true // 사용자가 볼 수 있도록 활성화
       });
       coupangTab = tab.id;
       console.log('✅ Tab created:', coupangTab);
     }
 
-    // 탭 로딩 완료 대기
+    // 탭 로딩 완료 대기 (로그인 페이지로 리다이렉트될 때까지)
     await waitForTabLoad(coupangTab);
+
+    // 로그인 페이지로 리다이렉트 대기 (최대 10초)
+    console.log('⏳ Waiting for redirect to login page...');
+    for (let i = 0; i < 20; i++) {
+      const tabInfo = await chrome.tabs.get(coupangTab);
+      if (tabInfo.url && tabInfo.url.includes('xauth.coupang.com')) {
+        console.log('✅ Redirected to login page');
+        await waitForTabLoad(coupangTab);
+        break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
 
     // Content script가 로드될 때까지 추가 대기 (최대 5초)
     console.log('⏳ Waiting for content script to load...');
