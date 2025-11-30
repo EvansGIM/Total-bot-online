@@ -7042,7 +7042,25 @@
 
     // 옵션 업데이트
     function updateOption(index, field, value) {
+      const oldValue = productData.results[index][field];
       productData.results[index][field] = value;
+
+      // optionName1이 변경된 경우, detailPageItems의 해당 옵션 블록도 동기화
+      if (field === 'optionName1' && detailPageItems && detailPageItems.length > 0) {
+        // 해당 옵션의 기존 이름으로 detailPageItems에서 찾기
+        const foundItem = detailPageItems.find(item =>
+          item.type === 'option-block' && item.optionName === oldValue
+        );
+        if (foundItem) {
+          foundItem.optionName = value;
+          console.log(`[Sync] 상세페이지 옵션명 동기화: "${oldValue}" → "${value}"`);
+          // 상세페이지 탭이 활성화된 경우 UI도 갱신
+          if (document.querySelector('.tab-btn.active')?.dataset?.tab === 'detail-page') {
+            renderDetailCanvas();
+          }
+        }
+      }
+
       scheduleAutoSave();
     }
 
