@@ -2624,10 +2624,12 @@ async function handleFillQuotationExcels(data) {
       const batchPromises = batch.map(async (imgInfo) => {
         try {
           // 이미지 fetch
+          console.log(`   📥 다운로드 시도: ${imgInfo.filename} <- ${imgInfo.url.substring(0, 80)}...`);
           const response = await fetch(imgInfo.url);
           if (!response.ok) {
-            console.warn(`   ⚠️  Failed to fetch: ${imgInfo.filename}`);
-            return { success: false, filename: imgInfo.filename };
+            console.warn(`   ⚠️  Failed to fetch (${response.status}): ${imgInfo.filename}`);
+            console.warn(`      URL: ${imgInfo.url}`);
+            return { success: false, filename: imgInfo.filename, url: imgInfo.url, status: response.status };
           }
 
           const blob = await response.blob();
