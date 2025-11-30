@@ -1525,59 +1525,47 @@ async function handleCoupangUpload(data) {
  * Python의 get_option_image_filename() 함수와 동일한 로직
  */
 function getOptionImageFilename(option, product, productIndex) {
-  // 1. option의 thumbnail 필드 우선 사용
-  if (option && option.thumbnail) {
-    const thumbnailUrl = option.thumbnail;
-    // URL에서 파일명 생성
+  // URL에서 파일명과 확장자 추출하는 헬퍼 함수
+  function extractFilenameFromUrl(imageUrl) {
     try {
-      const url = new URL(thumbnailUrl);
+      const url = new URL(imageUrl);
       const pathname = url.pathname;
       const filename = pathname.substring(pathname.lastIndexOf('/') + 1);
+
+      // 확장자 추출 (원본 확장자 유지)
+      const extMatch = filename.match(/\.([a-zA-Z]+)$/);
+      const ext = extMatch ? extMatch[1].toLowerCase() : 'png';
       const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.')) || filename;
 
       // option_ 또는 set_ 접두사가 없으면 추가
       if (!nameWithoutExt.startsWith('option_') && !nameWithoutExt.startsWith('set_')) {
-        return `option_${nameWithoutExt}.png`;
+        return `option_${nameWithoutExt}.${ext}`;
       }
-      return `${nameWithoutExt}.png`;
+      return `${nameWithoutExt}.${ext}`;
     } catch (e) {
-      // URL 파싱 실패 시 원본 반환
-      return option.thumbnail;
+      return null;
     }
+  }
+
+  // 1. option의 thumbnail 필드 우선 사용
+  if (option && option.thumbnail) {
+    const result = extractFilenameFromUrl(option.thumbnail);
+    if (result) return result;
+    return option.thumbnail;
   }
 
   // 2. option의 imageLink 필드 사용 (fallback)
   if (option && option.imageLink) {
-    try {
-      const url = new URL(option.imageLink);
-      const pathname = url.pathname;
-      const filename = pathname.substring(pathname.lastIndexOf('/') + 1);
-      const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.')) || filename;
-
-      if (!nameWithoutExt.startsWith('option_') && !nameWithoutExt.startsWith('set_')) {
-        return `option_${nameWithoutExt}.png`;
-      }
-      return `${nameWithoutExt}.png`;
-    } catch (e) {
-      return option.imageLink;
-    }
+    const result = extractFilenameFromUrl(option.imageLink);
+    if (result) return result;
+    return option.imageLink;
   }
 
   // 3. product의 mainImage 사용 (fallback)
   if (product && product.mainImage) {
-    try {
-      const url = new URL(product.mainImage);
-      const pathname = url.pathname;
-      const filename = pathname.substring(pathname.lastIndexOf('/') + 1);
-      const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.')) || filename;
-
-      if (!nameWithoutExt.startsWith('option_') && !nameWithoutExt.startsWith('set_')) {
-        return `option_${nameWithoutExt}.png`;
-      }
-      return `${nameWithoutExt}.png`;
-    } catch (e) {
-      return product.mainImage;
-    }
+    const result = extractFilenameFromUrl(product.mainImage);
+    if (result) return result;
+    return product.mainImage;
   }
 
   return '';
