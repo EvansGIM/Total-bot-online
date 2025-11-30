@@ -4472,6 +4472,38 @@
     // 상세페이지 에디터 기능
     // ========================================
 
+    // 품질표시사항 행을 설정값으로 업데이트
+    function updateQualityTableFromSettings(items) {
+      const qt = settings.qualityTable || {};
+
+      items.forEach(item => {
+        if (item.type === 'quality-table' && item.rows) {
+          item.rows.forEach(row => {
+            // 설정에서 값 가져와서 업데이트 (빈 값이 아닌 경우에만)
+            switch(row.label) {
+              case '제조사':
+                if (qt.제조사) row.value = qt.제조사;
+                break;
+              case '취급시 주의사항':
+                if (qt.취급시주의사항) row.value = qt.취급시주의사항;
+                break;
+              case '제조 연월':
+                if (qt.제조연월) row.value = qt.제조연월;
+                break;
+              case '품질보증기준':
+                if (qt.품질보증기준) row.value = qt.품질보증기준;
+                break;
+              case 'A/S 책임자와 전화번호':
+                if (qt.AS책임자) row.value = qt.AS책임자;
+                break;
+            }
+          });
+        }
+      });
+
+      return items;
+    }
+
     // 상세페이지 에디터 초기화
     function initDetailPageEditor() {
       renderDetailSources();
@@ -4480,6 +4512,8 @@
       if (productData.detailPageItems && productData.detailPageItems.length > 0) {
         console.log('[Editor] 저장된 detailPageItems 불러오기 (' + productData.detailPageItems.length + '개)');
         detailPageItems = productData.detailPageItems;
+        // 품질표시사항에 현재 설정값 적용
+        updateQualityTableFromSettings(detailPageItems);
         renderDetailCanvas();
       } else {
         console.log('[Editor] detailPageItems 없음, 자동 생성');
@@ -6030,11 +6064,12 @@
         { label: '상품명', value: productTitle },
         { label: '색상', value: colorValue },
         { label: '사이즈', value: sizeValue },
-        { label: '제조국', value: qt.제조국 || 'Made in China' },
-        { label: '제조사', value: qt.제조사 || '' },
+        { label: '제조국', value: 'Made in China' },
+        { label: '제조사', value: qt.제조사 || '내용' },
         { label: '취급시 주의사항', value: qt.취급시주의사항 || '상세페이지 참조' },
+        { label: '제조 연월', value: qt.제조연월 || '내용' },
         { label: '품질보증기준', value: qt.품질보증기준 || '관련법 및 소비자 분쟁해결 규정에 따름' },
-        { label: 'A/S 책임자와 전화번호', value: qt.AS책임자 || '' }
+        { label: 'A/S 책임자와 전화번호', value: qt.AS책임자 || '내용' }
       ];
 
       // 설정에서 추가한 커스텀 행 추가
