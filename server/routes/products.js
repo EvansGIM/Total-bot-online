@@ -56,6 +56,12 @@ function getLocalFontCSS() {
   const mediumPath = path.join(FONTS_DIR, 'NotoSansKR-Medium.ttf');
   const boldPath = path.join(FONTS_DIR, 'NotoSansKR-Bold.ttf');
 
+  // 폰트 파일 존재 여부 확인 로그
+  const fsSync = require('fs');
+  const fontsExist = fsSync.existsSync(regularPath);
+  console.log(`[Font] 폰트 경로: ${FONTS_DIR}`);
+  console.log(`[Font] 폰트 파일 존재: ${fontsExist ? 'YES' : 'NO'}`);
+
   return `
     @font-face {
       font-family: 'Noto Sans KR';
@@ -75,7 +81,7 @@ function getLocalFontCSS() {
       font-weight: 700;
       src: url('file://${boldPath}') format('truetype');
     }
-    * { font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif !important; }
+    * { font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', '맑은 고딕', 'Nanum Gothic', sans-serif !important; }
   `;
 }
 
