@@ -2703,15 +2703,30 @@ async function handleFillQuotationExcels(data) {
       });
     }
 
-    console.log(`   📥 총 ${imagesToDownload.length}개 상품 이미지 수집 중...`);
+    // URL 기반 중복 제거 (같은 URL은 한 번만 다운로드)
+    const urlToFilename = new Map();
+    const deduplicatedImages = [];
+
+    for (const imgInfo of imagesToDownload) {
+      if (!urlToFilename.has(imgInfo.url)) {
+        urlToFilename.set(imgInfo.url, imgInfo.filename);
+        deduplicatedImages.push(imgInfo);
+      } else {
+        // 이미 다운로드할 URL이면 건너뛰기 (파일명만 기록)
+        console.log(`   🔄 중복 URL 건너뜀: ${imgInfo.filename} (원본: ${urlToFilename.get(imgInfo.url)})`);
+      }
+    }
+
+    console.log(`   📥 총 ${deduplicatedImages.length}개 상품 이미지 수집 중... (중복 제거: ${imagesToDownload.length - deduplicatedImages.length}개)`);
 
     // 이미지 다운로드 및 productImageBlobs에 추가 (병렬 처리, 최대 5개씩)
+    const imagesToDownload2 = deduplicatedImages; // 중복 제거된 목록 사용
     let successCount = 0;
     let failCount = 0;
     const batchSize = 5;
 
-    for (let i = 0; i < imagesToDownload.length; i += batchSize) {
-      const batch = imagesToDownload.slice(i, i + batchSize);
+    for (let i = 0; i < imagesToDownload2.length; i += batchSize) {
+      const batch = imagesToDownload2.slice(i, i + batchSize);
       const batchPromises = batch.map(async (imgInfo) => {
         try {
           // 이미지 fetch
