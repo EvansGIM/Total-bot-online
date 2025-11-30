@@ -355,15 +355,18 @@ async function doLogin(username, password) {
     console.log('🖱️ Clicking login button...');
     submitButton.click();
 
-    // 로그인 완료 대기 (supplier.coupang.com으로 리다이렉트)
+    // 로그인 완료 대기 (supplier.coupang.com으로 리다이렉트 - 여러 경로 가능)
+    // - /dashboard/KR (일반 로그인)
+    // - /password-expired (비밀번호 만료)
+    // - /qvt/registration (직접 이동)
     console.log('⏳ Waiting for redirect...');
-    await waitForUrlChange('https://supplier.coupang.com', 10000);
+    const redirected = await waitForLoginSuccess(15000);
 
-    if (window.location.href.includes('supplier.coupang.com')) {
-      console.log('✅ Login successful!');
+    if (redirected) {
+      console.log('✅ Login successful! Current URL:', window.location.href);
       return true;
     } else {
-      console.error('❌ Login redirect failed');
+      console.error('❌ Login redirect failed. Current URL:', window.location.href);
       return false;
     }
 
@@ -371,6 +374,67 @@ async function doLogin(username, password) {
     console.error('❌ Login error:', error);
     return false;
   }
+}
+
+/**
+ * 로그인 성공 여부 확인 (다양한 리다이렉트 경로 지원)
+ */
+function waitForLoginSuccess(timeout = 15000) {
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+    const initialUrl = window.location.href;
+
+    const interval = setInterval(() => {
+      const currentUrl = window.location.href;
+
+      // 로그인 성공 경로들 (xauth에서 벗어나면 성공)
+      const successPaths = [
+        'supplier.coupang.com/dashboard',
+        'supplier.coupang.com/password-expired',
+        'supplier.coupang.com/qvt',
+        'supplier.coupang.com/home'
+      ];
+
+      // 로그인 실패 표시 (에러 메시지 등)
+      const errorElement = document.querySelector('.error-message, .login-error, [class*="error"]');
+      if (errorElement && errorElement.textContent.trim()) {
+        console.log('❌ Login error detected:', errorElement.textContent);
+        clearInterval(interval);
+        resolve(false);
+        return;
+      }
+
+      // 성공 경로 중 하나로 이동했는지 확인
+      for (const path of successPaths) {
+        if (currentUrl.includes(path)) {
+          console.log('✅ Login success - redirected to:', path);
+          clearInterval(interval);
+          resolve(true);
+          return;
+        }
+      }
+
+      // supplier.coupang.com으로 이동했지만 위 경로가 아닌 경우도 성공으로 처리
+      if (currentUrl.includes('supplier.coupang.com') && !currentUrl.includes('xauth')) {
+        console.log('✅ Login success - on supplier.coupang.com');
+        clearInterval(interval);
+        resolve(true);
+        return;
+      }
+
+      // 타임아웃
+      if (Date.now() - startTime > timeout) {
+        console.log('⚠️ Login timeout. Current URL:', currentUrl);
+        // xauth 페이지에서 벗어났으면 성공으로 간주
+        if (!currentUrl.includes('xauth.coupang.com')) {
+          resolve(true);
+        } else {
+          resolve(false);
+        }
+        clearInterval(interval);
+      }
+    }, 500);
+  });
 }
 
 /**
