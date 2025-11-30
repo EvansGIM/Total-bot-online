@@ -2,7 +2,7 @@
  * TotalBot Popup - 간단한 UI
  */
 
-const SERVER_URL = 'https://totalbot.cafe24.com/node-api';
+const SERVER_URL = 'https://totalbot.cafe24.com';
 
 // DOM 요소
 const loginScreen = document.getElementById('login-screen');
@@ -110,6 +110,11 @@ usernameInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') {
     passwordInput.focus();
   }
+});
+
+// 웹 로그인 페이지 열기
+document.getElementById('web-login-btn').addEventListener('click', () => {
+  chrome.tabs.create({ url: `${SERVER_URL}/login.html` });
 });
 
 // 로그아웃
