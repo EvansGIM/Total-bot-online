@@ -7360,6 +7360,7 @@
 
       // UI 업데이트
       renderOptions();
+      renderMappingLists();  // 인라인 매핑 리스트도 업데이트
       scheduleAutoSave();
 
       showAlert(`${toDeleteCount}개 옵션이 삭제되었습니다.`, 'success');
@@ -10277,7 +10278,18 @@
           applyMappingChange(fieldName, value, input.value);
         });
 
+        // 삭제 버튼
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'mapping-delete-btn';
+        deleteBtn.innerHTML = '×';
+        deleteBtn.title = '이 옵션값이 포함된 모든 옵션 삭제';
+        deleteBtn.style.cssText = 'width: 24px; height: 24px; min-width: 24px; border: none; border-radius: 50%; background: #ff4444; color: white; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center;';
+        deleteBtn.onclick = () => {
+          deleteOptionsByValue(fieldName, value, row);
+        };
+
         row.appendChild(input);
+        row.appendChild(deleteBtn);
         container.appendChild(row);
       });
     }
