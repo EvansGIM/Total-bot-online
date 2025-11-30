@@ -107,7 +107,7 @@ async function captureHtmlScreenshot(browser, html, options = {}) {
   if (modifiedHtml.includes('<head>')) {
     modifiedHtml = modifiedHtml.replace(
       '<head>',
-      `<head>\n<style type="text/css">\n${fontCSS}\n</style>`
+      `<head>\n<meta charset="UTF-8">\n<style type="text/css">\n${fontCSS}\n</style>`
     );
   } else if (modifiedHtml.includes('<style>')) {
     // <head>가 없으면 기존 <style> 앞에 삽입
@@ -115,6 +115,20 @@ async function captureHtmlScreenshot(browser, html, options = {}) {
       '<style>',
       `<style>${fontCSS}\n`
     );
+  } else {
+    // HTML 문서 구조가 없으면 완전한 구조로 감싸기
+    modifiedHtml = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style type="text/css">
+${fontCSS}
+</style>
+</head>
+<body>
+${modifiedHtml}
+</body>
+</html>`;
   }
 
   await fs.writeFile(tempHtmlPath, modifiedHtml, 'utf-8');
