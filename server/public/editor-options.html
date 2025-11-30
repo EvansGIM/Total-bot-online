@@ -5084,6 +5084,56 @@
         textDisplay.className = 'item-text-display';
         textDisplay.textContent = item.text || '';
         textDisplay.contentEditable = true;
+        textDisplay.placeholder = '텍스트를 입력하세요...';
+
+        // 스타일 미리보기 적용 함수
+        const applyPreviewStyles = () => {
+          const fontSize = item.fontSize || '14';
+          const textAlign = item.textAlign || 'left';
+          const textColor = item.textColor || '#000000';
+          const fontWeight = item.fontWeight || 'normal';
+          const borderStyle = item.borderStyle || 'none';
+
+          let borderCss = 'none';
+          let borderRadius = '4px';
+          let padding = '10px 12px';
+          let borderLeft = 'none';
+
+          switch(borderStyle) {
+            case 'thin':
+              borderCss = '1px solid #e5e8eb';
+              break;
+            case 'box':
+              borderCss = '2px solid #333';
+              break;
+            case 'rounded':
+              borderCss = '2px solid #1e90ff';
+              borderRadius = '12px';
+              break;
+            case 'left-accent':
+              borderCss = '1px solid #e5e8eb';
+              borderLeft = '4px solid #1e90ff';
+              break;
+          }
+
+          textDisplay.style.cssText = `
+            font-size: ${fontSize}px;
+            text-align: ${textAlign};
+            color: ${textColor};
+            font-weight: ${fontWeight};
+            border: ${borderCss};
+            border-radius: ${borderRadius};
+            padding: ${padding};
+            ${borderLeft !== 'none' ? 'border-left: ' + borderLeft + ';' : ''}
+            min-height: 40px;
+            background: #fafbfc;
+            transition: all 0.2s;
+          `;
+        };
+
+        // 초기 스타일 적용
+        applyPreviewStyles();
+
         textDisplay.onblur = (e) => {
           detailPageItems[index].text = e.target.textContent;
           detailPageItems[index].label = e.target.textContent;
@@ -5120,10 +5170,12 @@
           } else {
             customSizeInput.style.display = 'none';
             detailPageItems[index].fontSize = e.target.value;
+            applyPreviewStyles();
           }
         };
         customSizeInput.onchange = (e) => {
           detailPageItems[index].fontSize = e.target.value;
+          applyPreviewStyles();
         };
         sizeGroup.appendChild(sizeLabel);
         sizeGroup.appendChild(sizeSelect);
@@ -5144,6 +5196,7 @@
         `;
         alignSelect.onchange = (e) => {
           detailPageItems[index].textAlign = e.target.value;
+          applyPreviewStyles();
         };
         alignGroup.appendChild(alignLabel);
         alignGroup.appendChild(alignSelect);
@@ -5166,6 +5219,7 @@
         `;
         colorSelect.onchange = (e) => {
           detailPageItems[index].textColor = e.target.value;
+          applyPreviewStyles();
         };
         colorGroup.appendChild(colorLabel);
         colorGroup.appendChild(colorSelect);
@@ -5184,6 +5238,7 @@
         `;
         weightSelect.onchange = (e) => {
           detailPageItems[index].fontWeight = e.target.value;
+          applyPreviewStyles();
         };
         weightGroup.appendChild(weightLabel);
         weightGroup.appendChild(weightSelect);
@@ -5205,6 +5260,7 @@
         `;
         borderSelect.onchange = (e) => {
           detailPageItems[index].borderStyle = e.target.value;
+          applyPreviewStyles();
         };
         borderGroup.appendChild(borderLabel);
         borderGroup.appendChild(borderSelect);
