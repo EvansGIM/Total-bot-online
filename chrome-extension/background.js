@@ -2589,7 +2589,16 @@ async function handleFillQuotationExcels(data) {
       // 2. 옵션 이미지들 (대표이미지 파일명으로 사용됨)
       console.log(`   🔍 제품 ${productIndex + 1}: 옵션 이미지 수집 시작 (${options.length}개 옵션)`);
       options.forEach((option, optIndex) => {
-        const optionImageUrl = option.thumbnail || option.imageLink || option.option1Img;
+        // 옵션 이미지 URL 찾기 (fallback: 메인이미지, 첫 추가이미지)
+        let optionImageUrl = option.thumbnail || option.imageLink || option.option1Img;
+
+        // fallback: 옵션 이미지가 없으면 메인이미지 또는 첫 추가이미지 사용
+        if (!optionImageUrl) {
+          optionImageUrl = product.mainImage || (product.images && product.images[0]);
+          if (optionImageUrl) {
+            console.log(`      ℹ️ 옵션 ${optIndex + 1}: 옵션 이미지 없음, 메인/추가 이미지로 대체`);
+          }
+        }
 
         // 디버그: 첫 옵션이거나 제품3인 경우 상세 로그
         if (optIndex === 0 || productIndex === 2) {
@@ -2598,7 +2607,28 @@ async function handleFillQuotationExcels(data) {
         }
 
         if (optionImageUrl) {
-          let optionFilename = getOptionImageFilename(option, product, productIndex);
+          // fallback URL인 경우 직접 파일명 추출, 아니면 기존 함수 사용
+          let optionFilename;
+          const isFallbackUrl = optionImageUrl === product.mainImage ||
+                                (product.images && optionImageUrl === product.images[0]);
+
+          if (isFallbackUrl) {
+            // mainImage나 images[0]에서 직접 파일명 추출
+            try {
+              const url = new URL(optionImageUrl);
+              const pathname = url.pathname;
+              const filename = pathname.substring(pathname.lastIndexOf('/') + 1);
+              const extMatch = filename.match(/\.([a-zA-Z]+)$/);
+              const ext = extMatch ? extMatch[1].toLowerCase() : 'png';
+              const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.')) || filename;
+              optionFilename = `option_${nameWithoutExt}.${ext}`;
+            } catch (e) {
+              optionFilename = `option_fallback_p${productIndex + 1}.png`;
+            }
+          } else {
+            optionFilename = getOptionImageFilename(option, product, productIndex);
+          }
+
           if (optionFilename) {
             // 여러 상품이 있을 때 파일명 충돌 방지를 위해 productIndex 추가
             if (products.length > 1) {
@@ -2608,7 +2638,7 @@ async function handleFillQuotationExcels(data) {
               const nameWithoutExt = optionFilename.replace(/\.[a-zA-Z]+$/, '');
               optionFilename = `${nameWithoutExt}_p${productIndex + 1}.${ext}`;
             }
-            console.log(`      ✅ 다운로드 목록에 추가: ${optionFilename}`);
+            console.log(`      ✅ 다운로드 목록에 추가: ${optionFilename}${isFallbackUrl ? ' (메인이미지 대체)' : ''}`);
             imagesToDownload.push({
               url: optionImageUrl,
               filename: optionFilename,
