@@ -9451,24 +9451,32 @@
       closeBgRemoveModal();
 
       // 상세페이지 detailPageItems의 이미지도 업데이트
-      let needCanvasRefresh = false;
-
+      // 옵션 이미지의 경우: optionName으로 매칭하여 최신 이미지로 동기화
       if (bgRemoveImageType === 'option') {
-        imagesToProcess.forEach(item => {
-          const oldUrl = item.url;
-          const sampleIdx = item.indices[0];
-          const newUrl = productData.results[sampleIdx]?.imageLink || productData.results[sampleIdx]?.titleImage?.[0];
-
-          if (newUrl && newUrl !== oldUrl) {
-            detailPageItems.forEach(block => {
-              if (block.type === 'option-block' && block.imageSrc === oldUrl) {
-                block.imageSrc = newUrl;
-                needCanvasRefresh = true;
-              }
-            });
+        // productData.results에서 옵션1별 최신 이미지 맵 생성
+        const option1ImageMap = new Map();
+        productData.results.forEach(option => {
+          const opt1 = option.optionName1 || option.optionName1Cn || '옵션1';
+          const img = option.imageLink || option.titleImage?.[0] || '';
+          if (img && !option1ImageMap.has(opt1)) {
+            option1ImageMap.set(opt1, img);
           }
         });
+
+        // detailPageItems의 option-block들을 최신 이미지로 업데이트
+        detailPageItems.forEach(block => {
+          if (block.type === 'option-block' && block.optionName) {
+            const latestImg = option1ImageMap.get(block.optionName);
+            if (latestImg && latestImg !== block.imageSrc) {
+              console.log('[배경제거 동기화] 옵션 이미지 업데이트:', block.optionName);
+              block.imageSrc = latestImg;
+            }
+          }
+        });
+
+        renderDetailCanvas();
       } else if (bgRemoveImageType === 'additional') {
+        // 추가 이미지는 URL 매칭으로 업데이트
         imagesToProcess.forEach(item => {
           const oldUrl = item.url;
           let newUrl;
@@ -9483,14 +9491,10 @@
             detailPageItems.forEach(block => {
               if ((block.type === 'image' || block.type === 'brand-image') && block.imageSrc === oldUrl) {
                 block.imageSrc = newUrl;
-                needCanvasRefresh = true;
               }
             });
           }
         });
-      }
-
-      if (needCanvasRefresh) {
         renderDetailCanvas();
       }
 
