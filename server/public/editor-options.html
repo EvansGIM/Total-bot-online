@@ -7467,10 +7467,11 @@
         });
         showAlert(`${count}개 빈 항목을 '${replace}'(으)로 채웠습니다.`, 'success');
       } else {
-        // 일반 찾기/바꾸기
+        // 일반 찾기/바꾸기 (정규식 특수문자 이스케이프)
+        const escapedFind = find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         productData.results.forEach(opt => {
           if (opt[targetOption] && opt[targetOption].includes(find)) {
-            opt[targetOption] = opt[targetOption].replace(new RegExp(find, 'g'), replace);
+            opt[targetOption] = opt[targetOption].replace(new RegExp(escapedFind, 'g'), replace);
             count++;
           }
         });
@@ -10482,11 +10483,73 @@
         input.addEventListener('keydown', (e) => {
           if (e.key === 'Enter') {
             e.target.blur();
+          } else if (e.key === 'Tab' && !e.shiftKey) {
+            // Tab 키: 다음 입력 필드로 이동
+            e.preventDefault();
+            const allInputs = container.querySelectorAll('.mapping-input');
+            const currentIndex = Array.from(allInputs).indexOf(e.target);
+
+            // 먼저 현재 값 적용
+            const originalVal = e.target.dataset.originalValue;
+            const newVal = e.target.value;
+            if (originalVal !== newVal) {
+              applyMappingChangeWithoutRerender(fieldName, originalVal, newVal);
+              e.target.dataset.originalValue = newVal;
+            }
+
+            // 다음 입력 필드로 포커스 이동
+            if (currentIndex < allInputs.length - 1) {
+              // 같은 컬럼 내 다음 입력
+              allInputs[currentIndex + 1].focus();
+              allInputs[currentIndex + 1].select();
+            } else {
+              // 다른 컬럼으로 이동 (옵션1 -> 옵션2)
+              const otherContainerId = containerId === 'option1MappingList' ? 'option2MappingList' : 'option1MappingList';
+              const otherContainer = document.getElementById(otherContainerId);
+              if (otherContainer) {
+                const otherInputs = otherContainer.querySelectorAll('.mapping-input');
+                if (otherInputs.length > 0) {
+                  otherInputs[0].focus();
+                  otherInputs[0].select();
+                }
+              }
+            }
+          } else if (e.key === 'Tab' && e.shiftKey) {
+            // Shift+Tab: 이전 입력 필드로 이동
+            e.preventDefault();
+            const allInputs = container.querySelectorAll('.mapping-input');
+            const currentIndex = Array.from(allInputs).indexOf(e.target);
+
+            // 먼저 현재 값 적용
+            const originalVal = e.target.dataset.originalValue;
+            const newVal = e.target.value;
+            if (originalVal !== newVal) {
+              applyMappingChangeWithoutRerender(fieldName, originalVal, newVal);
+              e.target.dataset.originalValue = newVal;
+            }
+
+            // 이전 입력 필드로 포커스 이동
+            if (currentIndex > 0) {
+              allInputs[currentIndex - 1].focus();
+              allInputs[currentIndex - 1].select();
+            } else {
+              // 다른 컬럼의 마지막으로 이동
+              const otherContainerId = containerId === 'option1MappingList' ? 'option2MappingList' : 'option1MappingList';
+              const otherContainer = document.getElementById(otherContainerId);
+              if (otherContainer) {
+                const otherInputs = otherContainer.querySelectorAll('.mapping-input');
+                if (otherInputs.length > 0) {
+                  otherInputs[otherInputs.length - 1].focus();
+                  otherInputs[otherInputs.length - 1].select();
+                }
+              }
+            }
           }
         });
 
         input.addEventListener('blur', () => {
-          applyMappingChange(fieldName, value, input.value);
+          // Tab 이동 시 이미 처리되었으면 dataset.originalValue가 업데이트되어 있으므로 중복 처리 방지
+          applyMappingChange(fieldName, input.dataset.originalValue, input.value);
         });
 
         // 삭제 버튼
@@ -10504,6 +10567,34 @@
         row.appendChild(deleteBtn);
         container.appendChild(row);
       });
+    }
+
+    // Tab 이동 시 사용 - 리렌더링 없이 데이터만 변경
+    function applyMappingChangeWithoutRerender(fieldName, originalValue, newValue) {
+      if (originalValue === newValue) return;
+
+      let count = 0;
+      productData.results.forEach(opt => {
+        if (opt[fieldName] === originalValue) {
+          opt[fieldName] = newValue;
+          count++;
+        }
+      });
+
+      if (count > 0) {
+        // optionName1이 변경된 경우 상세페이지 옵션 블록의 optionName도 먼저 변경
+        if (fieldName === 'optionName1' && detailPageItems && detailPageItems.length > 0) {
+          detailPageItems.forEach(item => {
+            if (item.type === 'option-block' && item.optionName === originalValue) {
+              item.optionName = newValue;
+            }
+          });
+        }
+
+        renderOptions();
+        syncDetailPageOptionBlocks();
+        scheduleAutoSave();
+      }
     }
 
     function applyMappingChange(fieldName, originalValue, newValue) {
