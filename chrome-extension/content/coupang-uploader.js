@@ -156,13 +156,22 @@ async function handleCoupangUpload(data) {
           console.log(`📊 최종 상태 - status: "${status}", result: "${result}"`);
           console.log(`📊 성공 여부: ${finalResult.success}, 성공: ${finalResult.passedCount}, 실패: ${finalResult.failedCount}`);
 
-          // 반려 확인 - API에서 validationStatus가 "REJECTED" 또는 전체 실패
-          const isRejected = status === 'REJECTED' ||
-            (finalResult.failedCount > 0 && finalResult.passedCount === 0);
+          // 1. 완료 상태 먼저 확인 - APPROVED면 무조건 성공
+          if (status === 'APPROVED') {
+            console.log('✅ 견적서 승인됨 (APPROVED)');
+            saveQuotationData(finalResult.id, products, excelFiles);
+            return {
+              success: true,
+              quoteId: finalResult.id,
+              quotationName: finalResult.name,
+              status: finalResult.status,
+              message: `쿠팡 견적서 검증 완료!`
+            };
+          }
 
-          if (isRejected) {
-            // 반려된 경우 - 상세 내역 다운로드 URL과 함께 실패 반환
-            console.log('❌ 견적서 반려됨:', finalResult);
+          // 2. 반려 상태 확인 - REJECTED면 무조건 실패
+          if (status === 'REJECTED') {
+            console.log('❌ 견적서 반려됨 (REJECTED):', finalResult);
             return {
               success: false,
               rejected: true,
@@ -173,10 +182,9 @@ async function handleCoupangUpload(data) {
             };
           }
 
-          // 완료 상태 확인 - API에서 validationStatus가 "APPROVED" 또는 성공 개수 > 0
-          const isCompleted = status === 'APPROVED' || finalResult.passedCount > 0;
-
-          if (isCompleted) {
+          // 3. 그 외 상태는 passedCount로 판단
+          if (finalResult.passedCount > 0) {
+            console.log('✅ 견적서 성공 (passedCount > 0)');
             saveQuotationData(finalResult.id, products, excelFiles);
             return {
               success: true,
