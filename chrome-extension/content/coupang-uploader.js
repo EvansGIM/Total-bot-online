@@ -842,8 +842,16 @@ async function getLatestQuotationStatus(maxWaitTime = 30000) {
       console.log('📋 업로드한 파일명:', uploadedFilenames);
       console.log('📄 API 견적서 목록:', items.map(i => `${i.fileName} (${i.validationStatus})`).join(', '));
 
-      // 파일명 매칭 (정확히 일치 또는 부분 일치)
+      // 파일명 매칭 (타임스탬프 _HHMM 기준)
       let matchedItem = null;
+
+      // 업로드한 파일의 타임스탬프 추출 (예: _1641)
+      const uploadedTimestamps = uploadedFilenames.map(name => {
+        const match = name.match(/_(\d{4})\.xlsx?$/i);
+        return match ? match[1] : null;
+      }).filter(Boolean);
+      console.log('📋 업로드 타임스탬프:', uploadedTimestamps);
+
       for (const item of items) {
         const itemFileName = item.fileName || '';
 
@@ -854,39 +862,12 @@ async function getLatestQuotationStatus(maxWaitTime = 30000) {
           break;
         }
 
-        // 2. 부분 일치 (확장자 제외한 이름 비교)
-        const itemNameWithoutExt = itemFileName.replace(/\.xlsx?$/i, '');
-        for (const uploadedName of uploadedFilenames) {
-          const uploadedNameWithoutExt = uploadedName.replace(/\.xlsx?$/i, '');
-          if (itemNameWithoutExt === uploadedNameWithoutExt ||
-              itemNameWithoutExt.includes(uploadedNameWithoutExt) ||
-              uploadedNameWithoutExt.includes(itemNameWithoutExt)) {
-            console.log(`   ✅ 파일명 부분 일치: ${itemFileName} ≈ ${uploadedName}`);
-            matchedItem = item;
-            break;
-          }
-        }
-        if (matchedItem) break;
-      }
-
-      // 3. 매칭 안되면 가장 최근 견적서 사용 (5분 이내)
-      if (!matchedItem && items.length > 0) {
-        const now = Date.now();
-        const fiveMinutesAgo = now - 5 * 60 * 1000;
-
-        // 최신순 정렬
-        const sortedItems = items.sort((a, b) => {
-          const timeA = new Date(a.submittedDate || a.uploadedAt || 0).getTime();
-          const timeB = new Date(b.submittedDate || b.uploadedAt || 0).getTime();
-          return timeB - timeA;
-        });
-
-        const latestItem = sortedItems[0];
-        const latestTime = new Date(latestItem.submittedDate || latestItem.uploadedAt || 0).getTime();
-
-        if (latestTime > fiveMinutesAgo) {
-          console.log(`   ⚠️ 파일명 매칭 실패, 가장 최근 견적서 사용: ${latestItem.fileName}`);
-          matchedItem = latestItem;
+        // 2. 타임스탬프(_HHMM) 일치
+        const itemTimestampMatch = itemFileName.match(/_(\d{4})\.xlsx?$/i);
+        if (itemTimestampMatch && uploadedTimestamps.includes(itemTimestampMatch[1])) {
+          console.log(`   ✅ 타임스탬프 일치: ${itemFileName} (${itemTimestampMatch[1]})`);
+          matchedItem = item;
+          break;
         }
       }
 
