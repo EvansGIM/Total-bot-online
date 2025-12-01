@@ -2535,6 +2535,7 @@
       coupangId: '',
       coupangPassword: '',
       address: '',
+      brandName: '',  // 브랜드명 (견적서에 사용)
       // 가격 설정
       exchangeRate: 190,
       packagingCost: 500,
@@ -2704,6 +2705,12 @@
               settings.brandImageUrl = serverSettings.brandImageUrl;
             }
 
+            // 브랜드명 로드
+            if (serverSettings.brandName) {
+              settings.brandName = serverSettings.brandName;
+              console.log('📋 Loaded brandName from server:', settings.brandName);
+            }
+
             // 쿠팡 정보는 localStorage에서만 로드 (보안상)
             const localCreds = localStorage.getItem('totalbotCredentials');
             if (localCreds) {
@@ -2771,6 +2778,7 @@
           qualityTable: qualityTable,
           defaultDetailTemplate: settings.defaultDetailTemplate,
           brandImageUrl: settings.brandImageUrl || '',
+          brandName: settings.brandName || '',  // 브랜드명 저장
           priceSettings: {
             exchangeRate: settings.exchangeRate,
             packagingCost: settings.packagingCost,
