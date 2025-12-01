@@ -2516,6 +2516,9 @@ async function handleFillQuotationExcels(data) {
     // Excel 파일 작성 완료
     await updateProgress('fill', 'completed');
 
+    // 이미지 생성 단계 시작
+    await updateProgress('images', 'in_progress');
+
     // 이미지 파일 수집 (개별 파일로 분류)
     console.log('\n📸 이미지 파일 수집 시작 (개별 파일)...');
 
@@ -2599,8 +2602,12 @@ async function handleFillQuotationExcels(data) {
       }
     } catch (error) {
       console.error('   ⚠️  상세페이지/라벨컷 생성 실패:', error.message);
+      await updateProgress('images', 'error');
       throw error; // 에러를 다시 던져서 상위에서 처리할 수 있도록
     }
+
+    // 이미지 생성 완료
+    await updateProgress('images', 'completed');
 
     // 다운로드할 이미지 목록 수집 (모두 상품 이미지)
     const imagesToDownload = [];
