@@ -6137,10 +6137,70 @@
         return true;
       });
 
+      // 품질표시사항 동기화 (상품명, 색상, 사이즈)
+      const productTitle = productData.title || productData.titleCn || '제품명';
+      const uniqueOption1Values = [];
+      const uniqueOption2Values = [];
+
+      if (productData.results && productData.results.length > 0) {
+        const opt1Set = new Set();
+        const opt2Set = new Set();
+        productData.results.forEach(option => {
+          const opt1 = option.optionName1 || option.optionName1Cn;
+          const opt2 = option.optionName2 || option.optionName2Cn;
+          if (opt1 && !opt1Set.has(opt1)) {
+            opt1Set.add(opt1);
+            uniqueOption1Values.push(opt1);
+          }
+          if (opt2 && !opt2Set.has(opt2)) {
+            opt2Set.add(opt2);
+            uniqueOption2Values.push(opt2);
+          }
+        });
+      }
+
+      const colorValue = uniqueOption1Values.length > 0 ? uniqueOption1Values.join(', ') : '상세페이지 참조';
+      const sizeValue = uniqueOption2Values.length > 0 ? uniqueOption2Values.join(', ') : '상세페이지 참조';
+
+      detailPageItems.forEach(item => {
+        if (item.type === 'quality-table' && item.rows) {
+          item.rows.forEach(row => {
+            if (row.label === '상품명') {
+              if (row.value !== productTitle) {
+                console.log(`[Sync] 품질표시사항 상품명 업데이트: "${row.value}" → "${productTitle}"`);
+                row.value = productTitle;
+                updated = true;
+              }
+            } else if (row.label === '색상') {
+              if (row.value !== colorValue) {
+                console.log(`[Sync] 품질표시사항 색상 업데이트: "${row.value}" → "${colorValue}"`);
+                row.value = colorValue;
+                updated = true;
+              }
+            } else if (row.label === '사이즈') {
+              if (row.value !== sizeValue) {
+                console.log(`[Sync] 품질표시사항 사이즈 업데이트: "${row.value}" → "${sizeValue}"`);
+                row.value = sizeValue;
+                updated = true;
+              }
+            }
+          });
+        }
+        // 제품명 블록도 동기화
+        if (item.type === 'title') {
+          if (item.text !== productTitle) {
+            console.log(`[Sync] 제품명 블록 업데이트: "${item.text}" → "${productTitle}"`);
+            item.text = productTitle;
+            item.label = productTitle;
+            updated = true;
+          }
+        }
+      });
+
       // 상세페이지 렌더링 업데이트 (항상 실행)
       renderDetailSources();
       renderDetailCanvas();
-      console.log('[Sync] 상세페이지 옵션 블록 동기화 완료, updated:', updated);
+      console.log('[Sync] 상세페이지 동기화 완료, updated:', updated);
     }
 
     // 자동 구성
