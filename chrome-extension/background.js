@@ -2285,9 +2285,10 @@ async function handleFillQuotationExcels(data) {
               priceSettings
             });
 
-            // "선택" 필드는 스킵, "필수"와 "조건부 필수"는 채우기
+            // "필수"와 "조건부 필수"만 채우기, 나머지는 스킵
             const fieldType = requiredByColumn[mapping.column] || '';
-            if (fieldType === '선택') {
+            const shouldFill = fieldType === '필수' || fieldType.includes('조건부');
+            if (!shouldFill) {
               continue;
             }
 
@@ -2376,9 +2377,10 @@ async function handleFillQuotationExcels(data) {
                 console.log(`   🎨 색상 처리: header="${mapping.header}", column=${mapping.column}, value="${value}", isRequired=${requiredByColumn[mapping.column]}`);
               }
 
-              // "선택" 필드는 스킵, "필수"와 "조건부 필수"는 채우기
+              // "필수"와 "조건부 필수"만 채우기, 나머지는 스킵
               const fieldType = requiredByColumn[mapping.column] || '';
-              if (fieldType === '선택') {
+              const shouldFill = fieldType === '필수' || fieldType.includes('조건부');
+              if (!shouldFill) {
                 continue;
               }
 
