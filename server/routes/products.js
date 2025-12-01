@@ -768,10 +768,12 @@ router.post('/generate-images', authMiddleware, async (req, res) => {
 
     await browser.close();
 
-    res.json({
-      success: true,
-      images: results
-    });
+    // 응답 크기 로깅
+    const responseData = { success: true, images: results };
+    const responseSize = JSON.stringify(responseData).length;
+    console.log(`[Generate Images] 응답 크기: ${(responseSize / 1024 / 1024).toFixed(2)} MB`);
+
+    res.json(responseData);
 
   } catch (error) {
     console.error('[Generate Images] 오류:', error);
