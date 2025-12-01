@@ -828,26 +828,42 @@ async function getLatestQuotationStatus(maxWaitTime = 30000) {
         continue;
       }
 
-      // 첫 번째 항목 (가장 최근) 확인
-      const latestItem = items[0];
-      console.log('📋 최신 견적서:', JSON.stringify(latestItem, null, 2));
+      // 업로드한 파일명과 일치하는 견적서 찾기
+      const uploadedFilenames = window.uploadedFilenames || [];
+      console.log('📋 업로드한 파일명:', uploadedFilenames);
 
-      // 업로드 시간 확인 (5분 이내만 - 더 엄격하게)
-      const itemTime = new Date(latestItem.submittedDate || latestItem.uploadedAt || latestItem.timestamp);
-      const compareTime = window.uploadStartTime || new Date();
-      const timeDiff = Math.abs((itemTime - compareTime) / 1000 / 60);
+      // 파일명이 일치하는 항목 찾기
+      let matchedItem = null;
+      for (const item of items) {
+        const itemFileName = item.fileName || '';
+        console.log(`   📄 API 견적서: ${itemFileName}`);
 
-      console.log(`   ⏰ 업로드 시작: ${compareTime.toLocaleString()}, 견적서 시간: ${itemTime.toLocaleString()}, 차이: ${timeDiff.toFixed(1)}분`);
+        // 업로드한 파일명 중 하나와 일치하는지 확인
+        const isMatch = uploadedFilenames.some(uploadedName => {
+          // 정확히 일치하거나, 업로드 파일명이 API 파일명에 포함되어 있는지 확인
+          return itemFileName === uploadedName ||
+                 itemFileName.includes(uploadedName.replace('.xlsx', '')) ||
+                 uploadedName.includes(itemFileName.replace('.xlsx', ''));
+        });
 
-      if (timeDiff > 5) {
-        console.log(`   ⏰ 시간 차이 ${timeDiff.toFixed(1)}분 - 이전 견적서, 새 견적서 대기 중...`);
+        if (isMatch) {
+          console.log(`   ✅ 파일명 일치! ${itemFileName}`);
+          matchedItem = item;
+          break;
+        }
+      }
+
+      if (!matchedItem) {
+        console.log('   ⏳ 업로드한 견적서를 아직 찾지 못함, 대기 중...');
         await sleep(pollInterval);
         continue;
       }
 
+      console.log('📋 일치하는 견적서:', JSON.stringify(matchedItem, null, 2));
+
       // 성공 여부 판단 (validationStatus 기준)
-      const validationStatus = (latestItem.validationStatus || '').toUpperCase();
-      const failedCount = latestItem.failedItemCount || 0;
+      const validationStatus = (matchedItem.validationStatus || '').toUpperCase();
+      const failedCount = matchedItem.failedItemCount || 0;
 
       // 성공 조건: APPROVED 상태이고 실패 건수가 0
       // 실패 조건: REJECTED 상태이거나 실패 건수가 1 이상
@@ -864,16 +880,17 @@ async function getLatestQuotationStatus(maxWaitTime = 30000) {
       }
 
       // 견적서 정보 반환 (실제 API 필드명 사용)
+      const itemTime = new Date(matchedItem.submittedDate || matchedItem.uploadedAt || matchedItem.timestamp);
       return {
-        id: latestItem.submittedId || latestItem.qvtId || latestItem.id,
-        name: latestItem.fileName,
-        status: latestItem.validationStatus,  // "REJECTED", "APPROVED", "VALIDATING" 등
+        id: matchedItem.submittedId || matchedItem.qvtId || matchedItem.id,
+        name: matchedItem.fileName,
+        status: matchedItem.validationStatus,  // "REJECTED", "APPROVED", "VALIDATING" 등
         success: isSuccess,  // 명확한 성공/실패 판단
-        passedCount: latestItem.passedItemCount,
+        passedCount: matchedItem.passedItemCount,
         failedCount: failedCount,
-        result: `총 ${latestItem.count}개 (성공 ${latestItem.passedItemCount}개 / 실패 ${failedCount}개)`,
+        result: `총 ${matchedItem.count}개 (성공 ${matchedItem.passedItemCount}개 / 실패 ${failedCount}개)`,
         uploadedAt: itemTime.toISOString(),
-        rawData: latestItem // 디버깅용 원본 데이터
+        rawData: matchedItem // 디버깅용 원본 데이터
       };
     }
 
