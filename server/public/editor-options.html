@@ -7548,7 +7548,20 @@
         }
       });
 
+      // optionName1이 변경된 경우 상세페이지 옵션 블록의 optionName도 업데이트
+      if (targetOption === 'optionName1' && detailPageItems && detailPageItems.length > 0) {
+        detailPageItems.forEach(item => {
+          if (item.type === 'option-block' && mapping.hasOwnProperty(item.optionName)) {
+            const oldName = item.optionName;
+            item.optionName = mapping[oldName];
+            console.log(`[Sync] 순번 부여로 옵션명 변경: "${oldName}" → "${item.optionName}"`);
+          }
+        });
+      }
+
       renderOptions();
+      renderMappingLists();
+      syncDetailPageOptionBlocks(); // 상세페이지 옵션 블록 동기화
       scheduleAutoSave();
       showAlert(`${count}개 항목에 순번이 부여되었습니다.`, 'success');
     }
