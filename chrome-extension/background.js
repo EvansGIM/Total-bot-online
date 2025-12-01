@@ -2288,12 +2288,6 @@ async function handleFillQuotationExcels(data) {
             // "필수"와 "조건부 필수"만 채우기, 나머지는 스킵
             const fieldType = requiredByColumn[mapping.column] || '';
             const shouldFill = fieldType === '필수' || fieldType.includes('조건부');
-
-            // 디버그: 출시 연도 필드 확인
-            if (mapping.header.includes('출시') || mapping.header.includes('연도')) {
-              console.log(`🔍 DEBUG: header="${mapping.header}", column=${mapping.column}, fieldType="${fieldType}", shouldFill=${shouldFill}`);
-            }
-
             if (!shouldFill) {
               continue;
             }
@@ -2309,11 +2303,14 @@ async function handleFillQuotationExcels(data) {
               cellsWrittenThisRow++;
               totalCellsWritten++;
 
-              // 중복 헤더가 있으면 다른 열에도 같은 값 작성 (필수인 열만)
+              // 중복 헤더가 있으면 다른 열에도 같은 값 작성 (필수/조건부 필수만)
               const allCols = headerAllColumns[mapping.header];
               if (allCols && allCols.length > 1) {
                 for (const extraCol of allCols) {
-                  if (extraCol !== mapping.column) {
+                  // 중복 열도 필수/조건부 필수만 채우기
+                  const extraFieldType = requiredByColumn[extraCol] || '';
+                  const extraShouldFill = extraFieldType === '필수' || extraFieldType.includes('조건부');
+                  if (extraCol !== mapping.column && extraShouldFill) {
                     cellUpdates.push({
                       sheet: 1,
                       row: currentRow,
@@ -2401,14 +2398,17 @@ async function handleFillQuotationExcels(data) {
                 cellsWrittenThisRow++;
                 totalCellsWritten++;
 
-                // 중복 헤더가 있으면 다른 열에도 같은 값 작성 (필수이거나 항상 채우는 필드)
+                // 중복 헤더가 있으면 다른 열에도 같은 값 작성 (필수/조건부 필수만)
                 const allCols = headerAllColumns[mapping.header];
                 if (optIdx === 0 && mapping.header.includes('색상')) {
                   console.log(`      🔍 색상 중복 체크: header="${mapping.header}", allCols=${JSON.stringify(allCols)}`);
                 }
                 if (allCols && allCols.length > 1) {
                   for (const extraCol of allCols) {
-                    if (extraCol !== mapping.column) {
+                    // 중복 열도 필수/조건부 필수만 채우기
+                    const extraFieldType = requiredByColumn[extraCol] || '';
+                    const extraShouldFill = extraFieldType === '필수' || extraFieldType.includes('조건부');
+                    if (extraCol !== mapping.column && extraShouldFill) {
                       cellUpdates.push({
                         sheet: 1,
                         row: currentRow,
