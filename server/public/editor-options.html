@@ -7265,24 +7265,19 @@
       const oldValue = productData.results[index][field];
       productData.results[index][field] = value;
 
-      // optionName1이 변경된 경우, detailPageItems의 해당 옵션 블록도 동기화
-      if (field === 'optionName1' && detailPageItems && detailPageItems.length > 0) {
-        // 해당 옵션의 기존 이름으로 detailPageItems에서 찾기
-        const foundItem = detailPageItems.find(item =>
-          item.type === 'option-block' && item.optionName === oldValue
-        );
-        if (foundItem) {
-          foundItem.optionName = value;
-          console.log(`[Sync] 상세페이지 옵션명 동기화: "${oldValue}" → "${value}"`);
-          // 상세페이지 탭이 활성화된 경우 UI도 갱신
-          if (document.querySelector('.tab-btn.active')?.dataset?.tab === 'detail-page') {
-            renderDetailCanvas();
+      // optionName1 또는 optionName2가 변경된 경우, 상세페이지 옵션 블록 동기화
+      if ((field === 'optionName1' || field === 'optionName2') && detailPageItems && detailPageItems.length > 0) {
+        // optionName1이 변경된 경우 해당 블록의 이름도 변경
+        if (field === 'optionName1') {
+          const foundItem = detailPageItems.find(item =>
+            item.type === 'option-block' && item.optionName === oldValue
+          );
+          if (foundItem) {
+            foundItem.optionName = value;
+            console.log(`[Sync] 상세페이지 옵션명 동기화: "${oldValue}" → "${value}"`);
           }
         }
-      }
-
-      // optionName2가 변경된 경우, 상세페이지 옵션 블록의 option2List도 동기화
-      if (field === 'optionName2' && detailPageItems && detailPageItems.length > 0) {
+        // 옵션2 리스트 갱신 및 UI 업데이트
         syncDetailPageOptionBlocks();
       }
 
