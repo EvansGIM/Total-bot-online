@@ -2598,7 +2598,7 @@
       <div class="product-name-section">
         <h2>상품명</h2>
         <div class="product-name-input-wrapper">
-          <input type="text" id="productTitle" placeholder="상품명을 입력하세요">
+          <input type="text" id="productTitle" placeholder="상품명을 입력하세요" oninput="onProductTitleChange()">
           <button class="btn-ai-title" id="btnAiTitle" onclick="generateAITitle()">
             <span class="spinner" id="aiTitleSpinner"></span>
             <span id="aiTitleText">AI 작명</span>
@@ -4822,6 +4822,14 @@
       if (updated) {
         renderDetailCanvas();
       }
+    }
+
+    // 상품명 변경 시 호출 (자동 저장 포함)
+    function onProductTitleChange() {
+      const newTitle = document.getElementById('productTitle').value;
+      productData.title = newTitle;
+      updateDetailPageTitle(newTitle);
+      scheduleAutoSave();
     }
 
     // 텍스트 버튼 드래그 이벤트 설정
