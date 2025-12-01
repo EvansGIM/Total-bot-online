@@ -2284,15 +2284,7 @@ async function handleFillQuotationExcels(data) {
               priceSettings
             });
 
-            // 필수가 아닌 필드는 값을 채우지 않음 (열 번호 기준으로 체크)
-            // 단, 모델명 등 중요 필드는 조건부 필수여도 채움
-            const alwaysFillTypes = ['modelName', 'productName', 'option1', 'option2'];
-            const isRequired = requiredByColumn[mapping.column] === true;
-            const shouldAlwaysFill = alwaysFillTypes.includes(mapping.type);
-            if (!isRequired && !shouldAlwaysFill) {
-              // 선택 필드는 스킵
-              continue;
-            }
+            // 모든 매핑된 필드 채우기 (조건부 필수 포함)
 
             if (value !== null && value !== undefined) {
               // 셀 업데이트 수집 (서버로 전송)
@@ -2309,7 +2301,7 @@ async function handleFillQuotationExcels(data) {
               const allCols = headerAllColumns[mapping.header];
               if (allCols && allCols.length > 1) {
                 for (const extraCol of allCols) {
-                  if (extraCol !== mapping.column && requiredByColumn[extraCol] === true) {
+                  if (extraCol !== mapping.column) {
                     cellUpdates.push({
                       sheet: 1,
                       row: currentRow,
@@ -2379,15 +2371,7 @@ async function handleFillQuotationExcels(data) {
                 console.log(`   🎨 색상 처리: header="${mapping.header}", column=${mapping.column}, value="${value}", isRequired=${requiredByColumn[mapping.column]}`);
               }
 
-              // 필수가 아닌 필드는 값을 채우지 않음 (열 번호 기준으로 체크)
-              // 단, 모델명 등 중요 필드는 조건부 필수여도 채움
-              const alwaysFillTypes = ['modelName', 'productName', 'option1', 'option2'];
-              const isRequired = requiredByColumn[mapping.column] === true;
-              const shouldAlwaysFill = alwaysFillTypes.includes(mapping.type);
-              if (!isRequired && !shouldAlwaysFill) {
-                // 선택 필드는 스킵
-                continue;
-              }
+              // 모든 매핑된 필드 채우기 (조건부 필수 포함)
 
               if (value !== null && value !== undefined) {
                 // 셀 업데이트 수집 (서버로 전송)
@@ -2407,10 +2391,7 @@ async function handleFillQuotationExcels(data) {
                 }
                 if (allCols && allCols.length > 1) {
                   for (const extraCol of allCols) {
-                    if (optIdx === 0 && mapping.header.includes('색상')) {
-                      console.log(`         extraCol=${extraCol}, !== mapping.column: ${extraCol !== mapping.column}, requiredByColumn[${extraCol}]=${requiredByColumn[extraCol]}`);
-                    }
-                    if (extraCol !== mapping.column && (requiredByColumn[extraCol] === true || shouldAlwaysFill)) {
+                    if (extraCol !== mapping.column) {
                       cellUpdates.push({
                         sheet: 1,
                         row: currentRow,
