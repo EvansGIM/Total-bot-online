@@ -837,26 +837,57 @@ async function getLatestQuotationStatus(maxWaitTime = 30000) {
         continue;
       }
 
-      // 업로드한 파일명과 정확히 일치하는 견적서 찾기
+      // 업로드한 파일명과 일치하는 견적서 찾기
       const uploadedFilenames = window.uploadedFilenames || [];
       console.log('📋 업로드한 파일명:', uploadedFilenames);
+      console.log('📄 API 견적서 목록:', items.map(i => `${i.fileName} (${i.validationStatus})`).join(', '));
 
-      // 파일명 정확히 일치하는 항목 찾기
+      // 파일명 매칭 (정확히 일치 또는 부분 일치)
       let matchedItem = null;
       for (const item of items) {
         const itemFileName = item.fileName || '';
 
-        // 정확히 일치하는지 확인
+        // 1. 정확히 일치
         if (uploadedFilenames.includes(itemFileName)) {
           console.log(`   ✅ 파일명 정확히 일치: ${itemFileName}`);
           matchedItem = item;
           break;
         }
+
+        // 2. 부분 일치 (확장자 제외한 이름 비교)
+        const itemNameWithoutExt = itemFileName.replace(/\.xlsx?$/i, '');
+        for (const uploadedName of uploadedFilenames) {
+          const uploadedNameWithoutExt = uploadedName.replace(/\.xlsx?$/i, '');
+          if (itemNameWithoutExt === uploadedNameWithoutExt ||
+              itemNameWithoutExt.includes(uploadedNameWithoutExt) ||
+              uploadedNameWithoutExt.includes(itemNameWithoutExt)) {
+            console.log(`   ✅ 파일명 부분 일치: ${itemFileName} ≈ ${uploadedName}`);
+            matchedItem = item;
+            break;
+          }
+        }
+        if (matchedItem) break;
       }
 
-      // 정확히 일치하는 게 없으면 로그만 출력
-      if (!matchedItem) {
-        console.log('   📄 API 견적서 목록:', items.map(i => i.fileName).join(', '));
+      // 3. 매칭 안되면 가장 최근 견적서 사용 (5분 이내)
+      if (!matchedItem && items.length > 0) {
+        const now = Date.now();
+        const fiveMinutesAgo = now - 5 * 60 * 1000;
+
+        // 최신순 정렬
+        const sortedItems = items.sort((a, b) => {
+          const timeA = new Date(a.submittedDate || a.uploadedAt || 0).getTime();
+          const timeB = new Date(b.submittedDate || b.uploadedAt || 0).getTime();
+          return timeB - timeA;
+        });
+
+        const latestItem = sortedItems[0];
+        const latestTime = new Date(latestItem.submittedDate || latestItem.uploadedAt || 0).getTime();
+
+        if (latestTime > fiveMinutesAgo) {
+          console.log(`   ⚠️ 파일명 매칭 실패, 가장 최근 견적서 사용: ${latestItem.fileName}`);
+          matchedItem = latestItem;
+        }
       }
 
       if (!matchedItem) {
