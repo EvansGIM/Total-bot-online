@@ -829,21 +829,26 @@ async function getLatestQuotationStatus(maxWaitTime = 30000) {
         continue;
       }
 
-      // 업로드한 파일명과 일치하는 견적서 찾기
+      // 업로드한 파일명과 정확히 일치하는 견적서 찾기
       const uploadedFilenames = window.uploadedFilenames || [];
       console.log('📋 업로드한 파일명:', uploadedFilenames);
 
-      // 시간순 정렬 (최신순)
-      const sortedItems = [...items].sort((a, b) => {
-        const timeA = new Date(a.submittedDate || a.uploadedAt || 0);
-        const timeB = new Date(b.submittedDate || b.uploadedAt || 0);
-        return timeB - timeA;  // 최신순
-      });
+      // 파일명 정확히 일치하는 항목 찾기
+      let matchedItem = null;
+      for (const item of items) {
+        const itemFileName = item.fileName || '';
 
-      // 가장 최근 견적서 선택 (업로드 직후이므로 첫 번째가 우리 것)
-      const matchedItem = sortedItems[0];
-      if (matchedItem) {
-        console.log(`   ✅ 가장 최근 견적서 선택: ${matchedItem.fileName}`);
+        // 정확히 일치하는지 확인
+        if (uploadedFilenames.includes(itemFileName)) {
+          console.log(`   ✅ 파일명 정확히 일치: ${itemFileName}`);
+          matchedItem = item;
+          break;
+        }
+      }
+
+      // 정확히 일치하는 게 없으면 로그만 출력
+      if (!matchedItem) {
+        console.log('   📄 API 견적서 목록:', items.map(i => i.fileName).join(', '));
       }
 
       if (!matchedItem) {
