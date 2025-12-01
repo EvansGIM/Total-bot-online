@@ -17,10 +17,8 @@ const userGradeEl = document.getElementById('user-grade');
 
 // 메뉴 버튼들
 const menuProducts = document.getElementById('menu-products');
-const menuEditor = document.getElementById('menu-editor');
 const menuOrders = document.getElementById('menu-orders');
-const menuSettings = document.getElementById('menu-settings');
-const menuCollect = document.getElementById('menu-collect');
+const menu1688 = document.getElementById('menu-1688');
 
 // 초기화
 init();
@@ -132,39 +130,13 @@ function setupMenuLinks() {
     chrome.tabs.create({ url: `${SERVER_URL}/products.html` });
   });
 
-  menuEditor.addEventListener('click', (e) => {
-    e.preventDefault();
-    chrome.tabs.create({ url: `${SERVER_URL}/image-editor.html` });
-  });
-
   menuOrders.addEventListener('click', (e) => {
     e.preventDefault();
     chrome.tabs.create({ url: `${SERVER_URL}/orders.html` });
   });
 
-  menuSettings.addEventListener('click', (e) => {
+  menu1688.addEventListener('click', (e) => {
     e.preventDefault();
-    chrome.tabs.create({ url: `${SERVER_URL}/settings.html` });
-  });
-
-  menuCollect.addEventListener('click', (e) => {
-    e.preventDefault();
-    // 현재 탭이 지원하는 사이트인지 확인하고 수집 시작
-    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-      const tab = tabs[0];
-      const url = tab.url || '';
-
-      if (url.includes('1688.com') || url.includes('aliexpress.com') || url.includes('taobao.com')) {
-        // 수집 가능한 페이지
-        chrome.tabs.sendMessage(tab.id, { action: 'startCrawl' }, (response) => {
-          if (chrome.runtime.lastError) {
-            alert('이 페이지에서는 수집할 수 없습니다.\n상품 상세 페이지로 이동해주세요.');
-          }
-        });
-        window.close();
-      } else {
-        alert('1688, AliExpress, 타오바오 상품 페이지에서 수집할 수 있습니다.');
-      }
-    });
+    chrome.tabs.create({ url: 'https://www.1688.com/' });
   });
 }
