@@ -2285,8 +2285,11 @@ async function handleFillQuotationExcels(data) {
             });
 
             // 필수가 아닌 필드는 값을 채우지 않음 (열 번호 기준으로 체크)
+            // 단, 모델명 등 중요 필드는 조건부 필수여도 채움
+            const alwaysFillTypes = ['modelName', 'productName', 'option1', 'option2'];
             const isRequired = requiredByColumn[mapping.column] === true;
-            if (!isRequired) {
+            const shouldAlwaysFill = alwaysFillTypes.includes(mapping.type);
+            if (!isRequired && !shouldAlwaysFill) {
               // 선택 필드는 스킵
               continue;
             }
@@ -2377,8 +2380,11 @@ async function handleFillQuotationExcels(data) {
               }
 
               // 필수가 아닌 필드는 값을 채우지 않음 (열 번호 기준으로 체크)
+              // 단, 모델명 등 중요 필드는 조건부 필수여도 채움
+              const alwaysFillTypes = ['modelName', 'productName', 'option1', 'option2'];
               const isRequired = requiredByColumn[mapping.column] === true;
-              if (!isRequired) {
+              const shouldAlwaysFill = alwaysFillTypes.includes(mapping.type);
+              if (!isRequired && !shouldAlwaysFill) {
                 // 선택 필드는 스킵
                 continue;
               }
@@ -2394,7 +2400,7 @@ async function handleFillQuotationExcels(data) {
                 cellsWrittenThisRow++;
                 totalCellsWritten++;
 
-                // 중복 헤더가 있으면 다른 열에도 같은 값 작성 (필수인 열만)
+                // 중복 헤더가 있으면 다른 열에도 같은 값 작성 (필수이거나 항상 채우는 필드)
                 const allCols = headerAllColumns[mapping.header];
                 if (optIdx === 0 && mapping.header.includes('색상')) {
                   console.log(`      🔍 색상 중복 체크: header="${mapping.header}", allCols=${JSON.stringify(allCols)}`);
@@ -2404,7 +2410,7 @@ async function handleFillQuotationExcels(data) {
                     if (optIdx === 0 && mapping.header.includes('색상')) {
                       console.log(`         extraCol=${extraCol}, !== mapping.column: ${extraCol !== mapping.column}, requiredByColumn[${extraCol}]=${requiredByColumn[extraCol]}`);
                     }
-                    if (extraCol !== mapping.column && requiredByColumn[extraCol] === true) {
+                    if (extraCol !== mapping.column && (requiredByColumn[extraCol] === true || shouldAlwaysFill)) {
                       cellUpdates.push({
                         sheet: 1,
                         row: currentRow,
