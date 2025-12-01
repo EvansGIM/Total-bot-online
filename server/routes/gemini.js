@@ -110,7 +110,7 @@ IMPORTANT INSTRUCTIONS:
         }
 
         const content = candidates[0].content;
-        if (!content || !content.parts) {
+        if (!content) {
           throw new Error('응답에 콘텐츠가 없습니다.');
         }
 
@@ -118,18 +118,27 @@ IMPORTANT INSTRUCTIONS:
         let generatedImageData = null;
         let responseText = '';
 
+        // parts가 없거나 배열이 아닌 경우 처리
+        if (!parts) {
+          console.log('[Gemini API] parts가 없음, content:', JSON.stringify(content).substring(0, 200));
+          throw new Error('응답에 parts가 없습니다.');
+        }
+
         // parts 배열 순회하며 이미지 찾기
         if (Array.isArray(parts)) {
           for (const part of parts) {
-            if (part.text) {
+            if (part && part.text) {
               responseText += part.text;
             }
-            if (part.inlineData && part.inlineData.data) {
+            if (part && part.inlineData && part.inlineData.data) {
               generatedImageData = part.inlineData.data;
               console.log('[Gemini API] 이미지 데이터 발견');
               break;
             }
           }
+        } else {
+          console.log('[Gemini API] parts가 배열이 아님:', typeof parts);
+          throw new Error('parts가 배열이 아닙니다.');
         }
 
         if (!generatedImageData) {

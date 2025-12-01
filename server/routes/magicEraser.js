@@ -31,7 +31,7 @@ router.post('/magic-erase', async (req, res) => {
 
     // Python 스크립트 실행
     const pythonScript = path.join(__dirname, '../scripts/inpaint.py');
-    const pythonCmd = '/opt/homebrew/bin/python3.11'; // OpenCV가 설치된 Python
+    const pythonCmd = process.platform === 'darwin' ? '/opt/homebrew/bin/python3.11' : '/usr/bin/python3'; // OS에 따라 Python 경로 선택
     const python = spawn(pythonCmd, [pythonScript]);
 
     let resultData = '';
@@ -149,10 +149,29 @@ router.post('/remove-background', async (req, res) => {
     }
 
   } catch (error) {
-    console.error('[Remove BG] 오류:', error.message);
-    res.status(500).json({
+    // Axios 에러인 경우 상세 정보 추출
+    let errorMessage = error.message;
+    let statusCode = 500;
+
+    if (error.response) {
+      // Pixian API에서 반환한 에러
+      statusCode = error.response.status;
+      const responseData = error.response.data;
+      if (Buffer.isBuffer(responseData)) {
+        errorMessage = responseData.toString('utf-8');
+      } else if (typeof responseData === 'string') {
+        errorMessage = responseData;
+      } else if (responseData && responseData.error) {
+        errorMessage = responseData.error;
+      }
+      console.error('[Remove BG] API 오류:', statusCode, errorMessage);
+    } else {
+      console.error('[Remove BG] 오류:', error.message);
+    }
+
+    res.status(statusCode).json({
       success: false,
-      message: error.message
+      message: `배경 제거 실패: ${errorMessage}`
     });
   }
 });
@@ -163,7 +182,7 @@ router.post('/remove-background', async (req, res) => {
  */
 router.get('/magic-erase/test', (req, res) => {
   const pythonScript = path.join(__dirname, '../scripts/inpaint.py');
-  const pythonCmd = '/opt/homebrew/bin/python3.11';
+  const pythonCmd = process.platform === 'darwin' ? '/opt/homebrew/bin/python3.11' : '/usr/bin/python3';
   const python = spawn(pythonCmd, ['-c', 'import cv2; import numpy; print("OK")']);
 
   let output = '';
