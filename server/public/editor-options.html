@@ -10479,13 +10479,17 @@
         input.dataset.field = fieldName;
         input.dataset.originalValue = value;
 
+        // Tab 이동 중 플래그
+        let isTabMoving = false;
+
         // Enter 또는 blur 시 적용
         input.addEventListener('keydown', (e) => {
           if (e.key === 'Enter') {
             e.target.blur();
-          } else if (e.key === 'Tab' && !e.shiftKey) {
-            // Tab 키: 다음 입력 필드로 이동
+          } else if (e.key === 'Tab') {
             e.preventDefault();
+            isTabMoving = true;
+
             const allInputs = container.querySelectorAll('.mapping-input');
             const currentIndex = Array.from(allInputs).indexOf(e.target);
 
@@ -10497,58 +10501,50 @@
               e.target.dataset.originalValue = newVal;
             }
 
-            // 다음 입력 필드로 포커스 이동
-            if (currentIndex < allInputs.length - 1) {
-              // 같은 컬럼 내 다음 입력
-              allInputs[currentIndex + 1].focus();
-              allInputs[currentIndex + 1].select();
+            if (!e.shiftKey) {
+              // Tab: 다음 입력 필드로 이동
+              if (currentIndex < allInputs.length - 1) {
+                allInputs[currentIndex + 1].focus();
+                allInputs[currentIndex + 1].select();
+              } else {
+                // 옵션1 -> 옵션2로 이동
+                const otherContainerId = containerId === 'option1MappingList' ? 'option2MappingList' : 'option1MappingList';
+                const otherContainer = document.getElementById(otherContainerId);
+                if (otherContainer) {
+                  const otherInputs = otherContainer.querySelectorAll('.mapping-input');
+                  if (otherInputs.length > 0) {
+                    otherInputs[0].focus();
+                    otherInputs[0].select();
+                  }
+                }
+              }
             } else {
-              // 다른 컬럼으로 이동 (옵션1 -> 옵션2)
-              const otherContainerId = containerId === 'option1MappingList' ? 'option2MappingList' : 'option1MappingList';
-              const otherContainer = document.getElementById(otherContainerId);
-              if (otherContainer) {
-                const otherInputs = otherContainer.querySelectorAll('.mapping-input');
-                if (otherInputs.length > 0) {
-                  otherInputs[0].focus();
-                  otherInputs[0].select();
+              // Shift+Tab: 이전 입력 필드로 이동
+              if (currentIndex > 0) {
+                allInputs[currentIndex - 1].focus();
+                allInputs[currentIndex - 1].select();
+              } else {
+                // 다른 컬럼의 마지막으로 이동
+                const otherContainerId = containerId === 'option1MappingList' ? 'option2MappingList' : 'option1MappingList';
+                const otherContainer = document.getElementById(otherContainerId);
+                if (otherContainer) {
+                  const otherInputs = otherContainer.querySelectorAll('.mapping-input');
+                  if (otherInputs.length > 0) {
+                    otherInputs[otherInputs.length - 1].focus();
+                    otherInputs[otherInputs.length - 1].select();
+                  }
                 }
               }
             }
-          } else if (e.key === 'Tab' && e.shiftKey) {
-            // Shift+Tab: 이전 입력 필드로 이동
-            e.preventDefault();
-            const allInputs = container.querySelectorAll('.mapping-input');
-            const currentIndex = Array.from(allInputs).indexOf(e.target);
 
-            // 먼저 현재 값 적용
-            const originalVal = e.target.dataset.originalValue;
-            const newVal = e.target.value;
-            if (originalVal !== newVal) {
-              applyMappingChangeWithoutRerender(fieldName, originalVal, newVal);
-              e.target.dataset.originalValue = newVal;
-            }
-
-            // 이전 입력 필드로 포커스 이동
-            if (currentIndex > 0) {
-              allInputs[currentIndex - 1].focus();
-              allInputs[currentIndex - 1].select();
-            } else {
-              // 다른 컬럼의 마지막으로 이동
-              const otherContainerId = containerId === 'option1MappingList' ? 'option2MappingList' : 'option1MappingList';
-              const otherContainer = document.getElementById(otherContainerId);
-              if (otherContainer) {
-                const otherInputs = otherContainer.querySelectorAll('.mapping-input');
-                if (otherInputs.length > 0) {
-                  otherInputs[otherInputs.length - 1].focus();
-                  otherInputs[otherInputs.length - 1].select();
-                }
-              }
-            }
+            // 플래그 해제 (다음 이벤트 루프에서)
+            setTimeout(() => { isTabMoving = false; }, 0);
           }
         });
 
         input.addEventListener('blur', () => {
-          // Tab 이동 시 이미 처리되었으면 dataset.originalValue가 업데이트되어 있으므로 중복 처리 방지
+          // Tab 이동 중이면 blur 무시
+          if (isTabMoving) return;
           applyMappingChange(fieldName, input.dataset.originalValue, input.value);
         });
 
