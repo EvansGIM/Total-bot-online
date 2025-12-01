@@ -4387,7 +4387,9 @@
 
       // TotalBot extension 메시지만 처리
       if (message && message.source === 'totalbot-extension') {
+        console.log('📨 Extension 메시지 수신:', message.action, message.stepId, message.status);
         if (message.action === 'updateProgress') {
+          console.log('🔄 진행 상황 업데이트:', message.stepId, '->', message.status);
           updateProgressStep(message.stepId, message.status);
         } else if (message.action === 'closeProgressModal') {
           closeProgressModal();
