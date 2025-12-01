@@ -2288,6 +2288,12 @@ async function handleFillQuotationExcels(data) {
             // "필수"와 "조건부 필수"만 채우기, 나머지는 스킵
             const fieldType = requiredByColumn[mapping.column] || '';
             const shouldFill = fieldType === '필수' || fieldType.includes('조건부');
+
+            // 디버그: 출시 연도 필드 확인
+            if (mapping.header.includes('출시') || mapping.header.includes('연도')) {
+              console.log(`🔍 DEBUG: header="${mapping.header}", column=${mapping.column}, fieldType="${fieldType}", shouldFill=${shouldFill}`);
+            }
+
             if (!shouldFill) {
               continue;
             }
