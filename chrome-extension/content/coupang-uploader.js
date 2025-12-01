@@ -156,8 +156,9 @@ async function handleCoupangUpload(data) {
           console.log(`📊 최종 상태 - status: "${status}", result: "${result}"`);
           console.log(`📊 성공 여부: ${finalResult.success}, 성공: ${finalResult.passedCount}, 실패: ${finalResult.failedCount}`);
 
-          // 반려 확인 - API에서 validationStatus가 "REJECTED"
-          const isRejected = status === 'REJECTED' || finalResult.success === false;
+          // 반려 확인 - API에서 validationStatus가 "REJECTED" 또는 전체 실패
+          const isRejected = status === 'REJECTED' ||
+            (finalResult.failedCount > 0 && finalResult.passedCount === 0);
 
           if (isRejected) {
             // 반려된 경우 - 상세 내역 다운로드 URL과 함께 실패 반환
@@ -172,8 +173,8 @@ async function handleCoupangUpload(data) {
             };
           }
 
-          // 완료 상태 확인 - API에서 validationStatus가 "APPROVED" 또는 success가 true
-          const isCompleted = status === 'APPROVED' || finalResult.success === true;
+          // 완료 상태 확인 - API에서 validationStatus가 "APPROVED" 또는 성공 개수 > 0
+          const isCompleted = status === 'APPROVED' || finalResult.passedCount > 0;
 
           if (isCompleted) {
             saveQuotationData(finalResult.id, products, excelFiles);
