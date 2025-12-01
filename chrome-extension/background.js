@@ -2953,7 +2953,7 @@ async function handleFillQuotationExcels(data) {
         });
       }
 
-      console.log('✅ 쿠팡 업로드 응답:', uploadResponse);
+      console.log('📥 쿠팡 업로드 응답 수신:', uploadResponse);
 
       if (uploadResponse && uploadResponse.success) {
         console.log(`🎉 쿠팡 업로드 성공! 견적서 ID: ${uploadResponse.quoteId}`);
