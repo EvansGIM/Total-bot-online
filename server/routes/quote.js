@@ -12,7 +12,8 @@ const upload = multer({
   dest: path.join(os.tmpdir(), 'totalbot-excel'),
   limits: {
     fileSize: 50 * 1024 * 1024,  // 50MB 파일 크기 제한
-    fieldSize: 100 * 1024 * 1024  // 100MB 필드 크기 제한 (대용량 셀 업데이트용)
+    fieldSize: 200 * 1024 * 1024,  // 200MB 필드 크기 제한 (대용량 셀 업데이트용)
+    fieldNameSize: 1000  // 필드 이름 크기 제한
   }
 });
 
