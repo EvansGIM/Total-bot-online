@@ -7371,6 +7371,17 @@
 
       let count = 0;
 
+      // 변경 전 옵션1 값들 기록 (상세페이지 동기화용)
+      const oldOption1Values = new Map();
+      if (targetOption === 'optionName1' && detailPageItems && detailPageItems.length > 0) {
+        productData.results.forEach(opt => {
+          const oldVal = opt[targetOption] || '';
+          if (!oldOption1Values.has(oldVal)) {
+            oldOption1Values.set(oldVal, oldVal);
+          }
+        });
+      }
+
       if (find === '') {
         // 빈 값을 찾아서 replace 텍스트로 채우기
         productData.results.forEach(opt => {
@@ -7391,7 +7402,23 @@
         showAlert(`${count}개 항목이 치환되었습니다.`, 'success');
       }
 
+      // optionName1이 변경된 경우 상세페이지 옵션 블록의 optionName도 업데이트
+      if (targetOption === 'optionName1' && detailPageItems && detailPageItems.length > 0) {
+        detailPageItems.forEach(item => {
+          if (item.type === 'option-block') {
+            const oldName = item.optionName;
+            if (find === '' && oldName === '') {
+              item.optionName = replace;
+            } else if (find !== '' && oldName.includes(find)) {
+              item.optionName = oldName.replace(new RegExp(find, 'g'), replace);
+            }
+          }
+        });
+      }
+
       renderOptions();
+      renderMappingLists();
+      syncDetailPageOptionBlocks(); // 상세페이지 옵션 블록 동기화
       scheduleAutoSave();
     }
 
@@ -7495,7 +7522,20 @@
         }
       });
 
+      // optionName1이 변경된 경우 상세페이지 옵션 블록의 optionName도 업데이트
+      if (targetOption === 'optionName1' && detailPageItems && detailPageItems.length > 0) {
+        detailPageItems.forEach(item => {
+          if (item.type === 'option-block' && mapping.hasOwnProperty(item.optionName)) {
+            const oldName = item.optionName;
+            item.optionName = mapping[oldName];
+            console.log(`[Sync] 매핑에서 옵션명 변경: "${oldName}" → "${item.optionName}"`);
+          }
+        });
+      }
+
       renderOptions();
+      renderMappingLists();
+      syncDetailPageOptionBlocks(); // 상세페이지 옵션 블록 동기화
       closeMappingDialog();
       scheduleAutoSave();
 
@@ -8379,7 +8419,21 @@
           });
         });
 
+        // optionName1이 변경된 경우 상세페이지 옵션 블록의 optionName도 업데이트
+        if (targetFields.includes('optionName1') && detailPageItems && detailPageItems.length > 0) {
+          detailPageItems.forEach(item => {
+            if (item.type === 'option-block' && mapping[item.optionName] && mapping[item.optionName] !== item.optionName) {
+              const oldName = item.optionName;
+              item.optionName = mapping[oldName];
+              console.log(`[Sync] AI 변환으로 옵션명 변경: "${oldName}" → "${item.optionName}"`);
+            }
+          });
+        }
+
         renderOptions();
+        renderMappingLists();
+        syncDetailPageOptionBlocks(); // 상세페이지 옵션 블록 동기화
+
         if (changedCount > 0) {
           showAlert(`AI가 ${changedCount}개 옵션을 변환했습니다.`, 'success');
           scheduleAutoSave();
@@ -8481,11 +8535,17 @@
         }
 
         renderOptions();
+        renderMappingLists();
+        syncDetailPageOptionBlocks(); // 상세페이지 옵션 블록 동기화
 
         if (silent) {
           console.log(`[자동 번역] ${count}개 필드 번역 완료`);
         } else {
           showAlert(`${count}개 필드의 번역이 완료되었습니다.`, 'success');
+        }
+
+        if (count > 0) {
+          scheduleAutoSave();
         }
       } catch (error) {
         console.error('번역 오류:', error);
