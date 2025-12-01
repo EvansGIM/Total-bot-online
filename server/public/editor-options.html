@@ -7281,6 +7281,11 @@
         }
       }
 
+      // optionName2가 변경된 경우, 상세페이지 옵션 블록의 option2List도 동기화
+      if (field === 'optionName2' && detailPageItems && detailPageItems.length > 0) {
+        syncDetailPageOptionBlocks();
+      }
+
       scheduleAutoSave();
     }
 
@@ -10357,6 +10362,7 @@
       if (count > 0) {
         renderOptions();
         renderMappingLists(); // 매핑 리스트도 업데이트
+        syncDetailPageOptionBlocks(); // 상세페이지 옵션 블록도 동기화
         showAlert(`${count}개 항목이 변경되었습니다.`, 'success');
         scheduleAutoSave();
       }
