@@ -1940,7 +1940,8 @@ async function handleFillQuotationExcels(data) {
           const exampleValue8 = exampleCell8 && exampleCell8.v ? String(exampleCell8.v).trim() : '';
 
           requiredFields[headerName] = requiredValue === '필수';
-          requiredByColumn[col] = requiredValue === '필수';  // 열 번호로도 저장
+          // 열 번호로 실제 값 저장 ('필수', '조건부 필수', '선택' 등)
+          requiredByColumn[col] = requiredValue;
           exampleValues[headerName] = exampleValue7;
           exampleValuesRow7[headerName] = exampleValue7;
           exampleValuesRow8[headerName] = exampleValue8;
@@ -2284,7 +2285,11 @@ async function handleFillQuotationExcels(data) {
               priceSettings
             });
 
-            // 모든 매핑된 필드 채우기 (조건부 필수 포함)
+            // "선택" 필드는 스킵, "필수"와 "조건부 필수"는 채우기
+            const fieldType = requiredByColumn[mapping.column] || '';
+            if (fieldType === '선택') {
+              continue;
+            }
 
             if (value !== null && value !== undefined) {
               // 셀 업데이트 수집 (서버로 전송)
@@ -2371,7 +2376,11 @@ async function handleFillQuotationExcels(data) {
                 console.log(`   🎨 색상 처리: header="${mapping.header}", column=${mapping.column}, value="${value}", isRequired=${requiredByColumn[mapping.column]}`);
               }
 
-              // 모든 매핑된 필드 채우기 (조건부 필수 포함)
+              // "선택" 필드는 스킵, "필수"와 "조건부 필수"는 채우기
+              const fieldType = requiredByColumn[mapping.column] || '';
+              if (fieldType === '선택') {
+                continue;
+              }
 
               if (value !== null && value !== undefined) {
                 // 셀 업데이트 수집 (서버로 전송)
