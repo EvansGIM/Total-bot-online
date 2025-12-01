@@ -4722,13 +4722,25 @@
     let requiredFieldCallback = null;
 
     function showRequiredFieldModal(fields, callback) {
-      pendingRequiredFields = fields;
+      console.log('📋 showRequiredFieldModal 호출됨, fields:', fields);
+      pendingRequiredFields = fields || [];
       requiredFieldCallback = callback;
 
       const container = document.getElementById('requiredFieldsList');
+      if (!container) {
+        console.error('❌ requiredFieldsList 컨테이너를 찾을 수 없음!');
+        return;
+      }
       container.innerHTML = '';
 
+      if (!fields || fields.length === 0) {
+        container.innerHTML = '<p style="color: #888; text-align: center;">입력할 필수 항목이 없습니다.</p>';
+        document.getElementById('requiredFieldModal').style.display = 'flex';
+        return;
+      }
+
       fields.forEach((field, index) => {
+        console.log(`📋 필드 ${index}:`, field);
         const fieldDiv = document.createElement('div');
         fieldDiv.style.cssText = 'background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 16px; margin-bottom: 12px;';
 
@@ -4853,6 +4865,12 @@
     window.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'SHOW_REQUIRED_FIELD_MODAL') {
         const { fields, messageId } = event.data;
+        console.log('📋 필수 칸 모달 요청 수신:', fields);
+        console.log('📋 fields 타입:', typeof fields, 'length:', fields?.length);
+
+        if (!fields || fields.length === 0) {
+          console.error('❌ fields가 비어있음!');
+        }
 
         showRequiredFieldModal(fields, (result) => {
           // 결과를 Extension으로 전송
