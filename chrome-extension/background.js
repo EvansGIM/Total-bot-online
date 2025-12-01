@@ -1741,7 +1741,7 @@ async function handleFillQuotationExcels(data) {
         { header: '색상', type: 'option1', value: '' },
         { header: '사이즈', type: 'option2', value: '' },
         { header: '패션의류/잡화 사이즈', type: 'option2', value: '' },
-        { header: '모델명/품번', type: 'fixed', value: '단일상품' },
+        { header: '모델명/품번', type: 'modelName', value: '' },
         { header: '제조국', type: 'fixed', value: '중국 OEM' }
       ];
 
@@ -1977,7 +1977,7 @@ async function handleFillQuotationExcels(data) {
         { header: '카테고리', type: 'fixed', value: '(선택한 카테고리)' },
         { header: '상품명', type: 'productName', value: '' },
         { header: '상품 바코드', type: 'fixed', value: '바코드 없음(쿠팡 바코드 생성 요청)' },
-        { header: '모델명/품번', type: 'fixed', value: '단일상품' },
+        { header: '모델명/품번', type: 'modelName', value: '' },
         { header: '추가이미지 파일명', type: 'calc:additional_image', value: '' },
         { header: '과세여부', type: 'fixed', value: '과세' },
         { header: '거래타입', type: 'fixed', value: '기타 도소매업자' },
