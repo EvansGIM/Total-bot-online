@@ -3260,8 +3260,8 @@
   </div>
 
   <!-- 상세페이지 미리보기 모달 -->
-  <div class="modal" id="detailPreviewModal">
-    <div class="modal-content modal-large">
+  <div class="modal" id="detailPreviewModal" onclick="closeDetailPreview()">
+    <div class="modal-content modal-large" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h2>상세페이지 미리보기</h2>
         <button class="modal-close" onclick="closeDetailPreview()">×</button>
