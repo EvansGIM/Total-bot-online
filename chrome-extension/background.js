@@ -2071,7 +2071,7 @@ async function handleFillQuotationExcels(data) {
         // 신규 추가 항목
         { header: '모델명', type: 'modelName', value: '' },
         { header: '수량', type: 'fixed', value: '1개' },
-        { header: '제조자(수입자)', type: 'fixed', value: '주식회사 라이크존' },
+        { header: '제조자(수입자)', type: 'fixed', value: '%Brand_Name' },
         { header: '내지매수', type: 'fixed', value: '1매' },
         { header: '사이즈차트 이미지 파일명', type: 'calc:size_chart_image', value: '' },
         { header: '인증/허가 사항', type: 'fixed', value: '해당사항없음' },
