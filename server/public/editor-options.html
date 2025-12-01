@@ -6081,29 +6081,36 @@
       });
     }
 
-    // 상세페이지 옵션 블록 동기화 (옵션 삭제 시 호출)
+    // 상세페이지 옵션 블록 동기화 (옵션 변경/삭제 시 호출)
     function syncDetailPageOptionBlocks() {
-      if (!detailPageItems || detailPageItems.length === 0) return;
+      if (!detailPageItems || detailPageItems.length === 0) {
+        console.log('[Sync] detailPageItems가 비어있음');
+        return;
+      }
 
-      // 현재 옵션에서 옵션1별 그룹 생성
+      // 현재 옵션에서 옵션1별 그룹 생성 (옵션2 목록 및 이미지 포함)
       const currentOption1Groups = new Map();
 
       if (productData.results && productData.results.length > 0) {
         productData.results.forEach(option => {
           const opt1 = option.optionName1 || option.optionName1Cn || '옵션1';
           const opt2 = option.optionName2 || option.optionName2Cn || '';
+          const img = option.imageLink || (option.titleImage && option.titleImage[0]) || '';
 
           if (!currentOption1Groups.has(opt1)) {
-            currentOption1Groups.set(opt1, []);
+            currentOption1Groups.set(opt1, { option2List: [], image: img });
           }
 
           if (opt2) {
-            currentOption1Groups.get(opt1).push(opt2);
+            currentOption1Groups.get(opt1).option2List.push(opt2);
           }
         });
       }
 
+      console.log('[Sync] 현재 옵션1 그룹:', [...currentOption1Groups.keys()]);
+
       // 기존 옵션 블록 업데이트 또는 삭제
+      let updated = false;
       detailPageItems = detailPageItems.filter(item => {
         if (item.type !== 'option-block') return true; // 옵션 블록이 아니면 유지
 
@@ -6112,21 +6119,28 @@
         // 해당 옵션1이 더 이상 없으면 삭제
         if (!currentOption1Groups.has(optionName)) {
           console.log(`[Sync] 옵션 블록 삭제: "${optionName}" (더 이상 존재하지 않음)`);
+          updated = true;
           return false;
         }
 
         // 옵션2 리스트 업데이트
-        const option2List = currentOption1Groups.get(optionName);
-        const uniqueOption2 = [...new Set(option2List)];
-        item.option2List = uniqueOption2.length > 0 ? uniqueOption2.join(', ') : '옵션2 없음';
+        const groupData = currentOption1Groups.get(optionName);
+        const uniqueOption2 = [...new Set(groupData.option2List)];
+        const newOption2List = uniqueOption2.length > 0 ? uniqueOption2.join(', ') : '옵션2 없음';
+
+        if (item.option2List !== newOption2List) {
+          console.log(`[Sync] 옵션2 리스트 업데이트: "${optionName}" → "${newOption2List}"`);
+          item.option2List = newOption2List;
+          updated = true;
+        }
 
         return true;
       });
 
-      // 상세페이지 렌더링 업데이트
+      // 상세페이지 렌더링 업데이트 (항상 실행)
       renderDetailSources();
-      renderDetailCanvas();  // 실제 옵션 블록 UI 업데이트
-      console.log('[Sync] 상세페이지 옵션 블록 동기화 완료');
+      renderDetailCanvas();
+      console.log('[Sync] 상세페이지 옵션 블록 동기화 완료, updated:', updated);
     }
 
     // 자동 구성
@@ -10355,6 +10369,16 @@
       });
 
       if (count > 0) {
+        // optionName1이 변경된 경우 상세페이지 옵션 블록의 optionName도 먼저 변경
+        if (fieldName === 'optionName1' && detailPageItems && detailPageItems.length > 0) {
+          detailPageItems.forEach(item => {
+            if (item.type === 'option-block' && item.optionName === originalValue) {
+              item.optionName = newValue;
+              console.log(`[Sync] 매핑에서 옵션명 변경: "${originalValue}" → "${newValue}"`);
+            }
+          });
+        }
+
         renderOptions();
         renderMappingLists(); // 매핑 리스트도 업데이트
         syncDetailPageOptionBlocks(); // 상세페이지 옵션 블록도 동기화
