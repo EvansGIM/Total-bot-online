@@ -4950,6 +4950,9 @@
         const itemEl = createDetailPageItemElement(item, index);
         canvas.appendChild(itemEl);
       });
+
+      // 상세페이지 변경 시 자동 저장
+      scheduleAutoSave();
     }
 
     // 상세페이지 아이템 엘리먼트 생성
