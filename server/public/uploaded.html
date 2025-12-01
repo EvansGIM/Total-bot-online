@@ -908,7 +908,23 @@
     // 초기화
     document.addEventListener('DOMContentLoaded', () => {
       if (!checkAuth()) return;
-      loadProducts();
+      loadProducts().then(() => {
+        // 페이지 로드 시 자동 승인 확인
+        if (allProducts.length > 0) {
+          checkApprovalStatus();
+        }
+      });
+    });
+
+    // 탭 전환 시 자동 조회
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        loadProducts().then(() => {
+          if (allProducts.length > 0) {
+            checkApprovalStatus();
+          }
+        });
+      }
     });
   </script>
 </body>
