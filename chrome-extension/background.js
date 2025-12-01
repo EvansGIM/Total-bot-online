@@ -2066,7 +2066,7 @@ async function handleFillQuotationExcels(data) {
         { header: '중량', type: 'fixed', value: '상세페이지 설명 참조' },
 
         // 신규 추가 항목
-        { header: '모델명', type: 'productName', value: '' },
+        { header: '모델명', type: 'modelName', value: '' },
         { header: '수량', type: 'fixed', value: '1개' },
         { header: '제조자(수입자)', type: 'fixed', value: '주식회사 라이크존' },
         { header: '내지매수', type: 'fixed', value: '1매' },
@@ -3290,6 +3290,16 @@ function getValueForMapping(mapping, context) {
       let combinedName = truncatedTitle + opt1Str + opt2Str;
       console.log(`🔧 productName 처리: 제목=${truncatedTitle.length}자, 옵션=${optionsLength}자, 결과=${combinedName.length}자`);
       return combinedName;
+
+    case 'modelName':
+      // 모델명 = 제품명만 (59글자 제한)
+      const modelMaxLength = 59;
+      let modelName = productTitle || '';
+      if (modelName.length > modelMaxLength) {
+        modelName = modelName.substring(0, modelMaxLength);
+      }
+      console.log(`🔧 modelName 처리: ${modelName.length}자`);
+      return modelName;
 
     case 'option1':
       return option1 || '';
