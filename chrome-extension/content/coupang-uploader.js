@@ -833,25 +833,17 @@ async function getLatestQuotationStatus(maxWaitTime = 30000) {
       const uploadedFilenames = window.uploadedFilenames || [];
       console.log('📋 업로드한 파일명:', uploadedFilenames);
 
-      // 파일명이 일치하는 항목 찾기
-      let matchedItem = null;
-      for (const item of items) {
-        const itemFileName = item.fileName || '';
-        console.log(`   📄 API 견적서: ${itemFileName}`);
+      // 시간순 정렬 (최신순)
+      const sortedItems = [...items].sort((a, b) => {
+        const timeA = new Date(a.submittedDate || a.uploadedAt || 0);
+        const timeB = new Date(b.submittedDate || b.uploadedAt || 0);
+        return timeB - timeA;  // 최신순
+      });
 
-        // 업로드한 파일명 중 하나와 일치하는지 확인
-        const isMatch = uploadedFilenames.some(uploadedName => {
-          // 정확히 일치하거나, 업로드 파일명이 API 파일명에 포함되어 있는지 확인
-          return itemFileName === uploadedName ||
-                 itemFileName.includes(uploadedName.replace('.xlsx', '')) ||
-                 uploadedName.includes(itemFileName.replace('.xlsx', ''));
-        });
-
-        if (isMatch) {
-          console.log(`   ✅ 파일명 일치! ${itemFileName}`);
-          matchedItem = item;
-          break;
-        }
+      // 가장 최근 견적서 선택 (업로드 직후이므로 첫 번째가 우리 것)
+      const matchedItem = sortedItems[0];
+      if (matchedItem) {
+        console.log(`   ✅ 가장 최근 견적서 선택: ${matchedItem.fileName}`);
       }
 
       if (!matchedItem) {
