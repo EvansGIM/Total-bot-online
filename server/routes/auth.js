@@ -62,22 +62,29 @@ async function loadUsers() {
     const data = await fs.readFile(USERS_FILE, 'utf-8');
     let users = JSON.parse(data);
 
-    // test 계정이 없으면 자동 추가
-    const hasTestUser = users.some(u => u.username === 'test');
-    if (!hasTestUser) {
-      const testPassword = await bcrypt.hash('test123', 10);
-      const maxId = users.reduce((max, u) => Math.max(max, u.id), 0);
-      users.push({
-        id: maxId + 1,
-        username: 'test',
-        password: testPassword,
-        name: '테스트',
-        grade: 'basic',
-        is_admin: false,
-        createdAt: new Date().toISOString()
-      });
+    // test1~10 계정이 없으면 자동 추가
+    let updated = false;
+    for (let i = 1; i <= 10; i++) {
+      const username = `test${i}`;
+      const hasUser = users.some(u => u.username === username);
+      if (!hasUser) {
+        const password = await bcrypt.hash(username, 10); // 비번 = 아이디
+        const maxId = users.reduce((max, u) => Math.max(max, u.id), 0);
+        users.push({
+          id: maxId + 1,
+          username: username,
+          password: password,
+          name: `테스트${i}`,
+          grade: 'basic',
+          is_admin: false,
+          createdAt: new Date().toISOString()
+        });
+        console.log(`[Auth] ${username} 계정 자동 추가됨`);
+        updated = true;
+      }
+    }
+    if (updated) {
       await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
-      console.log('[Auth] test 계정 자동 추가됨');
     }
 
     return users;
