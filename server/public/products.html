@@ -3980,12 +3980,7 @@
       // 계절 수집
       detailCategoryState.season = document.getElementById('seasonInput').value;
 
-      // 유효성 검사
-      if (detailCategoryState.tags.length === 0) {
-        alert('검색태그를 하나 이상 입력해주세요.');
-        return;
-      }
-
+      // 유효성 검사 (검색태그는 선택사항)
       if (!detailCategoryState.size.width || !detailCategoryState.size.height || !detailCategoryState.size.depth) {
         alert('사이즈를 모두 입력해주세요.');
         return;
