@@ -832,12 +832,33 @@ async function getLatestQuotationStatus(maxWaitTime = 30000) {
       const latestItem = items[0];
       console.log('📋 최신 견적서:', JSON.stringify(latestItem, null, 2));
 
-      // 업로드 시간 확인 (10분 이내만)
+      // 업로드 시간 확인 (5분 이내만 - 더 엄격하게)
       const itemTime = new Date(latestItem.submittedDate || latestItem.uploadedAt || latestItem.timestamp);
-      const timeDiff = Math.abs((itemTime - window.uploadStartTime) / 1000 / 60);
+      const compareTime = window.uploadStartTime || new Date();
+      const timeDiff = Math.abs((itemTime - compareTime) / 1000 / 60);
 
-      if (timeDiff > 10) {
-        console.log(`   ⏰ 시간 차이 ${timeDiff.toFixed(1)}분 - 다른 견적서일 수 있음`);
+      console.log(`   ⏰ 업로드 시작: ${compareTime.toLocaleString()}, 견적서 시간: ${itemTime.toLocaleString()}, 차이: ${timeDiff.toFixed(1)}분`);
+
+      if (timeDiff > 5) {
+        console.log(`   ⏰ 시간 차이 ${timeDiff.toFixed(1)}분 - 이전 견적서, 새 견적서 대기 중...`);
+        await sleep(pollInterval);
+        continue;
+      }
+
+      // 성공 여부 판단 (validationStatus 기준)
+      const validationStatus = (latestItem.validationStatus || '').toUpperCase();
+      const failedCount = latestItem.failedItemCount || 0;
+
+      // 성공 조건: APPROVED 상태이고 실패 건수가 0
+      // 실패 조건: REJECTED 상태이거나 실패 건수가 1 이상
+      let isSuccess = false;
+      if (validationStatus === 'APPROVED' && failedCount === 0) {
+        isSuccess = true;
+      } else if (validationStatus === 'REJECTED' || failedCount > 0) {
+        isSuccess = false;
+      } else if (validationStatus === 'VALIDATING' || validationStatus === '') {
+        // 아직 검증 중 - 대기
+        console.log('   ⏳ 아직 검증 중...');
         await sleep(pollInterval);
         continue;
       }
@@ -847,10 +868,10 @@ async function getLatestQuotationStatus(maxWaitTime = 30000) {
         id: latestItem.submittedId || latestItem.qvtId || latestItem.id,
         name: latestItem.fileName,
         status: latestItem.validationStatus,  // "REJECTED", "APPROVED", "VALIDATING" 등
-        success: latestItem.success,
+        success: isSuccess,  // 명확한 성공/실패 판단
         passedCount: latestItem.passedItemCount,
-        failedCount: latestItem.failedItemCount,
-        result: `총 ${latestItem.count}개 (성공 ${latestItem.passedItemCount}개 / 실패 ${latestItem.failedItemCount}개)`,
+        failedCount: failedCount,
+        result: `총 ${latestItem.count}개 (성공 ${latestItem.passedItemCount}개 / 실패 ${failedCount}개)`,
         uploadedAt: itemTime.toISOString(),
         rawData: latestItem // 디버깅용 원본 데이터
       };
