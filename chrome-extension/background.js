@@ -3508,7 +3508,7 @@ function getValueForMapping(mapping, context) {
       return option1 || '';
 
     case 'option2':
-      return option2 || '';
+      return option2 || 'One size';
 
     case 'fixed':
       // 고정값 또는 특수 값 처리
