@@ -10221,12 +10221,31 @@
 
     // 이미지 초기화
     function resetImage() {
-      if (!originalImageData) return;
-      ctx.putImageData(originalImageData, 0, 0);
+      if (!currentEditingImage) {
+        showAlert('초기화할 이미지가 없습니다.', 'warning');
+        return;
+      }
+
+      // 캔버스 초기화 후 원본 이미지 다시 그리기
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(currentEditingImage, 0, 0);
+
+      // 원본 데이터 다시 저장
+      originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      // 슬라이더 초기화
       document.getElementById('brightnessSlider').value = 0;
       document.getElementById('contrastSlider').value = 0;
       document.getElementById('brightnessValue').textContent = 0;
       document.getElementById('contrastValue').textContent = 0;
+
+      // 마스크 초기화
+      if (typeof maskCanvas !== 'undefined' && maskCanvas) {
+        const maskCtx = maskCanvas.getContext('2d');
+        maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+      }
+
+      showAlert('이미지가 초기화되었습니다.', 'success');
     }
 
     // 편집된 이미지 저장
@@ -10260,16 +10279,18 @@
           img === currentEditingImageUrl ? editedImageDataURL : img
         );
 
-        // 추가 이미지 그리드 다시 렌더링
+        // 추가 이미지 그리드 다시 렌더링 (요소가 있는 경우만)
         const additionalGrid = document.getElementById('additionalImagesGrid');
-        additionalGrid.innerHTML = '';
-        productData.images.forEach(img => {
-          const imgEl = document.createElement('img');
-          imgEl.src = img;
-          imgEl.onclick = () => openMagicBrush(img);
-          imgEl.onerror = function() { this.style.display = 'none'; };
-          additionalGrid.appendChild(imgEl);
-        });
+        if (additionalGrid) {
+          additionalGrid.innerHTML = '';
+          productData.images.forEach(img => {
+            const imgEl = document.createElement('img');
+            imgEl.src = img;
+            imgEl.onclick = () => openMagicBrush(img);
+            imgEl.onerror = function() { this.style.display = 'none'; };
+            additionalGrid.appendChild(imgEl);
+          });
+        }
       }
 
       // 옵션 테이블 다시 렌더링
