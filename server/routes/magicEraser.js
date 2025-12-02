@@ -5,8 +5,34 @@
 
 const express = require('express');
 const router = express.Router();
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const path = require('path');
+
+// Python 경로 찾기 (여러 경로 시도)
+function findPythonPath() {
+  const possiblePaths = [
+    '/opt/homebrew/bin/python3.11',  // macOS Homebrew
+    '/opt/homebrew/bin/python3',
+    '/usr/local/bin/python3',
+    '/usr/bin/python3',
+    'python3',
+    'python'
+  ];
+
+  for (const pythonPath of possiblePaths) {
+    try {
+      execSync(`${pythonPath} -c "import cv2; import numpy; print('OK')"`, { stdio: 'pipe' });
+      console.log('[Magic Eraser] Python 경로 발견:', pythonPath);
+      return pythonPath;
+    } catch (e) {
+      // 이 경로는 안 됨, 다음 시도
+    }
+  }
+  return null;
+}
+
+// 캐시된 Python 경로
+let cachedPythonPath = null;
 
 /**
  * POST /api/magic-erase
@@ -29,10 +55,24 @@ router.post('/magic-erase', async (req, res) => {
 
     console.log('[Magic Eraser] 요청 받음, method:', method);
 
+    // Python 경로 찾기 (캐시 사용)
+    if (!cachedPythonPath) {
+      cachedPythonPath = findPythonPath();
+    }
+
+    if (!cachedPythonPath) {
+      console.error('[Magic Eraser] Python을 찾을 수 없습니다. opencv-python, numpy 패키지가 설치되어 있어야 합니다.');
+      return res.status(500).json({
+        success: false,
+        message: 'Python 또는 필요한 패키지(opencv-python, numpy)가 설치되어 있지 않습니다.'
+      });
+    }
+
     // Python 스크립트 실행
     const pythonScript = path.join(__dirname, '../scripts/inpaint.py');
-    const pythonCmd = process.platform === 'darwin' ? '/opt/homebrew/bin/python3.11' : '/usr/bin/python3'; // OS에 따라 Python 경로 선택
-    const python = spawn(pythonCmd, [pythonScript]);
+    console.log('[Magic Eraser] Python 경로:', cachedPythonPath);
+    console.log('[Magic Eraser] 스크립트 경로:', pythonScript);
+    const python = spawn(cachedPythonPath, [pythonScript]);
 
     let resultData = '';
     let errorData = '';
@@ -182,28 +222,21 @@ router.post('/remove-background', async (req, res) => {
  */
 router.get('/magic-erase/test', (req, res) => {
   const pythonScript = path.join(__dirname, '../scripts/inpaint.py');
-  const pythonCmd = process.platform === 'darwin' ? '/opt/homebrew/bin/python3.11' : '/usr/bin/python3';
-  const python = spawn(pythonCmd, ['-c', 'import cv2; import numpy; print("OK")']);
+  const pythonPath = findPythonPath();
 
-  let output = '';
-  python.stdout.on('data', (data) => {
-    output += data.toString();
-  });
-
-  python.on('close', (code) => {
-    if (code === 0 && output.includes('OK')) {
-      res.json({
-        success: true,
-        message: 'Magic Eraser 준비 완료',
-        pythonScript: pythonScript
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        message: 'Python 패키지 설치 필요 (opencv-python, numpy, pillow)'
-      });
-    }
-  });
+  if (pythonPath) {
+    res.json({
+      success: true,
+      message: 'Magic Eraser 준비 완료',
+      pythonPath: pythonPath,
+      pythonScript: pythonScript
+    });
+  } else {
+    res.status(500).json({
+      success: false,
+      message: 'Python 패키지 설치 필요 (opencv-python, numpy, pillow)'
+    });
+  }
 });
 
 module.exports = router;
