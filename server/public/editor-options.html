@@ -8145,8 +8145,6 @@
         return;
       }
 
-      console.log('[중복검사] 시작, 옵션 수:', productData.results.length);
-
       // 옵션명 조합 카운트
       const optionCombinations = new Map();
 
@@ -8156,7 +8154,6 @@
 
         // 옵션2가 있으면 옵션1+옵션2 조합, 없으면 옵션1만
         const key = opt2 ? `${opt1}|||${opt2}` : opt1;
-        console.log(`[중복검사] 행 ${index + 1}: key="${key}"`);
 
         if (!optionCombinations.has(key)) {
           optionCombinations.set(key, []);
@@ -8176,8 +8173,6 @@
           });
         }
       });
-
-      console.log('[중복검사] 중복 발견:', duplicates.length, duplicates);
 
       if (duplicates.length > 0) {
         showDuplicateWarning(duplicates);
@@ -8648,20 +8643,26 @@
       const oldValue = productData.results[index][field];
       productData.results[index][field] = value;
 
-      // optionName1 또는 optionName2가 변경된 경우, 상세페이지 옵션 블록 동기화
-      if ((field === 'optionName1' || field === 'optionName2') && detailPageItems && detailPageItems.length > 0) {
-        // optionName1이 변경된 경우 해당 블록의 이름도 변경
-        if (field === 'optionName1') {
-          const foundItem = detailPageItems.find(item =>
-            item.type === 'option-block' && item.optionName === oldValue
-          );
-          if (foundItem) {
-            foundItem.optionName = value;
-            console.log(`[Sync] 상세페이지 옵션명 동기화: "${oldValue}" → "${value}"`);
+      // optionName1 또는 optionName2가 변경된 경우
+      if (field === 'optionName1' || field === 'optionName2') {
+        // 실시간 중복 검사
+        checkDuplicateOptions();
+
+        // 상세페이지 옵션 블록 동기화
+        if (detailPageItems && detailPageItems.length > 0) {
+          // optionName1이 변경된 경우 해당 블록의 이름도 변경
+          if (field === 'optionName1') {
+            const foundItem = detailPageItems.find(item =>
+              item.type === 'option-block' && item.optionName === oldValue
+            );
+            if (foundItem) {
+              foundItem.optionName = value;
+              console.log(`[Sync] 상세페이지 옵션명 동기화: "${oldValue}" → "${value}"`);
+            }
           }
+          // 옵션2 리스트 갱신 및 UI 업데이트
+          syncDetailPageOptionBlocks();
         }
-        // 옵션2 리스트 갱신 및 UI 업데이트
-        syncDetailPageOptionBlocks();
       }
 
       scheduleAutoSave();
