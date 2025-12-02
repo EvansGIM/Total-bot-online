@@ -7967,9 +7967,6 @@
           }
         };
 
-        // 합포장 수량 (기본값 1)
-        const amount = parseInt(option.amount) || 1;
-
         row.innerHTML = `
           <td><input type="checkbox" class="option-checkbox" ${isSelected ? 'checked' : ''} onchange="toggleOptionSelect(${index}, this.checked)" data-index="${index}"></td>
           <td>${imgHtml}</td>
