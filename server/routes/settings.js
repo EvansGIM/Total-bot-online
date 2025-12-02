@@ -62,6 +62,7 @@ async function loadUserSettings(userId) {
         { type: 'quality-table', label: '품질표시사항' }
       ],
       brandImageUrl: '',
+      brandName: '',  // 상품명 앞에 붙는 브랜드명
       priceSettings: {
         marginType: 'percentage',
         marginValue: 30,

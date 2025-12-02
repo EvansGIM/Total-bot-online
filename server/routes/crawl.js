@@ -6,9 +6,25 @@
 
 const express = require('express');
 const axios = require('axios');
+const fs = require('fs').promises;
+const path = require('path');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
+
+// 유저별 설정 파일 경로
+const SETTINGS_DIR = path.join(__dirname, '../data/settings');
+
+// 유저 설정 로드 함수
+async function loadUserSettings(userId) {
+  try {
+    const filePath = path.join(SETTINGS_DIR, `user_${userId}.json`);
+    const data = await fs.readFile(filePath, 'utf-8');
+    return JSON.parse(data);
+  } catch (error) {
+    return { brandName: '' };  // 기본값
+  }
+}
 
 // 임시 상품 DB
 const products = [];
@@ -110,9 +126,16 @@ router.post('/save', authMiddleware, async (req, res) => {
     const translationMap = await translateBatch(Array.from(textsToTranslate));
     console.log(`[크롤링 저장] ${Object.keys(translationMap).length}개 항목 번역 완료`);
 
-    // 번역 결과 적용
+    // 유저 설정에서 브랜드명 가져오기
+    const userSettings = await loadUserSettings(req.user.id);
+    const brandName = userSettings.brandName || '';
+
+    // 번역 결과 적용 (브랜드명 + 번역된 상품명)
     if (data.titleCn && translationMap[data.titleCn]) {
-      data.title = translationMap[data.titleCn];
+      const translatedTitle = translationMap[data.titleCn];
+      // 브랜드명이 있으면 "브랜드명 상품명" 형식으로
+      data.title = brandName ? `${brandName} ${translatedTitle}` : translatedTitle;
+      console.log(`[크롤링 저장] 상품명: ${data.title}`);
     }
 
     if (data.results && Array.isArray(data.results)) {
