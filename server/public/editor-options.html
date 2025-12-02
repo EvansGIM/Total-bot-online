@@ -1300,7 +1300,14 @@
       display: grid;
       grid-template-columns: 1fr 320px;
       gap: 24px;
-      height: calc(85vh - 100px);
+      height: calc(80vh - 100px);
+    }
+
+    .canvas-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
     }
 
     .canvas-container {
@@ -1317,7 +1324,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 500px;
+      flex: 1;
+      min-height: 300px;
       position: relative;
     }
 
@@ -1325,6 +1333,52 @@
       display: block;
       cursor: crosshair;
       box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      transform-origin: center center;
+      transition: transform 0.2s ease;
+    }
+
+    .zoom-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #e9ecef;
+    }
+
+    .zoom-btn {
+      padding: 6px 12px;
+      border: 1px solid #dee2e6;
+      background: white;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #495057;
+    }
+
+    .zoom-btn:hover {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+
+    .zoom-btn.active {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+
+    .zoom-info {
+      font-size: 13px;
+      font-weight: 600;
+      color: #495057;
+      margin-left: 8px;
+      min-width: 50px;
+      text-align: center;
     }
 
     .canvas-container canvas.eraser-mode {
@@ -3540,8 +3594,19 @@
       </div>
       <div class="modal-body" style="padding: 24px;">
         <div class="image-editor-container">
-          <div class="canvas-container">
-            <canvas id="imageCanvas"></canvas>
+          <div class="canvas-wrapper">
+            <div class="canvas-container">
+              <canvas id="imageCanvas"></canvas>
+            </div>
+            <div class="zoom-controls">
+              <button class="zoom-btn" onclick="zoomCanvas(0.5)">50%</button>
+              <button class="zoom-btn" onclick="zoomCanvas(0.75)">75%</button>
+              <button class="zoom-btn active" onclick="zoomCanvas(1)">100%</button>
+              <button class="zoom-btn" onclick="zoomCanvas(1.5)">150%</button>
+              <button class="zoom-btn" onclick="zoomCanvas(2)">200%</button>
+              <button class="zoom-btn" onclick="fitCanvasToView()">맞춤</button>
+              <span class="zoom-info" id="zoomInfo">100%</span>
+            </div>
           </div>
           <div class="editor-tools">
             <!-- AI 도구 -->
@@ -9014,6 +9079,9 @@
       }
     }
 
+    // 현재 줌 레벨
+    let currentZoom = 1;
+
     // 매직 브러쉬 열기
     function openMagicBrush(imageSrc, optionIndexes = null) {
       if (!imageSrc) return;
@@ -9036,34 +9104,101 @@
         setupCanvasEvents();
 
         document.getElementById('magicBrushModal').classList.add('active');
+
+        // 모달이 열린 후 이미지를 화면에 맞춤
+        setTimeout(() => {
+          fitCanvasToView();
+        }, 100);
       };
       currentEditingImage.src = imageSrc;
     }
 
+    // 캔버스 줌 조절
+    function zoomCanvas(scale) {
+      currentZoom = scale;
+      canvas.style.transform = `scale(${scale})`;
+      updateZoomInfo();
+      updateZoomButtons();
+    }
+
+    // 화면에 맞춤
+    function fitCanvasToView() {
+      const container = document.querySelector('.canvas-container');
+      if (!container || !canvas.width) return;
+
+      const containerWidth = container.clientWidth - 40;
+      const containerHeight = container.clientHeight - 40;
+
+      const scaleX = containerWidth / canvas.width;
+      const scaleY = containerHeight / canvas.height;
+      const scale = Math.min(scaleX, scaleY, 1); // 최대 100%
+
+      currentZoom = Math.round(scale * 100) / 100;
+      canvas.style.transform = `scale(${currentZoom})`;
+      updateZoomInfo();
+      updateZoomButtons();
+    }
+
+    // 줌 정보 업데이트
+    function updateZoomInfo() {
+      const zoomInfo = document.getElementById('zoomInfo');
+      if (zoomInfo) {
+        zoomInfo.textContent = Math.round(currentZoom * 100) + '%';
+      }
+    }
+
+    // 줌 버튼 활성 상태 업데이트
+    function updateZoomButtons() {
+      document.querySelectorAll('.zoom-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+    }
+
+    // 줌을 고려한 좌표 계산
+    function getScaledCoordinates(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      let clientX, clientY;
+      if (e.touches) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+
+      return {
+        offsetX: (clientX - rect.left) * scaleX,
+        offsetY: (clientY - rect.top) * scaleY
+      };
+    }
+
     // 캔버스 이벤트 설정
     function setupCanvasEvents() {
-      canvas.onmousedown = startDrawing;
-      canvas.onmousemove = draw;
+      canvas.onmousedown = (e) => {
+        const coords = getScaledCoordinates(e);
+        startDrawing(coords);
+      };
+      canvas.onmousemove = (e) => {
+        const coords = getScaledCoordinates(e);
+        draw(coords);
+      };
       canvas.onmouseup = stopDrawing;
       canvas.onmouseleave = stopDrawing;
 
       // 터치 이벤트도 지원
       canvas.ontouchstart = (e) => {
         e.preventDefault();
-        const touch = e.touches[0];
-        const rect = canvas.getBoundingClientRect();
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
-        startDrawing({ offsetX: x, offsetY: y });
+        const coords = getScaledCoordinates(e);
+        startDrawing(coords);
       };
 
       canvas.ontouchmove = (e) => {
         e.preventDefault();
-        const touch = e.touches[0];
-        const rect = canvas.getBoundingClientRect();
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
-        draw({ offsetX: x, offsetY: y });
+        const coords = getScaledCoordinates(e);
+        draw(coords);
       };
 
       canvas.ontouchend = stopDrawing;
