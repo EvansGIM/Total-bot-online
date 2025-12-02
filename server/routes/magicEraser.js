@@ -216,6 +216,111 @@ router.post('/remove-background', async (req, res) => {
   }
 });
 
+// AI Merge를 위한 Python 경로 찾기 (google-genai 패키지 필요)
+let cachedAiPythonPath = null;
+
+function findAiPythonPath() {
+  const possiblePaths = [
+    '/opt/homebrew/bin/python3.11',  // macOS Homebrew
+    '/opt/homebrew/bin/python3',
+    '/usr/local/bin/python3',
+    '/usr/bin/python3',
+    'python3',
+    'python'
+  ];
+
+  for (const pythonPath of possiblePaths) {
+    try {
+      execSync(`${pythonPath} -c "from google import genai; from PIL import Image; print('OK')"`, { stdio: 'pipe' });
+      console.log('[AI Merge] Python 경로 발견:', pythonPath);
+      return pythonPath;
+    } catch (e) {
+      // 이 경로는 안 됨, 다음 시도
+    }
+  }
+  return null;
+}
+
+/**
+ * POST /api/ai-merge
+ * Gemini AI를 사용한 이미지 합치기
+ * Body: { images: ["data:image/png;base64,...", ...], productNames: ["상품1", "상품2"] }
+ */
+router.post('/ai-merge', async (req, res) => {
+  try {
+    const { images, productNames = [] } = req.body;
+
+    if (!images || !Array.isArray(images) || images.length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: '최소 2개 이상의 이미지가 필요합니다.'
+      });
+    }
+
+    console.log('[AI Merge] 요청 받음, 이미지 수:', images.length);
+
+    // Python 경로 찾기 (캐시 사용)
+    if (!cachedAiPythonPath) {
+      cachedAiPythonPath = findAiPythonPath();
+    }
+
+    if (!cachedAiPythonPath) {
+      console.error('[AI Merge] Python을 찾을 수 없습니다. google-genai, pillow 패키지가 설치되어 있어야 합니다.');
+      return res.status(500).json({
+        success: false,
+        message: 'Python 또는 필요한 패키지(google-genai, pillow)가 설치되어 있지 않습니다. pip install google-genai pillow 명령으로 설치해주세요.'
+      });
+    }
+
+    // Python 스크립트 실행
+    const pythonScript = path.join(__dirname, '../scripts/ai_merge.py');
+    console.log('[AI Merge] Python 경로:', cachedAiPythonPath);
+    console.log('[AI Merge] 스크립트 경로:', pythonScript);
+    const python = spawn(cachedAiPythonPath, [pythonScript]);
+
+    let resultData = '';
+    let errorData = '';
+
+    // stdin으로 JSON 데이터 전달
+    const inputData = JSON.stringify({ images, productNames });
+    python.stdin.write(inputData);
+    python.stdin.end();
+
+    python.stdout.on('data', (data) => {
+      resultData += data.toString();
+    });
+
+    python.stderr.on('data', (data) => {
+      errorData += data.toString();
+      console.error('[AI Merge Error]', data.toString());
+    });
+
+    python.on('close', (code) => {
+      if (code !== 0) {
+        console.error('[AI Merge] Python 스크립트 실행 실패:', errorData);
+        return res.status(500).json({
+          success: false,
+          message: 'AI 이미지 합치기 실패',
+          error: errorData
+        });
+      }
+
+      console.log('[AI Merge] 성공!');
+      res.json({
+        success: true,
+        result: resultData.trim()
+      });
+    });
+
+  } catch (error) {
+    console.error('[AI Merge] 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 /**
  * GET /api/magic-erase/test
  * 설치 상태 확인

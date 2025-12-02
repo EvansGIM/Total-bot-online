@@ -1517,8 +1517,8 @@
             text-align: left;
             transition: all 0.2s;
           ">
-            <div style="font-weight: bold; margin-bottom: 4px;">🤖 AI 이미지 합치기 <span style="color: #FF9800; font-size: 12px;">(준비 중)</span></div>
-            <div style="font-size: 12px; color: #888;">여러 이미지를 AI로 합쳐 새로운 이미지를 생성합니다.</div>
+            <div style="font-weight: bold; margin-bottom: 4px;">🤖 AI 이미지 합치기</div>
+            <div style="font-size: 12px; color: #888;">여러 이미지를 AI로 합쳐 새로운 세트 이미지를 생성합니다.</div>
           </button>
         </div>
         <p style="margin-top: 16px; font-size: 12px; color: #999; text-align: center;">
@@ -2493,11 +2493,6 @@
     async function createSet(mode) {
       closeSetCreationModal();
 
-      if (mode === 'ai_merge') {
-        showToast('AI 이미지 합치기 기능은 준비 중입니다.', 'info');
-        return;
-      }
-
       // 선택된 상품들 가져오기
       const selectedProductsData = allProducts.filter(p => selectedProducts.has(p.id));
 
@@ -2512,11 +2507,13 @@
 
         // 옵션 이름들 합치기
         const combinedOptionParts = [];
+        const productNames = [];
         let totalPrice = 0;
 
         selectedProductsData.forEach(product => {
           // 상품명 또는 첫 번째 옵션명 사용
           const productName = product.title || product.titleCn || '상품';
+          productNames.push(productName);
           // 짧은 이름으로 변환 (첫 20자만)
           const shortName = productName.length > 20 ? productName.substring(0, 20) + '...' : productName;
           combinedOptionParts.push(shortName);
@@ -2531,12 +2528,90 @@
         // 세트 옵션 이름 생성
         const setOptionName = combinedOptionParts.join(' & ');
 
-        // 첫 번째 상품의 이미지 사용
-        const setImage = firstProduct.mainImage ||
+        // 이미지 설정
+        let setImage = '';
+
+        if (mode === 'ai_merge') {
+          // AI 이미지 합치기 모드
+          showToast('AI 이미지 생성 중... 잠시만 기다려주세요.', 'info');
+
+          // 각 상품의 이미지 수집
+          const images = [];
+          for (const product of selectedProductsData) {
+            const productImage = product.mainImage ||
+                                (product.titleImage && Array.isArray(product.titleImage) ? product.titleImage[0] : null) ||
+                                product.imageLink ||
+                                (product.results && product.results[0] && product.results[0].imageLink) ||
+                                '';
+            if (productImage) {
+              // URL인 경우 base64로 변환
+              if (productImage.startsWith('http')) {
+                try {
+                  const imgResponse = await fetch(productImage);
+                  const blob = await imgResponse.blob();
+                  const base64 = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                  });
+                  images.push(base64);
+                } catch (e) {
+                  console.error('이미지 로드 실패:', e);
+                }
+              } else {
+                images.push(productImage);
+              }
+            }
+          }
+
+          if (images.length < 2) {
+            showToast('이미지를 수집할 수 없습니다. 일반 모드로 전환합니다.', 'warning');
+            // fallback to first product image
+            setImage = firstProduct.mainImage ||
+                      (firstProduct.titleImage && Array.isArray(firstProduct.titleImage) ? firstProduct.titleImage[0] : null) ||
+                      firstProduct.imageLink ||
+                      (firstProduct.results && firstProduct.results[0] && firstProduct.results[0].imageLink) ||
+                      '';
+          } else {
+            // AI merge API 호출
+            try {
+              const aiResponse = await authFetch('/api/ai-merge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ images, productNames })
+              });
+
+              if (aiResponse.ok) {
+                const aiResult = await aiResponse.json();
+                if (aiResult.success && aiResult.result) {
+                  setImage = aiResult.result;
+                  showToast('AI 이미지 생성 완료!', 'success');
+                } else {
+                  throw new Error(aiResult.message || 'AI 이미지 생성 실패');
+                }
+              } else {
+                const errorData = await aiResponse.json();
+                throw new Error(errorData.message || 'AI 이미지 생성 실패');
+              }
+            } catch (aiError) {
+              console.error('AI 이미지 생성 오류:', aiError);
+              showToast(`AI 이미지 생성 실패: ${aiError.message}. 일반 모드로 전환합니다.`, 'warning');
+              // fallback to first product image
+              setImage = firstProduct.mainImage ||
                         (firstProduct.titleImage && Array.isArray(firstProduct.titleImage) ? firstProduct.titleImage[0] : null) ||
                         firstProduct.imageLink ||
                         (firstProduct.results && firstProduct.results[0] && firstProduct.results[0].imageLink) ||
                         '';
+            }
+          }
+        } else {
+          // 일반 모드: 첫 번째 상품의 이미지 사용
+          setImage = firstProduct.mainImage ||
+                    (firstProduct.titleImage && Array.isArray(firstProduct.titleImage) ? firstProduct.titleImage[0] : null) ||
+                    firstProduct.imageLink ||
+                    (firstProduct.results && firstProduct.results[0] && firstProduct.results[0].imageLink) ||
+                    '';
+        }
 
         // 세트 상품 데이터 생성
         const setProduct = {
@@ -2557,6 +2632,7 @@
             amount: 1
           }],
           isSet: true,
+          isAiMerged: mode === 'ai_merge',
           setItems: selectedProductsData.map(p => p.id),
           savedAt: new Date().toISOString()
         };
