@@ -244,11 +244,15 @@ function findAiPythonPath() {
 /**
  * POST /api/ai-merge
  * Gemini AI를 사용한 이미지 합치기
- * Body: { images: ["data:image/png;base64,...", ...], productNames: ["상품1", "상품2"] }
+ * Body: {
+ *   images: ["data:image/png;base64,...", ...],
+ *   productNames: ["상품1", "상품2"],
+ *   mode: "ai_product" | "ai_model" | "default" (optional)
+ * }
  */
 router.post('/ai-merge', async (req, res) => {
   try {
-    const { images, productNames = [] } = req.body;
+    const { images, productNames = [], mode = 'default' } = req.body;
 
     if (!images || !Array.isArray(images) || images.length < 2) {
       return res.status(400).json({
@@ -257,7 +261,7 @@ router.post('/ai-merge', async (req, res) => {
       });
     }
 
-    console.log('[AI Merge] 요청 받음, 이미지 수:', images.length);
+    console.log('[AI Merge] 요청 받음, 이미지 수:', images.length, '모드:', mode);
 
     // Python 경로 찾기 (캐시 사용)
     if (!cachedAiPythonPath) {
@@ -281,8 +285,8 @@ router.post('/ai-merge', async (req, res) => {
     let resultData = '';
     let errorData = '';
 
-    // stdin으로 JSON 데이터 전달
-    const inputData = JSON.stringify({ images, productNames });
+    // stdin으로 JSON 데이터 전달 (mode 포함)
+    const inputData = JSON.stringify({ images, productNames, mode });
     python.stdin.write(inputData);
     python.stdin.end();
 

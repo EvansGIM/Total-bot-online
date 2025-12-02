@@ -2965,6 +2965,95 @@
       text-align: center;
     }
 
+    .set-mode-btn.ai-btn {
+      border-color: #e0e7ff;
+      background: linear-gradient(135deg, #fafbff 0%, #f0f4ff 100%);
+    }
+
+    .set-mode-btn.ai-btn:hover {
+      border-color: #818cf8;
+      background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+    }
+
+    /* AI 로딩 인디케이터 */
+    .ai-loading-indicator {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1500;
+      animation: slideUpLoading 0.3s ease;
+    }
+
+    @keyframes slideUpLoading {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    .ai-loading-content {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px 24px;
+      border-radius: 50px;
+      box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
+    }
+
+    .ai-loading-spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .ai-loading-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .ai-loading-title {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .ai-loading-subtitle {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .ai-loading-cancel {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .ai-loading-cancel:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
     /* 옵션 테이블 이미지 hover 확대 */
     .options-table td .option-image-preview {
       position: relative;
@@ -3431,19 +3520,38 @@
                   <div class="set-mode-icon">📷</div>
                   <div class="set-mode-info">
                     <div class="set-mode-title">이미지 편집 없이 생성</div>
-                    <div class="set-mode-desc">첫 번째 옵션의 이미지를 사용합니다.</div>
+                    <div class="set-mode-desc">첫 번째 옵션의 이미지를 그대로 사용합니다.</div>
                   </div>
                 </button>
-                <button class="set-mode-btn" onclick="createSetFromOptions('ai_merge')">
-                  <div class="set-mode-icon">🤖</div>
+                <button class="set-mode-btn ai-btn" onclick="createSetFromOptions('ai_product')">
+                  <div class="set-mode-icon">🎨</div>
                   <div class="set-mode-info">
-                    <div class="set-mode-title">AI 이미지 합치기</div>
-                    <div class="set-mode-desc">여러 이미지를 AI로 합쳐 새 이미지를 생성합니다.</div>
+                    <div class="set-mode-title">AI 제품 이미지</div>
+                    <div class="set-mode-desc">흰 배경의 깔끔한 제품 합성 이미지를 생성합니다.</div>
+                  </div>
+                </button>
+                <button class="set-mode-btn ai-btn" onclick="createSetFromOptions('ai_model')">
+                  <div class="set-mode-icon">👤</div>
+                  <div class="set-mode-info">
+                    <div class="set-mode-title">AI 모델 이미지</div>
+                    <div class="set-mode-desc">모델이 제품을 착용한 이미지를 생성합니다.</div>
                   </div>
                 </button>
               </div>
               <p class="set-modal-note">※ 세트 옵션은 선택한 옵션들의 이름(" & ")과 가격이 합산됩니다.</p>
             </div>
+          </div>
+        </div>
+
+        <!-- AI 이미지 생성 로딩 인디케이터 -->
+        <div id="aiLoadingIndicator" class="ai-loading-indicator" style="display: none;">
+          <div class="ai-loading-content">
+            <div class="ai-loading-spinner"></div>
+            <div class="ai-loading-text">
+              <span class="ai-loading-title">AI 이미지 생성 중...</span>
+              <span class="ai-loading-subtitle">잠시만 기다려주세요</span>
+            </div>
+            <button class="ai-loading-cancel" onclick="cancelAiGeneration()">취소</button>
           </div>
         </div>
       </div><!-- options-tab 끝 -->
@@ -7893,6 +8001,9 @@
 
     // ============ 세트 만들기 기능 ============
 
+    // AI 생성 취소용 컨트롤러
+    let aiAbortController = null;
+
     // 세트 만들기 모달 열기
     function openSetCreationModal() {
       if (selectedOptionIndexes.size < 2) {
@@ -7905,6 +8016,29 @@
     // 세트 만들기 모달 닫기
     function closeSetCreationModal() {
       document.getElementById('setCreationModal').style.display = 'none';
+    }
+
+    // AI 로딩 인디케이터 표시
+    function showAiLoading(message = 'AI 이미지 생성 중...') {
+      const indicator = document.getElementById('aiLoadingIndicator');
+      const title = indicator.querySelector('.ai-loading-title');
+      title.textContent = message;
+      indicator.style.display = 'block';
+    }
+
+    // AI 로딩 인디케이터 숨기기
+    function hideAiLoading() {
+      document.getElementById('aiLoadingIndicator').style.display = 'none';
+    }
+
+    // AI 생성 취소
+    function cancelAiGeneration() {
+      if (aiAbortController) {
+        aiAbortController.abort();
+        aiAbortController = null;
+      }
+      hideAiLoading();
+      showAlert('AI 이미지 생성이 취소되었습니다.', 'info');
     }
 
     // 세트 옵션 생성
@@ -7956,9 +8090,10 @@
       // 이미지 설정
       let setImage = firstOption.imageLink || '';
 
-      if (mode === 'ai_merge') {
-        // AI 이미지 합치기 모드
-        showAlert('AI 이미지 생성 중... 잠시만 기다려주세요.', 'info');
+      // AI 모드인 경우 (ai_product 또는 ai_model)
+      if (mode === 'ai_product' || mode === 'ai_model') {
+        const modeLabel = mode === 'ai_product' ? '제품 이미지' : '모델 이미지';
+        showAiLoading(`AI ${modeLabel} 생성 중...`);
 
         // 각 옵션의 이미지 수집
         const images = [];
@@ -7986,7 +8121,9 @@
         }
 
         if (images.length >= 2) {
-          // AI merge API 호출
+          // AI merge API 호출 (비동기로 진행, 다른 작업 가능)
+          aiAbortController = new AbortController();
+
           try {
             const token = localStorage.getItem('token');
             const aiResponse = await fetch('/api/ai-merge', {
@@ -7995,26 +8132,39 @@
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
               },
-              body: JSON.stringify({ images, productNames: optionNames })
+              body: JSON.stringify({
+                images,
+                productNames: optionNames,
+                mode: mode // ai_product 또는 ai_model
+              }),
+              signal: aiAbortController.signal
             });
 
             if (aiResponse.ok) {
               const aiResult = await aiResponse.json();
               if (aiResult.success && aiResult.result) {
                 setImage = aiResult.result;
-                showAlert('AI 이미지 생성 완료!', 'success');
+                hideAiLoading();
+                showAlert(`AI ${modeLabel} 생성 완료!`, 'success');
               } else {
                 throw new Error(aiResult.message || 'AI 이미지 생성 실패');
               }
             } else {
-              const errorData = await aiResponse.json();
-              throw new Error(errorData.message || 'AI 이미지 생성 실패');
+              const errorData = await aiResponse.json().catch(() => ({}));
+              throw new Error(errorData.message || `AI 이미지 생성 실패 (${aiResponse.status})`);
             }
           } catch (aiError) {
+            hideAiLoading();
+            if (aiError.name === 'AbortError') {
+              return; // 취소된 경우 세트 생성 중단
+            }
             console.error('AI 이미지 생성 오류:', aiError);
             showAlert(`AI 이미지 생성 실패: ${aiError.message}. 첫 번째 옵션 이미지를 사용합니다.`, 'warning');
+          } finally {
+            aiAbortController = null;
           }
         } else {
+          hideAiLoading();
           showAlert('이미지를 수집할 수 없어 첫 번째 옵션 이미지를 사용합니다.', 'warning');
         }
       }
