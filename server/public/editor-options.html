@@ -1298,47 +1298,80 @@
 
     .image-editor-container {
       display: grid;
-      grid-template-columns: 1fr 300px;
+      grid-template-columns: 1fr 320px;
       gap: 24px;
+      height: calc(85vh - 100px);
     }
 
     .canvas-container {
-      border: 1px solid #e5e8eb;
-      border-radius: 8px;
+      border: 2px solid #e5e8eb;
+      border-radius: 12px;
       overflow: auto;
-      background: #f9fafb;
+      background: linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
+                  linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
+                  linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
+                  linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+      background-color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
       min-height: 500px;
-      max-height: 70vh;
+      position: relative;
     }
 
     .canvas-container canvas {
       display: block;
       cursor: crosshair;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     }
 
     .canvas-container canvas.eraser-mode {
-      cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><circle cx="12" cy="12" r="10" fill="none" stroke="red" stroke-width="2"/></svg>') 12 12, crosshair;
+      cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><circle cx="12" cy="12" r="10" fill="rgba(255,0,0,0.3)" stroke="red" stroke-width="2"/></svg>') 12 12, crosshair;
     }
 
     .editor-tools {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
+      overflow-y: auto;
+      padding-right: 8px;
+    }
+
+    .editor-tools::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .editor-tools::-webkit-scrollbar-thumb {
+      background: #ccc;
+      border-radius: 3px;
     }
 
     .tool-group {
-      background: #f9fafb;
+      background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
       padding: 16px;
-      border-radius: 8px;
+      border-radius: 12px;
+      border: 1px solid #e9ecef;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
 
     .tool-group h3 {
-      font-size: 14px;
+      font-size: 13px;
       margin-bottom: 12px;
-      font-weight: 600;
+      font-weight: 700;
+      color: #495057;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tool-group h3::before {
+      content: '';
+      width: 4px;
+      height: 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 2px;
     }
 
     .tool-buttons {
@@ -1348,28 +1381,93 @@
     }
 
     .tool-btn {
-      padding: 10px;
-      border: 1px solid #ddd;
+      padding: 10px 12px;
+      border: 1px solid #e9ecef;
       background: white;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
-      font-size: 13px;
-      transition: all 0.2s;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      color: #495057;
     }
 
     .tool-btn:hover {
-      background: #f0f0f0;
-      border-color: #1e90ff;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-color: transparent;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
     }
 
     .tool-btn.active {
-      background: #1e90ff;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
-      border-color: #1e90ff;
+      border-color: transparent;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .tool-btn.primary-action {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      color: white;
+      border: none;
+      font-weight: 600;
+    }
+
+    .tool-btn.primary-action:hover {
+      background: linear-gradient(135deg, #0f8a7e 0%, #2ed86d 100%);
+      box-shadow: 0 4px 12px rgba(17, 153, 142, 0.4);
+    }
+
+    .tool-btn.danger-action {
+      background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+      color: white;
+      border: none;
+    }
+
+    .tool-btn.danger-action:hover {
+      background: linear-gradient(135deg, #d62839 0%, #e04e3a 100%);
+      box-shadow: 0 4px 12px rgba(235, 51, 73, 0.4);
     }
 
     .slider-group {
       margin-top: 12px;
+    }
+
+    .slider-group label {
+      font-size: 12px;
+      color: #6c757d;
+      font-weight: 500;
+    }
+
+    .slider-group input[type="range"] {
+      width: 100%;
+      margin-top: 8px;
+      -webkit-appearance: none;
+      height: 6px;
+      background: #e9ecef;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    .slider-group input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(102, 126, 234, 0.4);
+    }
+
+    .tool-hint {
+      font-size: 11px;
+      color: #868e96;
+      margin-top: 10px;
+      padding: 8px 10px;
+      background: #f1f3f5;
+      border-radius: 6px;
+      line-height: 1.5;
     }
 
     .slider-group label {
@@ -3428,57 +3526,72 @@
 
   <!-- 매직 브러쉬 모달 -->
   <div class="modal" id="magicBrushModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>🎨 매직 브러쉬 - 이미지 편집</h2>
-        <button class="modal-close" onclick="closeMagicBrush()">×</button>
+    <div class="modal-content" style="max-width: 1200px; width: 95%;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px 12px 0 0;">
+        <h2 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+            <path d="M2 2l7.586 7.586"></path>
+          </svg>
+          이미지 편집기
+        </h2>
+        <button class="modal-close" onclick="closeMagicBrush()" style="color: white; font-size: 28px;">×</button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body" style="padding: 24px;">
         <div class="image-editor-container">
           <div class="canvas-container">
             <canvas id="imageCanvas"></canvas>
           </div>
           <div class="editor-tools">
-            <div class="tool-group">
-              <h3>매직 이레이저 (AI)</h3>
+            <!-- AI 도구 -->
+            <div class="tool-group" style="border-left: 3px solid #667eea;">
+              <h3>🪄 AI 매직 이레이저</h3>
               <div class="tool-buttons">
-                <button class="tool-btn" id="magicEraserBtn" onclick="toggleMagicEraser()">매직 이레이저</button>
-                <button class="tool-btn" onclick="applyMagicEraser()">영역 제거 및 채우기</button>
+                <button class="tool-btn" id="magicEraserBtn" onclick="toggleMagicEraser()">✏️ 영역 선택</button>
+                <button class="tool-btn primary-action" onclick="applyMagicEraser()">✨ AI 제거</button>
               </div>
               <div class="slider-group">
                 <label>브러시 크기: <span id="brushSizeValue">20</span>px</label>
                 <input type="range" id="brushSizeSlider" min="5" max="100" value="20" oninput="updateBrushSize()">
               </div>
-              <p style="font-size: 12px; color: #888; margin-top: 8px;">
-                ✨ 드래그로 제거할 영역을 빨간색으로 칠한 후 "영역 제거 및 채우기" 버튼을 클릭하세요.
-              </p>
-            </div>
-
-            <div class="tool-group">
-              <h3>일반 지우개</h3>
-              <div class="tool-buttons">
-                <button class="tool-btn" id="eraserBtn" onclick="toggleEraser()">투명하게 지우기</button>
-                <button class="tool-btn" onclick="clearCanvas()">전체 지우기</button>
+              <div class="tool-hint">
+                💡 제거할 영역을 빨간색으로 칠한 후 "AI 제거" 클릭
               </div>
             </div>
 
-            <div class="tool-group">
-              <h3>배경 제거</h3>
-              <button class="tool-btn" onclick="removeBackground()">배경 자동 제거</button>
-            </div>
-
-            <div class="tool-group">
-              <h3>크기 조정</h3>
-              <div class="tool-buttons">
-                <button class="tool-btn" onclick="resizeImage(800, 800)">800x800</button>
-                <button class="tool-btn" onclick="resizeImage(1000, 1000)">1000x1000</button>
-                <button class="tool-btn" onclick="resizeImage(1200, 1200)">1200x1200</button>
-                <button class="tool-btn" onclick="resizeImage(1500, 1500)">1500x1500</button>
+            <!-- 배경 제거 -->
+            <div class="tool-group" style="border-left: 3px solid #11998e;">
+              <h3>🎭 배경 제거 (누끼)</h3>
+              <button class="tool-btn primary-action" style="width: 100%;" onclick="removeBackground()">🚀 배경 자동 제거</button>
+              <div class="tool-hint">
+                💡 AI가 자동으로 배경을 투명하게 제거합니다
               </div>
             </div>
 
+            <!-- 지우개 -->
             <div class="tool-group">
-              <h3>밝기/대비</h3>
+              <h3>🧹 지우개</h3>
+              <div class="tool-buttons">
+                <button class="tool-btn" id="eraserBtn" onclick="toggleEraser()">투명 지우기</button>
+                <button class="tool-btn danger-action" onclick="clearCanvas()">전체 삭제</button>
+              </div>
+            </div>
+
+            <!-- 크기 조정 -->
+            <div class="tool-group">
+              <h3>📐 크기 조정</h3>
+              <div class="tool-buttons">
+                <button class="tool-btn" onclick="resizeImage(800, 800)">800²</button>
+                <button class="tool-btn" onclick="resizeImage(1000, 1000)">1000²</button>
+                <button class="tool-btn" onclick="resizeImage(1200, 1200)">1200²</button>
+                <button class="tool-btn" onclick="resizeImage(1500, 1500)">1500²</button>
+              </div>
+            </div>
+
+            <!-- 조정 -->
+            <div class="tool-group">
+              <h3>🌈 밝기 / 대비</h3>
               <div class="slider-group">
                 <label>밝기: <span id="brightnessValue">0</span></label>
                 <input type="range" id="brightnessSlider" min="-100" max="100" value="0" oninput="adjustBrightness()">
@@ -3489,19 +3602,23 @@
               </div>
             </div>
 
+            <!-- 필터 -->
             <div class="tool-group">
-              <h3>필터</h3>
+              <h3>🎨 필터</h3>
               <div class="tool-buttons">
                 <button class="tool-btn" onclick="applyFilter('grayscale')">흑백</button>
                 <button class="tool-btn" onclick="applyFilter('sepia')">세피아</button>
                 <button class="tool-btn" onclick="applyFilter('blur')">블러</button>
-                <button class="tool-btn" onclick="applyFilter('sharpen')">선명하게</button>
+                <button class="tool-btn" onclick="applyFilter('sharpen')">선명</button>
               </div>
             </div>
 
-            <div class="tool-group">
-              <button class="btn btn-primary" style="width: 100%;" onclick="saveEditedImage()">저장</button>
-              <button class="btn btn-secondary" style="width: 100%; margin-top: 8px;" onclick="resetImage()">초기화</button>
+            <!-- 저장/초기화 -->
+            <div class="tool-group" style="background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);">
+              <div class="tool-buttons">
+                <button class="btn btn-primary" style="padding: 14px; font-size: 14px;" onclick="saveEditedImage()">💾 저장</button>
+                <button class="btn btn-secondary" style="padding: 14px; font-size: 14px;" onclick="resetImage()">↩️ 초기화</button>
+              </div>
             </div>
           </div>
         </div>
