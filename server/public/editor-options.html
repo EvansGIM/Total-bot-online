@@ -3144,6 +3144,66 @@
       font-weight: 600;
       color: #333;
     }
+
+    /* 옵션 중복 경고 */
+    .duplicate-warning {
+      background: #fef2f2;
+      border: 2px solid #ef4444;
+      border-radius: 8px;
+      margin: 0 0 16px 0;
+      overflow: hidden;
+    }
+
+    .duplicate-warning-header {
+      background: #fee2e2;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid #fecaca;
+    }
+
+    .duplicate-warning-header .warning-icon {
+      font-size: 18px;
+    }
+
+    .duplicate-warning-header strong {
+      color: #dc2626;
+      font-size: 15px;
+    }
+
+    .duplicate-count {
+      color: #b91c1c;
+      font-size: 13px;
+    }
+
+    .duplicate-warning-body {
+      padding: 12px 16px;
+    }
+
+    .duplicate-warning-body p {
+      margin: 0 0 8px 0;
+      font-size: 13px;
+      color: #991b1b;
+    }
+
+    .duplicate-warning-body ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .duplicate-warning-body li {
+      font-size: 13px;
+      color: #dc2626;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    .duplicate-warning-body li .duplicate-indices {
+      color: #9ca3af;
+      font-weight: normal;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
@@ -3507,6 +3567,19 @@
             </div><!-- price-collect-layout 끝 -->
           </div><!-- price-collect-tab 끝 -->
         </div><!-- options-toolbar 끝 -->
+
+        <!-- 옵션 중복 경고 -->
+        <div id="duplicateWarning" class="duplicate-warning" style="display: none;">
+          <div class="duplicate-warning-header">
+            <span class="warning-icon">⚠️</span>
+            <strong>옵션명 중복 경고</strong>
+            <span class="duplicate-count">(<span id="duplicateCount">0</span>개 중복)</span>
+          </div>
+          <div class="duplicate-warning-body">
+            <p>아래 옵션명 조합이 중복되어 견적서 작성 시 문제가 발생할 수 있습니다:</p>
+            <ul id="duplicateList"></ul>
+          </div>
+        </div>
 
         <!-- 옵션 테이블 -->
         <div class="options-table-container">
@@ -8058,6 +8131,76 @@
 
       // 전체 선택 체크박스 상태 업데이트
       updateSelectAllCheckbox();
+
+      // 옵션명 중복 검사
+      checkDuplicateOptions();
+    }
+
+    // 옵션명 중복 검사
+    let hasDuplicateOptions = false;
+
+    function checkDuplicateOptions() {
+      if (!productData.results || productData.results.length === 0) {
+        hideDuplicateWarning();
+        return;
+      }
+
+      // 옵션명 조합 카운트
+      const optionCombinations = new Map();
+
+      productData.results.forEach((option, index) => {
+        const opt1 = (option.optionName1 || '').trim();
+        const opt2 = (option.optionName2 || '').trim();
+
+        // 옵션2가 있으면 옵션1+옵션2 조합, 없으면 옵션1만
+        const key = opt2 ? `${opt1}|||${opt2}` : opt1;
+
+        if (!optionCombinations.has(key)) {
+          optionCombinations.set(key, []);
+        }
+        optionCombinations.get(key).push(index + 1); // 1-indexed for display
+      });
+
+      // 중복된 조합 찾기
+      const duplicates = [];
+      optionCombinations.forEach((indices, key) => {
+        if (indices.length > 1) {
+          const parts = key.split('|||');
+          const displayName = parts.length > 1 ? `${parts[0]} + ${parts[1]}` : parts[0];
+          duplicates.push({
+            name: displayName,
+            indices: indices
+          });
+        }
+      });
+
+      if (duplicates.length > 0) {
+        showDuplicateWarning(duplicates);
+        hasDuplicateOptions = true;
+      } else {
+        hideDuplicateWarning();
+        hasDuplicateOptions = false;
+      }
+    }
+
+    function showDuplicateWarning(duplicates) {
+      const warningEl = document.getElementById('duplicateWarning');
+      const countEl = document.getElementById('duplicateCount');
+      const listEl = document.getElementById('duplicateList');
+
+      countEl.textContent = duplicates.length;
+      listEl.innerHTML = duplicates.map(dup =>
+        `<li>"${dup.name}" <span class="duplicate-indices">(행 ${dup.indices.join(', ')})</span></li>`
+      ).join('');
+
+      warningEl.style.display = 'block';
+    }
+
+    function hideDuplicateWarning() {
+      const warningEl = document.getElementById('duplicateWarning');
+      if (warningEl) {
+        warningEl.style.display = 'none';
+      }
     }
 
     // 옵션 선택 토글
@@ -10665,6 +10808,14 @@
 
       if (!productData.title && !productData.titleCn) {
         showAlert('상품명을 입력하세요.', 'error');
+        return;
+      }
+
+      // 옵션명 중복 검사
+      if (hasDuplicateOptions) {
+        showAlert('옵션명이 중복되어 저장할 수 없습니다. 중복된 옵션명을 수정해주세요.', 'error');
+        // 옵션 탭으로 이동
+        document.querySelector('[data-main-tab="options"]').click();
         return;
       }
 
