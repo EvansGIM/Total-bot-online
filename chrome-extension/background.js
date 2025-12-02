@@ -4009,6 +4009,15 @@ async function handleQuotationDownload(data) {
             console.log(`📖 Reading Excel: ${originalFilename}`);
             console.log(`   Available sheets: ${workbook.SheetNames.join(', ')}`);
 
+            // 모든 시트의 보호 해제 (비밀번호: cbqf2020)
+            workbook.SheetNames.forEach(sheetName => {
+              const sheet = workbook.Sheets[sheetName];
+              if (sheet['!protect']) {
+                console.log(`   🔓 시트 보호 해제: ${sheetName}`);
+                delete sheet['!protect'];
+              }
+            });
+
             // 두 번째 시트 읽기 (상품 데이터)
             const sheetName = workbook.SheetNames[1] || workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
