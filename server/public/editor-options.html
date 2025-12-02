@@ -3092,6 +3092,58 @@
       z-index: 1000;
       padding: 12px;
     }
+
+    /* 합포장 수량 컨트롤 */
+    .amount-control {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .amount-btn {
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 6px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .amount-btn.minus {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .amount-btn.minus:hover {
+      background: #fecaca;
+    }
+
+    .amount-btn.plus {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+
+    .amount-btn.plus:hover {
+      background: #bbf7d0;
+    }
+
+    .amount-btn:active {
+      transform: scale(0.9);
+    }
+
+    .amount-value {
+      min-width: 32px;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 600;
+      color: #333;
+    }
   </style>
 </head>
 <body>
@@ -7973,7 +8025,11 @@
           <td><input type="text" value="${option.optionName1 || ''}" onchange="updateOption(${index}, 'optionName1', this.value)" tabindex="${tabIndex1}" class="option-name-input" data-row="${index}" data-col="1"></td>
           <td><input type="text" value="${option.optionName2 || ''}" onchange="updateOption(${index}, 'optionName2', this.value)" tabindex="${tabIndex2}" class="option-name-input" data-row="${index}" data-col="2"></td>
           <td>
-            <input type="number" class="amount-input" value="${amount}" min="1" max="99" onchange="updateAmount(${index}, this.value)" style="width: 50px; text-align: center; padding: 6px; border: 1px solid #e5e8eb; border-radius: 6px;">
+            <div class="amount-control">
+              <button class="amount-btn minus" onclick="changeAmount(${index}, -1)">−</button>
+              <span class="amount-value">${amount}</span>
+              <button class="amount-btn plus" onclick="changeAmount(${index}, 1)">+</button>
+            </div>
           </td>
           <td>
             <div class="price-cell">
@@ -8304,22 +8360,51 @@
 
     // ============ 가격 기능 ============
 
-    // 공급가 업데이트
+    // 합포장 수량 변경 (+/- 버튼용)
+    function changeAmount(index, delta) {
+      const option = productData.results[index];
+      const currentAmount = option.amount || 1;
+      const newAmount = Math.max(1, currentAmount + delta);
+      updateAmount(index, newAmount);
+    }
+
     // 합포장 수량 업데이트
     function updateAmount(index, value) {
-      const amount = Math.max(1, parseInt(value) || 1);
-      productData.results[index].amount = amount;
+      const option = productData.results[index];
+      const oldAmount = option.amount || 1;
+      const newAmount = Math.max(1, parseInt(value) || 1);
+      option.amount = newAmount;
 
       // 단위가격 확인 (없으면 현재 가격을 사용)
-      if (!productData.results[index].unitPrice) {
-        productData.results[index].unitPrice = parseFloat(productData.results[index].price) || 0;
+      if (!option.unitPrice) {
+        option.unitPrice = parseFloat(option.price) || 0;
+      }
+
+      // 옵션명에서 기존 "X개입" 제거 후 새로운 수량 추가
+      const amountPattern = /\s*\d+개입$/;
+
+      // 옵션2가 있으면 옵션2에, 없으면 옵션1에 "X개입" 추가
+      if (option.optionName2 && option.optionName2.trim()) {
+        // 옵션2에서 기존 수량 표시 제거
+        option.optionName2 = option.optionName2.replace(amountPattern, '');
+        // 2개 이상일 때만 추가
+        if (newAmount > 1) {
+          option.optionName2 = option.optionName2 + ` ${newAmount}개입`;
+        }
+      } else if (option.optionName1) {
+        // 옵션1에서 기존 수량 표시 제거
+        option.optionName1 = option.optionName1.replace(amountPattern, '');
+        // 2개 이상일 때만 추가
+        if (newAmount > 1) {
+          option.optionName1 = option.optionName1 + ` ${newAmount}개입`;
+        }
       }
 
       // 가격 계산은 renderOptions에서 자동으로 처리됨
       // 사용자 지정 가격 초기화 (자동 재계산 위해)
-      delete productData.results[index].costKRW;
-      delete productData.results[index].supplyPrice;
-      delete productData.results[index].sellPrice;
+      delete option.costKRW;
+      delete option.supplyPrice;
+      delete option.sellPrice;
 
       renderOptions();
       scheduleAutoSave();
