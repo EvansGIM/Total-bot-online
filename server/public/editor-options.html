@@ -1298,15 +1298,16 @@
 
     .image-editor-container {
       display: grid;
-      grid-template-columns: 1fr 320px;
-      gap: 24px;
-      height: calc(80vh - 100px);
+      grid-template-columns: 1fr 280px;
+      gap: 16px;
+      height: calc(85vh - 80px);
+      max-height: 700px;
     }
 
     .canvas-wrapper {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
       min-width: 0;
     }
 
@@ -1325,7 +1326,7 @@
       align-items: center;
       justify-content: center;
       flex: 1;
-      min-height: 300px;
+      min-height: 250px;
       position: relative;
     }
 
@@ -1341,19 +1342,19 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      padding: 10px 16px;
+      gap: 6px;
+      padding: 6px 12px;
       background: #f8f9fa;
-      border-radius: 8px;
+      border-radius: 6px;
       border: 1px solid #e9ecef;
     }
 
     .zoom-btn {
-      padding: 6px 12px;
+      padding: 4px 10px;
       border: 1px solid #dee2e6;
       background: white;
-      border-radius: 6px;
-      font-size: 12px;
+      border-radius: 4px;
+      font-size: 11px;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.2s;
@@ -1388,13 +1389,13 @@
     .editor-tools {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
       overflow-y: auto;
-      padding-right: 8px;
+      padding-right: 6px;
     }
 
     .editor-tools::-webkit-scrollbar {
-      width: 6px;
+      width: 5px;
     }
 
     .editor-tools::-webkit-scrollbar-thumb {
@@ -1404,26 +1405,26 @@
 
     .tool-group {
       background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
-      padding: 16px;
-      border-radius: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
       border: 1px solid #e9ecef;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.03);
     }
 
     .tool-group h3 {
-      font-size: 13px;
-      margin-bottom: 12px;
+      font-size: 12px;
+      margin-bottom: 8px;
       font-weight: 700;
       color: #495057;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .tool-group h3::before {
       content: '';
-      width: 4px;
-      height: 16px;
+      width: 3px;
+      height: 12px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       border-radius: 2px;
     }
@@ -1431,16 +1432,16 @@
     .tool-buttons {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
+      gap: 6px;
     }
 
     .tool-btn {
-      padding: 10px 12px;
+      padding: 7px 10px;
       border: 1px solid #e9ecef;
       background: white;
-      border-radius: 8px;
+      border-radius: 6px;
       cursor: pointer;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 500;
       transition: all 0.2s ease;
       color: #495057;
@@ -1485,20 +1486,22 @@
     }
 
     .slider-group {
-      margin-top: 12px;
+      margin-top: 8px;
     }
 
     .slider-group label {
-      font-size: 12px;
+      font-size: 11px;
       color: #6c757d;
       font-weight: 500;
+      display: block;
+      margin-bottom: 4px;
     }
 
     .slider-group input[type="range"] {
       width: 100%;
-      margin-top: 8px;
+      margin-top: 4px;
       -webkit-appearance: none;
-      height: 6px;
+      height: 5px;
       background: #e9ecef;
       border-radius: 3px;
       outline: none;
@@ -1506,32 +1509,22 @@
 
     .slider-group input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 18px;
-      height: 18px;
+      width: 14px;
+      height: 14px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       border-radius: 50%;
       cursor: pointer;
-      box-shadow: 0 2px 6px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 2px 4px rgba(102, 126, 234, 0.4);
     }
 
     .tool-hint {
-      font-size: 11px;
+      font-size: 10px;
       color: #868e96;
-      margin-top: 10px;
-      padding: 8px 10px;
+      margin-top: 6px;
+      padding: 5px 8px;
       background: #f1f3f5;
-      border-radius: 6px;
-      line-height: 1.5;
-    }
-
-    .slider-group label {
-      display: block;
-      font-size: 13px;
-      margin-bottom: 8px;
-    }
-
-    .slider-group input[type="range"] {
-      width: 100%;
+      border-radius: 4px;
+      line-height: 1.4;
     }
 
     .alert {
@@ -3868,19 +3861,19 @@
 
   <!-- 매직 브러쉬 모달 -->
   <div class="modal" id="magicBrushModal">
-    <div class="modal-content" style="max-width: 1200px; width: 95%;">
-      <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px 12px 0 0;">
-        <h2 style="margin: 0; display: flex; align-items: center; gap: 10px;">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <div class="modal-content" style="max-width: 1100px; width: 95%;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px 12px 0 0; padding: 12px 20px;">
+        <h2 style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 16px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
             <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
             <path d="M2 2l7.586 7.586"></path>
           </svg>
           이미지 편집기
         </h2>
-        <button class="modal-close" onclick="closeMagicBrush()" style="color: white; font-size: 28px;">×</button>
+        <button class="modal-close" onclick="closeMagicBrush()" style="color: white; font-size: 24px;">×</button>
       </div>
-      <div class="modal-body" style="padding: 24px;">
+      <div class="modal-body" style="padding: 16px;">
         <div class="image-editor-container">
           <div class="canvas-wrapper">
             <div class="canvas-container">
