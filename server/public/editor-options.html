@@ -10422,6 +10422,26 @@
       // 모달 닫기 (먼저 닫아서 사용자에게 빠른 피드백)
       closeMagicBrush();
 
+      // 옵션 이미지가 변경된 경우 상세페이지 옵션 블록도 자동 동기화
+      if (updateCount > 0) {
+        // productData.results 기준으로 상세페이지 옵션 블록 이미지 업데이트
+        const optionBlocks = detailPageItems.filter(item => item.type === 'option-block');
+        const seenOpt1 = new Set();
+        let blockIndex = 0;
+
+        productData.results.forEach(option => {
+          const opt1 = option.optionName1 || option.optionName1Cn || '옵션';
+          const img = option.imageLink || '';
+          if (img && !seenOpt1.has(opt1)) {
+            seenOpt1.add(opt1);
+            if (blockIndex < optionBlocks.length) {
+              optionBlocks[blockIndex].imageSrc = img;
+              blockIndex++;
+            }
+          }
+        });
+      }
+
       // UI 갱신 - 모든 관련 영역 업데이트
       renderOptions();              // 옵션 테이블
       refreshImageTabs();           // 이미지 탭 (추가 이미지, 옵션 이미지)
