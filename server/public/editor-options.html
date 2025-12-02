@@ -3465,6 +3465,7 @@
                 <th style="width: 80px;">이미지</th>
                 <th>옵션1</th>
                 <th>옵션2</th>
+                <th style="width: 70px;">합포장</th>
                 <th style="width: 120px;">원가</th>
                 <th style="width: 120px;">공급가</th>
                 <th style="width: 120px;">판매가</th>
@@ -5146,6 +5147,20 @@
           });
         } else {
           additionalGridTab.innerHTML = '<p style="color: #888; padding: 20px;">추가 이미지가 없습니다.</p>';
+        }
+
+        // 옵션 데이터 초기화 (합포장 수량, 단위가격 설정)
+        if (productData.results && productData.results.length > 0) {
+          productData.results.forEach(option => {
+            // 합포장 수량이 없으면 1로 설정
+            if (!option.amount || option.amount < 1) {
+              option.amount = 1;
+            }
+            // 단위가격 저장 (없으면 현재 가격을 단위가격으로)
+            if (!option.unitPrice) {
+              option.unitPrice = parseFloat(option.price) || 0;
+            }
+          });
         }
 
         // 옵션 이미지 렌더링 (이미지 탭 - 우측)
@@ -7872,7 +7887,7 @@
       tbody.innerHTML = '';
 
       if (!productData.results || productData.results.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #888;">옵션이 없습니다.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #888;">옵션이 없습니다.</td></tr>';
         return;
       }
 
@@ -7892,12 +7907,17 @@
             </div>`
           : '<div class="no-image">📷</div>';
 
-        // 사용자 정의 가격이 있으면 사용, 없으면 자동 계산
-        const priceCNY = parseFloat(option.price) || 0;
+        // 합포장 수량과 단위가격
+        const amount = parseInt(option.amount) || 1;
+        const unitPrice = parseFloat(option.unitPrice) || parseFloat(option.price) || 0;
+
+        // 사용자 정의 가격이 있으면 사용, 없으면 자동 계산 (단위가격 × 합포장수량)
+        const priceCNY = unitPrice * amount;
 
         if (index === 0) {
           console.log('[Editor Debug] 첫 번째 옵션 가격:', {
-            rawPrice: option.price,
+            unitPrice,
+            amount,
             priceCNY,
             optionName1: option.optionName1,
             optionName2: option.optionName2
@@ -7947,15 +7967,21 @@
           }
         };
 
+        // 합포장 수량 (기본값 1)
+        const amount = parseInt(option.amount) || 1;
+
         row.innerHTML = `
           <td><input type="checkbox" class="option-checkbox" ${isSelected ? 'checked' : ''} onchange="toggleOptionSelect(${index}, this.checked)" data-index="${index}"></td>
           <td>${imgHtml}</td>
           <td><input type="text" value="${option.optionName1 || ''}" onchange="updateOption(${index}, 'optionName1', this.value)" tabindex="${tabIndex1}" class="option-name-input" data-row="${index}" data-col="1"></td>
           <td><input type="text" value="${option.optionName2 || ''}" onchange="updateOption(${index}, 'optionName2', this.value)" tabindex="${tabIndex2}" class="option-name-input" data-row="${index}" data-col="2"></td>
           <td>
+            <input type="number" class="amount-input" value="${amount}" min="1" max="99" onchange="updateAmount(${index}, this.value)" style="width: 50px; text-align: center; padding: 6px; border: 1px solid #e5e8eb; border-radius: 6px;">
+          </td>
+          <td>
             <div class="price-cell">
               <input type="number" class="price-input" value="${costKRW}" readonly style="background: #f5f5f5; cursor: not-allowed;">
-              <div class="price-sub">(${priceCNY.toLocaleString()} CNY)</div>
+              <div class="price-sub">(${priceCNY.toLocaleString()} CNY × ${amount})</div>
             </div>
           </td>
           <td>
@@ -8282,6 +8308,26 @@
     // ============ 가격 기능 ============
 
     // 공급가 업데이트
+    // 합포장 수량 업데이트
+    function updateAmount(index, value) {
+      const amount = Math.max(1, parseInt(value) || 1);
+      productData.results[index].amount = amount;
+
+      // 단위가격 확인 (없으면 현재 가격을 사용)
+      if (!productData.results[index].unitPrice) {
+        productData.results[index].unitPrice = parseFloat(productData.results[index].price) || 0;
+      }
+
+      // 가격 계산은 renderOptions에서 자동으로 처리됨
+      // 사용자 지정 가격 초기화 (자동 재계산 위해)
+      delete productData.results[index].costKRW;
+      delete productData.results[index].supplyPrice;
+      delete productData.results[index].sellPrice;
+
+      renderOptions();
+      scheduleAutoSave();
+    }
+
     function updateSupplyPrice(index, value) {
       const supplyPrice = parseFloat(value) || 0;
       productData.results[index].supplyPrice = supplyPrice;
