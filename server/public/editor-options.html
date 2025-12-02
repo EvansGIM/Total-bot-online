@@ -10412,13 +10412,9 @@
       // 상세페이지 detailPageItems의 이미지도 업데이트
       if (detailPageItems && detailPageItems.length > 0) {
         detailPageItems.forEach(item => {
-          // 이미지 블록 (brand-image, image)
-          if ((item.type === 'brand-image' || item.type === 'image') && item.imageSrc === originalUrl) {
+          // 모든 이미지 관련 블록의 imageSrc 업데이트
+          if (item.imageSrc === originalUrl) {
             item.imageSrc = editedImageDataURL;
-          }
-          // 옵션 블록의 이미지
-          if (item.type === 'option-block' && item.imageUrl === originalUrl) {
-            item.imageUrl = editedImageDataURL;
           }
         });
       }
