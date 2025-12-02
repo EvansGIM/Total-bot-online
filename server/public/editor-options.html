@@ -2826,6 +2826,145 @@
       height: 16px;
     }
 
+    /* 세트 만들기 버튼 */
+    .set-action-btn {
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.5);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 25px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .set-action-btn:hover {
+      background: #10b981;
+      border-color: #10b981;
+      transform: scale(1.05);
+    }
+
+    .set-action-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* 세트 만들기 모달 */
+    .set-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    .set-modal-content {
+      background: white;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 450px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .set-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 24px;
+      border-bottom: 1px solid #e5e8eb;
+    }
+
+    .set-modal-header h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .set-modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #999;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .set-modal-close:hover {
+      color: #333;
+    }
+
+    .set-modal-body {
+      padding: 24px;
+    }
+
+    .set-modal-desc {
+      text-align: center;
+      color: #555;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    .set-mode-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .set-mode-btn {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      background: #fff;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s;
+    }
+
+    .set-mode-btn:hover {
+      border-color: #667eea;
+      background: #f8f9ff;
+    }
+
+    .set-mode-icon {
+      font-size: 28px;
+    }
+
+    .set-mode-info {
+      flex: 1;
+    }
+
+    .set-mode-title {
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    .set-mode-desc {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .set-modal-note {
+      margin-top: 16px;
+      font-size: 12px;
+      color: #999;
+      text-align: center;
+    }
+
     /* 옵션 테이블 이미지 hover 확대 */
     .options-table td .option-image-preview {
       position: relative;
@@ -3253,18 +3392,59 @@
           </table>
         </div>
 
-        <!-- 플로팅 삭제 버튼 -->
+        <!-- 플로팅 액션 버튼 -->
         <div id="floatingDeleteBtn" class="floating-delete-btn" style="display: none;">
           <div class="selected-info">
             <span class="selected-count"><span id="selectedCount">0</span>개</span>
             <span>선택됨</span>
           </div>
+          <button onclick="openSetCreationModal()" class="set-action-btn" title="선택한 옵션으로 세트 만들기">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+              <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+            세트 만들기
+          </button>
           <button onclick="deleteSelectedOptions()" class="delete-action-btn" title="선택한 옵션 삭제">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
             </svg>
             삭제
           </button>
+        </div>
+
+        <!-- 세트 만들기 모달 -->
+        <div id="setCreationModal" class="set-modal-overlay" style="display: none;">
+          <div class="set-modal-content">
+            <div class="set-modal-header">
+              <h3>📦 옵션 세트 만들기</h3>
+              <button class="set-modal-close" onclick="closeSetCreationModal()">×</button>
+            </div>
+            <div class="set-modal-body">
+              <p class="set-modal-desc">
+                선택한 옵션들을 하나의 세트 옵션으로 합칩니다.<br>
+                세트 생성 방식을 선택해주세요.
+              </p>
+              <div class="set-mode-buttons">
+                <button class="set-mode-btn" onclick="createSetFromOptions('normal')">
+                  <div class="set-mode-icon">📷</div>
+                  <div class="set-mode-info">
+                    <div class="set-mode-title">이미지 편집 없이 생성</div>
+                    <div class="set-mode-desc">첫 번째 옵션의 이미지를 사용합니다.</div>
+                  </div>
+                </button>
+                <button class="set-mode-btn" onclick="createSetFromOptions('ai_merge')">
+                  <div class="set-mode-icon">🤖</div>
+                  <div class="set-mode-info">
+                    <div class="set-mode-title">AI 이미지 합치기</div>
+                    <div class="set-mode-desc">여러 이미지를 AI로 합쳐 새 이미지를 생성합니다.</div>
+                  </div>
+                </button>
+              </div>
+              <p class="set-modal-note">※ 세트 옵션은 선택한 옵션들의 이름(" & ")과 가격이 합산됩니다.</p>
+            </div>
+          </div>
         </div>
       </div><!-- options-tab 끝 -->
 
@@ -7710,6 +7890,170 @@
 
       showAlert(`${count}개 옵션이 삭제되었습니다.`, 'success');
     }
+
+    // ============ 세트 만들기 기능 ============
+
+    // 세트 만들기 모달 열기
+    function openSetCreationModal() {
+      if (selectedOptionIndexes.size < 2) {
+        showAlert('세트를 만들려면 최소 2개 이상의 옵션을 선택해야 합니다.', 'warning');
+        return;
+      }
+      document.getElementById('setCreationModal').style.display = 'flex';
+    }
+
+    // 세트 만들기 모달 닫기
+    function closeSetCreationModal() {
+      document.getElementById('setCreationModal').style.display = 'none';
+    }
+
+    // 세트 옵션 생성
+    async function createSetFromOptions(mode) {
+      closeSetCreationModal();
+
+      const count = selectedOptionIndexes.size;
+      if (count < 2) {
+        showAlert('세트를 만들려면 최소 2개 이상의 옵션을 선택해야 합니다.', 'warning');
+        return;
+      }
+
+      // 선택된 옵션들 가져오기
+      const sortedIndexes = Array.from(selectedOptionIndexes).sort((a, b) => a - b);
+      const selectedOptions = sortedIndexes.map(idx => productData.results[idx]);
+      const firstOption = selectedOptions[0];
+
+      // 옵션 이름들 합치기
+      const combinedOptionParts = [];
+      const optionNames = [];
+      let totalPrice = 0;
+
+      selectedOptions.forEach(option => {
+        const opt1 = (option.optionName1 || '').trim();
+        const opt2 = (option.optionName2 || '').trim();
+
+        let optionPart = '';
+        if (opt1 && opt2) {
+          optionPart = `${opt1} ${opt2}`;
+        } else if (opt1) {
+          optionPart = opt1;
+        } else if (opt2) {
+          optionPart = opt2;
+        } else {
+          optionPart = '옵션없음';
+        }
+
+        combinedOptionParts.push(optionPart);
+        optionNames.push(optionPart);
+
+        // 가격 합산 (원가 CNY 기준)
+        const price = parseFloat(option.price) || parseFloat(option.optionName2Price) || 0;
+        totalPrice += price;
+      });
+
+      // 세트 옵션 이름 생성
+      const setOptionName = combinedOptionParts.join(' & ');
+
+      // 이미지 설정
+      let setImage = firstOption.imageLink || '';
+
+      if (mode === 'ai_merge') {
+        // AI 이미지 합치기 모드
+        showAlert('AI 이미지 생성 중... 잠시만 기다려주세요.', 'info');
+
+        // 각 옵션의 이미지 수집
+        const images = [];
+        for (const option of selectedOptions) {
+          const optionImage = option.imageLink || '';
+          if (optionImage) {
+            // URL인 경우 base64로 변환
+            if (optionImage.startsWith('http')) {
+              try {
+                const imgResponse = await fetch(optionImage);
+                const blob = await imgResponse.blob();
+                const base64 = await new Promise((resolve) => {
+                  const reader = new FileReader();
+                  reader.onloadend = () => resolve(reader.result);
+                  reader.readAsDataURL(blob);
+                });
+                images.push(base64);
+              } catch (e) {
+                console.error('이미지 로드 실패:', e);
+              }
+            } else {
+              images.push(optionImage);
+            }
+          }
+        }
+
+        if (images.length >= 2) {
+          // AI merge API 호출
+          try {
+            const token = localStorage.getItem('token');
+            const aiResponse = await fetch('/api/ai-merge', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ images, productNames: optionNames })
+            });
+
+            if (aiResponse.ok) {
+              const aiResult = await aiResponse.json();
+              if (aiResult.success && aiResult.result) {
+                setImage = aiResult.result;
+                showAlert('AI 이미지 생성 완료!', 'success');
+              } else {
+                throw new Error(aiResult.message || 'AI 이미지 생성 실패');
+              }
+            } else {
+              const errorData = await aiResponse.json();
+              throw new Error(errorData.message || 'AI 이미지 생성 실패');
+            }
+          } catch (aiError) {
+            console.error('AI 이미지 생성 오류:', aiError);
+            showAlert(`AI 이미지 생성 실패: ${aiError.message}. 첫 번째 옵션 이미지를 사용합니다.`, 'warning');
+          }
+        } else {
+          showAlert('이미지를 수집할 수 없어 첫 번째 옵션 이미지를 사용합니다.', 'warning');
+        }
+      }
+
+      // 가격 계산 (원화 기준)
+      const prices = calculatePricesWithMargins(totalPrice);
+
+      // 새 세트 옵션 데이터 생성
+      const setOption = {
+        optionName1: setOptionName,
+        optionName2: '',
+        optionName1Cn: '',
+        optionName2Cn: '',
+        price: totalPrice,
+        optionName2Price: totalPrice,
+        supplyPrice: prices.supplyPrice,
+        sellPrice: prices.sellPrice,
+        imageLink: setImage,
+        amount: 1,
+        isSet: true,
+        setOptionIndexes: sortedIndexes.slice() // 원본 옵션 인덱스 저장
+      };
+
+      // 새 세트 옵션을 리스트 끝에 추가
+      productData.results.push(setOption);
+
+      // 선택 초기화
+      selectedOptionIndexes.clear();
+
+      // UI 업데이트
+      renderOptions();
+      renderUniqueOptionImages();
+      updateFloatingDeleteBtn();
+      scheduleAutoSave();
+
+      showAlert(`세트 옵션이 생성되었습니다! (${count}개 옵션 합침)`, 'success');
+    }
+
+    // ============ 가격 기능 ============
 
     // 공급가 업데이트
     function updateSupplyPrice(index, value) {
