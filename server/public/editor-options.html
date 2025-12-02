@@ -1255,7 +1255,9 @@
       width: 90%;
       max-width: 1200px;
       max-height: 90vh;
-      overflow: auto;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
       box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
 
@@ -1265,6 +1267,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-shrink: 0;
     }
 
     .modal-header h2 {
@@ -1289,6 +1292,8 @@
 
     .modal-body {
       padding: 24px;
+      overflow-y: auto;
+      flex: 1;
     }
 
     .image-editor-container {
@@ -2579,6 +2584,119 @@
       font-size: 11px;
       color: #666;
     }
+
+    /* 옵션 체크박스 스타일 */
+    .option-checkbox {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: #1e90ff;
+    }
+
+    .options-table tbody tr.selected {
+      background-color: rgba(30, 144, 255, 0.1);
+    }
+
+    .options-table thead th input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: #1e90ff;
+    }
+
+    /* 플로팅 삭제 버튼 */
+    .floating-delete-btn {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      font-size: 14px;
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    .delete-circle-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #ff4757;
+      border: none;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .delete-circle-btn:hover {
+      background: #ff6b7a;
+      transform: scale(1.1);
+    }
+
+    /* 옵션 테이블 이미지 hover 확대 */
+    .options-table td .option-image-preview {
+      position: relative;
+      transition: transform 0.2s ease;
+    }
+
+    .options-table td {
+      position: relative;
+    }
+
+    .option-image-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .option-image-wrapper .option-image-preview {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .option-image-wrapper:hover .option-zoom-preview {
+      display: block;
+    }
+
+    .option-zoom-preview {
+      display: none;
+      position: absolute;
+      left: 60px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 200px;
+      height: 200px;
+      object-fit: contain;
+      background: white;
+      border: 2px solid #e5e8eb;
+      border-radius: 8px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      z-index: 100;
+      padding: 8px;
+    }
   </style>
 </head>
 <body>
@@ -2948,7 +3066,7 @@
           <table class="options-table">
             <thead>
               <tr>
-                <th style="width: 60px;">#</th>
+                <th style="width: 50px;"><input type="checkbox" id="selectAllOptions" onchange="toggleSelectAllOptions(this.checked)" title="전체 선택"></th>
                 <th style="width: 80px;">이미지</th>
                 <th>옵션1</th>
                 <th>옵션2</th>
@@ -2961,6 +3079,12 @@
               <!-- 옵션 행들이 여기에 동적으로 추가됨 -->
             </tbody>
           </table>
+        </div>
+
+        <!-- 플로팅 삭제 버튼 -->
+        <div id="floatingDeleteBtn" class="floating-delete-btn" style="display: none;">
+          <span id="selectedCount">0</span>개 선택됨
+          <button onclick="deleteSelectedOptions()" class="delete-circle-btn" title="선택한 옵션 삭제">🗑️</button>
         </div>
       </div><!-- options-tab 끝 -->
 
@@ -3645,6 +3769,8 @@
     let selectedAdditionalImages = new Set();
     // 선택된 옵션 이미지 추적 (배경제거용)
     let selectedOptionImages = new Set();
+    // 선택된 옵션 인덱스 추적 (삭제용)
+    let selectedOptionIndexes = new Set();
 
     // 상세페이지 구성 데이터
     let detailPageItems = [];
@@ -5123,7 +5249,7 @@
 
         const subtitle = document.createElement('div');
         subtitle.className = 'option-block-subtitle';
-        subtitle.textContent = item.option2List || '옵션2 목록';
+        subtitle.textContent = item.option2List || '';
         subtitle.contentEditable = true;
         subtitle.onblur = (e) => {
           detailPageItems[index].option2List = e.target.textContent;
@@ -6136,8 +6262,8 @@
 
         // 옵션2 리스트 업데이트
         const groupData = currentOption1Groups.get(optionName);
-        const uniqueOption2 = [...new Set(groupData.option2List)];
-        const newOption2List = uniqueOption2.length > 0 ? uniqueOption2.join(', ') : '옵션2 없음';
+        const uniqueOption2 = [...new Set(groupData.option2List)].filter(v => v);
+        const newOption2List = uniqueOption2.length > 0 ? uniqueOption2.join(', ') : '';
 
         if (item.option2List !== newOption2List) {
           console.log(`[Sync] 옵션2 리스트 업데이트: "${optionName}" → "${newOption2List}"`);
@@ -6267,11 +6393,11 @@
 
         // 옵션 블록 추가
         option1Groups.forEach((group, opt1) => {
-          // 옵션2 중복 제거
-          const uniqueOption2 = [...new Set(group.option2List)];
+          // 옵션2 중복 제거 (빈 값 필터링)
+          const uniqueOption2 = [...new Set(group.option2List)].filter(v => v);
           const option2Text = uniqueOption2.length > 0
             ? uniqueOption2.join(', ')
-            : '옵션2 없음';
+            : '';
 
           detailPageItems.push({
             type: 'option-block',
@@ -7165,11 +7291,13 @@
       }
 
       document.getElementById('detailPreviewModal').classList.add('active');
+      document.body.style.overflow = 'hidden';
     }
 
     // 미리보기 닫기
     function closeDetailPreview() {
       document.getElementById('detailPreviewModal').classList.remove('active');
+      document.body.style.overflow = '';
     }
 
     // 옵션 렌더링
@@ -7192,7 +7320,10 @@
 
         const imgSrc = option.imageLink || option.titleImage?.[0] || '';
         const imgHtml = imgSrc
-          ? `<img src="${imgSrc}" class="option-image-preview" onclick="openMagicBrush('${imgSrc}')" onerror="this.parentElement.innerHTML='<div class=\\'no-image\\'>📷</div>'">`
+          ? `<div class="option-image-wrapper">
+              <img src="${imgSrc}" class="option-image-preview" onclick="openMagicBrush('${imgSrc}')" onerror="this.parentElement.innerHTML='<div class=\\'no-image\\'>📷</div>'">
+              <img src="${imgSrc}" class="option-zoom-preview" onerror="this.style.display='none'">
+            </div>`
           : '<div class="no-image">📷</div>';
 
         // 사용자 정의 가격이 있으면 사용, 없으면 자동 계산
@@ -7232,8 +7363,14 @@
         const tabIndex1 = (index * 2) + 1;
         const tabIndex2 = (index * 2) + 2;
 
+        // 선택 상태 확인
+        const isSelected = selectedOptionIndexes.has(index);
+        if (isSelected) {
+          row.classList.add('selected');
+        }
+
         row.innerHTML = `
-          <td>${index + 1}</td>
+          <td><input type="checkbox" class="option-checkbox" ${isSelected ? 'checked' : ''} onchange="toggleOptionSelect(${index}, this.checked)" data-index="${index}"></td>
           <td>${imgHtml}</td>
           <td><input type="text" value="${option.optionName1 || ''}" onchange="updateOption(${index}, 'optionName1', this.value)" tabindex="${tabIndex1}" class="option-name-input" data-row="${index}" data-col="1"></td>
           <td><input type="text" value="${option.optionName2 || ''}" onchange="updateOption(${index}, 'optionName2', this.value)" tabindex="${tabIndex2}" class="option-name-input" data-row="${index}" data-col="2"></td>
@@ -7261,6 +7398,90 @@
           </td>
         `;
       });
+
+      // 전체 선택 체크박스 상태 업데이트
+      updateSelectAllCheckbox();
+    }
+
+    // 옵션 선택 토글
+    function toggleOptionSelect(index, checked) {
+      if (checked) {
+        selectedOptionIndexes.add(index);
+      } else {
+        selectedOptionIndexes.delete(index);
+      }
+      updateFloatingDeleteBtn();
+      updateSelectAllCheckbox();
+
+      // 행 선택 스타일 업데이트
+      const row = document.querySelector(`#optionsTableBody tr:nth-child(${index + 1})`);
+      if (row) {
+        row.classList.toggle('selected', checked);
+      }
+    }
+
+    // 전체 선택/해제
+    function toggleSelectAllOptions(checked) {
+      selectedOptionIndexes.clear();
+      if (checked && productData.results) {
+        productData.results.forEach((_, index) => {
+          selectedOptionIndexes.add(index);
+        });
+      }
+      renderOptions();
+      updateFloatingDeleteBtn();
+    }
+
+    // 전체 선택 체크박스 상태 업데이트
+    function updateSelectAllCheckbox() {
+      const selectAllCheckbox = document.getElementById('selectAllOptions');
+      if (selectAllCheckbox && productData.results) {
+        const totalCount = productData.results.length;
+        const selectedCount = selectedOptionIndexes.size;
+        selectAllCheckbox.checked = totalCount > 0 && selectedCount === totalCount;
+        selectAllCheckbox.indeterminate = selectedCount > 0 && selectedCount < totalCount;
+      }
+    }
+
+    // 플로팅 삭제 버튼 업데이트
+    function updateFloatingDeleteBtn() {
+      const floatingBtn = document.getElementById('floatingDeleteBtn');
+      const countSpan = document.getElementById('selectedCount');
+      const count = selectedOptionIndexes.size;
+
+      if (count > 0) {
+        countSpan.textContent = count;
+        floatingBtn.style.display = 'flex';
+      } else {
+        floatingBtn.style.display = 'none';
+      }
+    }
+
+    // 선택된 옵션 삭제
+    function deleteSelectedOptions() {
+      const count = selectedOptionIndexes.size;
+      if (count === 0) return;
+
+      if (!confirm(`선택한 ${count}개 옵션을 삭제하시겠습니까?\n\n삭제된 옵션은 복구할 수 없습니다.`)) {
+        return;
+      }
+
+      // 인덱스를 내림차순으로 정렬하여 삭제 (뒤에서부터 삭제해야 인덱스가 꼬이지 않음)
+      const sortedIndexes = Array.from(selectedOptionIndexes).sort((a, b) => b - a);
+      sortedIndexes.forEach(index => {
+        productData.results.splice(index, 1);
+      });
+
+      // 선택 초기화
+      selectedOptionIndexes.clear();
+
+      // UI 업데이트
+      renderOptions();
+      renderUniqueOptionImages();
+      updateFloatingDeleteBtn();
+      scheduleAutoSave();
+
+      showAlert(`${count}개 옵션이 삭제되었습니다.`, 'success');
     }
 
     // 공급가 업데이트
