@@ -342,11 +342,21 @@ async function uploadFiles(excelFilesData, productImagesData, labelImagesData) {
     // 1. 견적서 Excel 파일 업로드 (첫 번째 input)
     if (excelFilesData && excelFilesData.length > 0) {
       console.log('\n📋 1단계: 견적서 Excel 파일 업로드 중...');
+      console.log(`   📊 Excel 데이터 개수: ${excelFilesData.length}`);
       const excelInput = fileInputs[0];
+      console.log(`   📋 Excel input 요소:`, excelInput);
+      console.log(`   📋 Excel input accept:`, excelInput.accept);
 
       // Base64를 File 객체로 변환
       const excelFiles = [];
       for (const excelData of excelFilesData) {
+        console.log(`   📄 Excel 데이터: filename=${excelData.filename}, base64 length=${excelData.base64?.length || 0}`);
+
+        if (!excelData.base64 || excelData.base64.length === 0) {
+          console.error(`   ❌ Excel 파일 base64 데이터가 비어있음: ${excelData.filename}`);
+          continue;
+        }
+
         const blob = base64ToBlob(
           excelData.base64,
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -358,15 +368,42 @@ async function uploadFiles(excelFilesData, productImagesData, labelImagesData) {
         console.log(`   ✅ Excel 파일 준비: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
       }
 
+      if (excelFiles.length === 0) {
+        console.error('   ❌ 준비된 Excel 파일이 없습니다!');
+        return {
+          success: false,
+          error: '견적서 Excel 파일이 준비되지 않았습니다. 다시 시도해주세요.'
+        };
+      }
+
       // DataTransfer로 input에 설정
       const dataTransfer = new DataTransfer();
       excelFiles.forEach(file => dataTransfer.items.add(file));
       excelInput.files = dataTransfer.files;
 
-      // change 이벤트 트리거
+      console.log(`   📋 Excel input.files 설정 후:`, excelInput.files.length, '개');
+
+      // 여러 이벤트 트리거 (호환성)
+      excelInput.dispatchEvent(new Event('input', { bubbles: true }));
       excelInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+      // React 등 프레임워크 호환을 위해 추가 이벤트
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'files').set;
+      nativeInputValueSetter.call(excelInput, dataTransfer.files);
+      excelInput.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+      excelInput.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
       console.log(`   ✅ Excel 파일 ${excelFiles.length}개 업로드 완료`);
-      await sleep(1000);
+      await sleep(2000); // 대기 시간 증가
+
+      // 업로드 확인
+      console.log(`   📋 업로드 후 input.files:`, excelInput.files.length, '개');
+    } else {
+      console.error('   ❌ Excel 파일 데이터가 없습니다! excelFilesData:', excelFilesData);
+      return {
+        success: false,
+        error: '견적서 Excel 파일 데이터가 없습니다. 다시 시도해주세요.'
+      };
     }
 
     // 2. 상품 이미지 일괄 업로드 (두 번째 input) - 개별 이미지 파일
