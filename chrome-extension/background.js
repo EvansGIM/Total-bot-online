@@ -63,6 +63,14 @@ console.log('🚀 TotalBot Background Script loaded');
 console.log('✅ JSZip loaded:', typeof JSZip);
 console.log('✅ SheetJS loaded:', typeof XLSX);
 
+// ===== 쿠팡 세션 Heartbeat 시스템 =====
+let heartbeatIntervalId = null;           // setInterval ID
+let heartbeatActive = false;              // Heartbeat 활성 상태
+let lastHeartbeatTime = null;             // 마지막 성공 시간
+let consecutiveHeartbeatFailures = 0;     // 연속 실패 횟수
+const HEARTBEAT_INTERVAL = 5 * 60 * 1000; // 5분
+const MAX_HEARTBEAT_FAILURES = 3;         // 연속 실패 허용 횟수
+
 // ===== 쿠팡 API 직접 호출 함수 (캐시 문제 우회) =====
 
 // API 전용 탭 ID 캐시
@@ -212,6 +220,157 @@ async function coupangApiFetch(url, options = {}) {
     text: async () => result.text,
     json: async () => JSON.parse(result.text)
   };
+}
+
+// ===== 쿠팡 세션 Heartbeat 함수들 =====
+
+/**
+ * 활성 쿠팡 탭 찾기 (Heartbeat용)
+ */
+async function findActiveCoupangTab() {
+  try {
+    const allTabs = await chrome.tabs.query({});
+    const coupangTab = allTabs.find(tab =>
+      tab.url && tab.url.includes('supplier.coupang.com')
+    );
+    return coupangTab ? coupangTab.id : null;
+  } catch (error) {
+    console.error('💔 쿠팡 탭 검색 오류:', error);
+    return null;
+  }
+}
+
+/**
+ * 세션 만료 에러인지 확인
+ */
+function isSessionExpiredError(error) {
+  const errorMsg = (error.message || error.toString()).toLowerCase();
+  return (
+    errorMsg.includes('401') ||
+    errorMsg.includes('403') ||
+    errorMsg.includes('unauthorized') ||
+    errorMsg.includes('forbidden') ||
+    errorMsg.includes('xauth.coupang.com')
+  );
+}
+
+/**
+ * Heartbeat 실행 (세션 유지 요청)
+ */
+async function performHeartbeat() {
+  try {
+    // 1. 쿠팡 탭이 여전히 열려있는지 확인
+    const coupangTabId = await findActiveCoupangTab();
+    if (!coupangTabId) {
+      console.log('💔 쿠팡 탭이 닫혀 Heartbeat 중지');
+      stopCoupangHeartbeat();
+      return;
+    }
+
+    // 2. 쿠팡 탭에서 간단한 API 호출로 세션 유지
+    console.log('💓 Heartbeat 전송 중...');
+
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: coupangTabId },
+      func: async () => {
+        try {
+          const response = await fetch('https://supplier.coupang.com/api/v1/me', {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            credentials: 'include'
+          });
+          const text = await response.text();
+          return {
+            ok: response.ok,
+            status: response.status,
+            text: text.substring(0, 200) // 디버깅용 일부만
+          };
+        } catch (error) {
+          return { ok: false, error: error.message };
+        }
+      }
+    });
+
+    if (!results || results.length === 0) {
+      throw new Error('Heartbeat 스크립트 실행 실패');
+    }
+
+    const result = results[0].result;
+
+    if (result.ok) {
+      lastHeartbeatTime = new Date();
+      consecutiveHeartbeatFailures = 0;
+      console.log(`💓 Heartbeat 성공: ${lastHeartbeatTime.toLocaleTimeString()}`);
+    } else if (result.status === 401 || result.status === 403) {
+      throw new Error(`세션 만료 (HTTP ${result.status})`);
+    } else {
+      throw new Error(result.error || `HTTP ${result.status}`);
+    }
+
+  } catch (error) {
+    consecutiveHeartbeatFailures++;
+    console.error(`💔 Heartbeat 실패 (${consecutiveHeartbeatFailures}/${MAX_HEARTBEAT_FAILURES}):`, error.message);
+
+    // 세션 만료 감지
+    if (isSessionExpiredError(error)) {
+      console.log('🔒 쿠팡 세션 만료 감지');
+      stopCoupangHeartbeat();
+      showNotification(
+        '쿠팡 세션 만료',
+        '쿠팡 로그인이 만료되었습니다. 다시 로그인해주세요.'
+      );
+    } else if (consecutiveHeartbeatFailures >= MAX_HEARTBEAT_FAILURES) {
+      console.log('❌ Heartbeat 연속 실패');
+      stopCoupangHeartbeat();
+      showNotification(
+        '쿠팡 연결 문제',
+        '쿠팡 서버와의 연결이 불안정합니다. 네트워크를 확인해주세요.'
+      );
+    }
+  }
+}
+
+/**
+ * 쿠팡 세션 Heartbeat 시작
+ */
+async function startCoupangHeartbeat() {
+  // 이미 실행 중이면 중복 시작 방지
+  if (heartbeatActive) {
+    console.log('💓 Heartbeat 이미 실행 중');
+    return;
+  }
+
+  // 쿠팡 탭 존재 여부 확인
+  const coupangTabId = await findActiveCoupangTab();
+  if (!coupangTabId) {
+    console.log('⚠️ 쿠팡 탭이 없어 Heartbeat 시작하지 않음');
+    return;
+  }
+
+  console.log('💓 쿠팡 세션 Heartbeat 시작 (5분 간격)');
+  heartbeatActive = true;
+  consecutiveHeartbeatFailures = 0;
+
+  // 즉시 한 번 실행
+  await performHeartbeat();
+
+  // 주기적 실행
+  heartbeatIntervalId = setInterval(async () => {
+    await performHeartbeat();
+  }, HEARTBEAT_INTERVAL);
+}
+
+/**
+ * 쿠팡 세션 Heartbeat 중지
+ */
+function stopCoupangHeartbeat() {
+  if (heartbeatIntervalId) {
+    clearInterval(heartbeatIntervalId);
+    heartbeatIntervalId = null;
+  }
+  heartbeatActive = false;
+  consecutiveHeartbeatFailures = 0;
+  console.log('💔 쿠팡 세션 Heartbeat 중지됨');
 }
 
 /**
@@ -974,23 +1133,45 @@ async function updateProductsSkuStatus(productIds, statusResult) {
   }
 }
 
-// 확장 프로그램 시작 시 자동 승인 확인 시작
-chrome.runtime.onStartup.addListener(() => {
+// 확장 프로그램 시작 시 자동 승인 확인 시작 + 쿠팡 탭 있으면 Heartbeat 시작
+chrome.runtime.onStartup.addListener(async () => {
   console.log('🚀 확장 프로그램 시작됨');
   startApprovalChecker();
+
+  // 브라우저 시작 시 쿠팡 탭이 이미 열려 있으면 Heartbeat 시작
+  const coupangTab = await findActiveCoupangTab();
+  if (coupangTab) {
+    console.log('🔔 브라우저 시작 시 쿠팡 탭 발견, Heartbeat 시작');
+    startCoupangHeartbeat();
+  }
 });
 
 // 확장 프로그램 설치/업데이트 시
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(async () => {
   console.log('📦 확장 프로그램 설치/업데이트됨');
   startApprovalChecker();
+
+  // 설치/업데이트 시에도 쿠팡 탭 있으면 Heartbeat 시작
+  const coupangTab = await findActiveCoupangTab();
+  if (coupangTab) {
+    console.log('🔔 설치/업데이트 시 쿠팡 탭 발견, Heartbeat 시작');
+    startCoupangHeartbeat();
+  }
 });
 
 // 서비스 워커 활성화 시에도 시작 (MV3 특성상 필요)
 startApprovalChecker();
 
-// localhost 탭에 자동으로 content script 주입
+// localhost 탭에 자동으로 content script 주입 + 쿠팡 탭 Heartbeat 시작
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  // 쿠팡 탭 로드 완료 시 Heartbeat 시작
+  if (changeInfo.status === 'complete' &&
+      tab.url &&
+      tab.url.includes('supplier.coupang.com')) {
+    console.log('🔔 쿠팡 탭 로드 완료, Heartbeat 시작');
+    startCoupangHeartbeat();
+  }
+
   // 탭이 완전히 로드되고, totalbot.cafe24.com/node-api이며, 아직 주입하지 않았을 때
   if (changeInfo.status === 'complete' &&
       tab.url &&
@@ -1034,9 +1215,18 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 });
 
-// 탭이 닫히면 추적에서 제거
-chrome.tabs.onRemoved.addListener((tabId) => {
+// 탭이 닫히면 추적에서 제거 + 마지막 쿠팡 탭 닫힘 시 Heartbeat 중지
+chrome.tabs.onRemoved.addListener(async (tabId) => {
   injectedTabs.delete(tabId);
+
+  // 쿠팡 탭이 남아있는지 확인
+  if (heartbeatActive) {
+    const remainingCoupangTab = await findActiveCoupangTab();
+    if (!remainingCoupangTab) {
+      console.log('🔔 마지막 쿠팡 탭 닫힘, Heartbeat 중지');
+      stopCoupangHeartbeat();
+    }
+  }
 });
 
 // 메시지 리스너 (Extension 내부에서 오는 메시지 - content scripts, popup 등)
