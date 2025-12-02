@@ -3564,16 +3564,6 @@
             </div>
           </div>
 
-          <div class="settings-section">
-            <h3>상품 설정</h3>
-            <div class="settings-grid">
-              <div class="settings-field" style="grid-column: 1 / -1;">
-                <label>브랜드명</label>
-                <input type="text" id="brandName" placeholder="상품명 앞에 붙을 브랜드명 (예: 홈데코)">
-                <p style="color: #666; font-size: 12px; margin-top: 5px;">수집 시 번역된 상품명 앞에 자동으로 붙습니다. (예: "홈데코 고급 실크 커튼")</p>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- 가격 설정 탭 -->
@@ -3843,7 +3833,6 @@
       ],
       // 템플릿 설정
       brandImageUrl: '',
-      brandName: '',  // 상품명 앞에 붙는 브랜드명
       defaultDetailTemplate: [
         { type: 'brand-image', label: '브랜드 이미지' },
         { type: 'title', label: '제품명' },
@@ -3899,11 +3888,6 @@
               settings.brandImageUrl = serverSettings.brandImageUrl;
             }
 
-            // 브랜드명 로드
-            if (serverSettings.brandName !== undefined) {
-              settings.brandName = serverSettings.brandName;
-            }
-
             // 쿠팡 정보는 localStorage에서만 로드 (보안상)
             const localCreds = localStorage.getItem('totalbotCredentials');
             if (localCreds) {
@@ -3940,7 +3924,6 @@
           qualityTable: settings.qualityTable,
           defaultDetailTemplate: settings.defaultDetailTemplate,
           brandImageUrl: settings.brandImageUrl || '',
-          brandName: settings.brandName || '',
           priceSettings: {
             exchangeRate: settings.exchangeRate,
             packagingCost: settings.packagingCost,
@@ -4005,7 +3988,6 @@
       document.getElementById('coupangId').value = settings.coupangId || '';
       document.getElementById('coupangPassword').value = settings.coupangPassword || '';
       document.getElementById('address').value = settings.address || '';
-      document.getElementById('brandName').value = settings.brandName || '';
 
       // 가격 설정값 표시
       document.getElementById('settingsExchangeRate').value = settings.exchangeRate;
@@ -4212,7 +4194,6 @@
       settings.coupangId = document.getElementById('coupangId').value || '';
       settings.coupangPassword = document.getElementById('coupangPassword').value || '';
       settings.address = document.getElementById('address').value || '';
-      settings.brandName = document.getElementById('brandName').value || '';
 
       // 가격 설정 저장
       settings.exchangeRate = parseFloat(document.getElementById('settingsExchangeRate').value) || 190;
