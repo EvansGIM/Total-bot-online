@@ -1300,8 +1300,8 @@
       display: grid;
       grid-template-columns: 1fr 280px;
       gap: 16px;
-      height: calc(85vh - 80px);
-      max-height: 700px;
+      height: calc(80vh - 60px);
+      max-height: 600px;
     }
 
     .canvas-wrapper {
@@ -1309,12 +1309,13 @@
       flex-direction: column;
       gap: 8px;
       min-width: 0;
+      overflow: hidden;
     }
 
     .canvas-container {
       border: 2px solid #e5e8eb;
       border-radius: 12px;
-      overflow: auto;
+      overflow: hidden;
       background: linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
                   linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
                   linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
@@ -1326,7 +1327,8 @@
       align-items: center;
       justify-content: center;
       flex: 1;
-      min-height: 250px;
+      min-height: 200px;
+      max-height: 100%;
       position: relative;
     }
 
@@ -9694,12 +9696,13 @@
       const container = document.querySelector('.canvas-container');
       if (!container || !canvas.width) return;
 
-      const containerWidth = container.clientWidth - 40;
-      const containerHeight = container.clientHeight - 40;
+      const containerWidth = container.clientWidth - 20;
+      const containerHeight = container.clientHeight - 20;
 
       const scaleX = containerWidth / canvas.width;
       const scaleY = containerHeight / canvas.height;
-      const scale = Math.min(scaleX, scaleY, 1); // 최대 100%
+      // 항상 컨테이너에 맞추기 (1 제한 없음)
+      const scale = Math.min(scaleX, scaleY);
 
       currentZoom = Math.round(scale * 100) / 100;
       canvas.style.transform = `scale(${currentZoom})`;
