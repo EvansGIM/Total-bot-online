@@ -13,6 +13,20 @@ const FONTS_DIR = path.join(__dirname, '../assets/fonts');
 // 상품 데이터 저장 기본 경로
 const DATA_DIR = path.join(__dirname, '../data/products');
 
+// 유저별 설정 파일 경로
+const SETTINGS_DIR = path.join(__dirname, '../data/settings');
+
+// 유저 설정 로드 함수 (브랜드명 등)
+async function loadUserSettings(userId) {
+  try {
+    const filePath = path.join(SETTINGS_DIR, `user_${userId}.json`);
+    const data = await fs.readFile(filePath, 'utf-8');
+    return JSON.parse(data);
+  } catch (error) {
+    return { brandName: '' };  // 기본값
+  }
+}
+
 // 유저별 상품 파일 경로 반환
 function getUserProductsFile(userId) {
   return path.join(DATA_DIR, String(userId), 'products.json');
@@ -273,6 +287,17 @@ router.post('/save', authMiddleware, async (req, res) => {
 
     if (translationPromises.length > 0) {
       await Promise.all(translationPromises);
+    }
+
+    // 브랜드명 가져와서 상품명 앞에 추가
+    const userSettings = await loadUserSettings(userId);
+    const brandName = userSettings.brandName || '';
+    if (brandName && productData.title) {
+      // 이미 브랜드명이 포함되어 있지 않은 경우에만 추가
+      if (!productData.title.startsWith(brandName)) {
+        productData.title = `${brandName} ${productData.title}`;
+        console.log(`[Products API] 브랜드명 추가: ${productData.title}`);
+      }
     }
 
     // 고유 ID 생성
