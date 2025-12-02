@@ -2610,17 +2610,31 @@
       bottom: 30px;
       left: 50%;
       transform: translateX(-50%);
-      background: #333;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
-      padding: 12px 24px;
-      border-radius: 30px;
+      padding: 14px 28px;
+      border-radius: 50px;
       display: flex;
       align-items: center;
-      gap: 12px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      gap: 16px;
+      box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
       z-index: 1000;
       font-size: 14px;
+      font-weight: 500;
       animation: slideUp 0.3s ease;
+    }
+
+    .floating-delete-btn .selected-info {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .floating-delete-btn .selected-count {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 600;
     }
 
     @keyframes slideUp {
@@ -2634,24 +2648,30 @@
       }
     }
 
-    .delete-circle-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: #ff4757;
-      border: none;
+    .delete-action-btn {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
       color: white;
-      font-size: 16px;
+      padding: 8px 16px;
+      border-radius: 25px;
       cursor: pointer;
       display: flex;
       align-items: center;
-      justify-content: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 500;
       transition: all 0.2s ease;
     }
 
-    .delete-circle-btn:hover {
-      background: #ff6b7a;
-      transform: scale(1.1);
+    .delete-action-btn:hover {
+      background: #ff4757;
+      border-color: #ff4757;
+      transform: scale(1.05);
+    }
+
+    .delete-action-btn svg {
+      width: 16px;
+      height: 16px;
     }
 
     /* 옵션 테이블 이미지 hover 확대 */
@@ -3083,8 +3103,16 @@
 
         <!-- 플로팅 삭제 버튼 -->
         <div id="floatingDeleteBtn" class="floating-delete-btn" style="display: none;">
-          <span id="selectedCount">0</span>개 선택됨
-          <button onclick="deleteSelectedOptions()" class="delete-circle-btn" title="선택한 옵션 삭제">🗑️</button>
+          <div class="selected-info">
+            <span class="selected-count"><span id="selectedCount">0</span>개</span>
+            <span>선택됨</span>
+          </div>
+          <button onclick="deleteSelectedOptions()" class="delete-action-btn" title="선택한 옵션 삭제">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
+            </svg>
+            삭제
+          </button>
         </div>
       </div><!-- options-tab 끝 -->
 
@@ -7368,6 +7396,18 @@
         if (isSelected) {
           row.classList.add('selected');
         }
+
+        // 행 클릭으로 체크박스 토글
+        row.style.cursor = 'pointer';
+        row.onclick = (e) => {
+          // input, button 등 클릭 시에는 토글하지 않음
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'IMG') return;
+          const checkbox = row.querySelector('.option-checkbox');
+          if (checkbox) {
+            checkbox.checked = !checkbox.checked;
+            toggleOptionSelect(index, checkbox.checked);
+          }
+        };
 
         row.innerHTML = `
           <td><input type="checkbox" class="option-checkbox" ${isSelected ? 'checked' : ''} onchange="toggleOptionSelect(${index}, this.checked)" data-index="${index}"></td>
