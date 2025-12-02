@@ -10385,18 +10385,19 @@
 
       // 편집된 이미지를 Base64로 변환
       const editedImageDataURL = canvas.toDataURL('image/png');
+      const originalUrl = currentEditingImageUrl;
 
       // 원본 이미지 URL과 같은 imageLink를 가진 모든 옵션 찾아서 업데이트
       let updateCount = 0;
       productData.results.forEach(option => {
-        if (option.imageLink === currentEditingImageUrl) {
+        if (option.imageLink === originalUrl) {
           option.imageLink = editedImageDataURL;
           updateCount++;
         }
       });
 
       // mainImage도 같은 URL이면 업데이트
-      if (productData.mainImage === currentEditingImageUrl) {
+      if (productData.mainImage === originalUrl) {
         productData.mainImage = editedImageDataURL;
         document.getElementById('mainImagePreview').src = editedImageDataURL;
       }
@@ -10404,30 +10405,38 @@
       // images 배열도 확인
       if (productData.images && productData.images.length > 0) {
         productData.images = productData.images.map(img =>
-          img === currentEditingImageUrl ? editedImageDataURL : img
+          img === originalUrl ? editedImageDataURL : img
         );
-
-        // 추가 이미지 그리드 다시 렌더링 (요소가 있는 경우만)
-        const additionalGrid = document.getElementById('additionalImagesGrid');
-        if (additionalGrid) {
-          additionalGrid.innerHTML = '';
-          productData.images.forEach(img => {
-            const imgEl = document.createElement('img');
-            imgEl.src = img;
-            imgEl.onclick = () => openMagicBrush(img);
-            imgEl.onerror = function() { this.style.display = 'none'; };
-            additionalGrid.appendChild(imgEl);
-          });
-        }
       }
 
-      // 옵션 테이블 다시 렌더링
-      renderOptions();
+      // 상세페이지 detailPageItems의 이미지도 업데이트
+      if (detailPageItems && detailPageItems.length > 0) {
+        detailPageItems.forEach(item => {
+          // 이미지 블록 (brand-image, image)
+          if ((item.type === 'brand-image' || item.type === 'image') && item.imageSrc === originalUrl) {
+            item.imageSrc = editedImageDataURL;
+          }
+          // 옵션 블록의 이미지
+          if (item.type === 'option-block' && item.imageUrl === originalUrl) {
+            item.imageUrl = editedImageDataURL;
+          }
+        });
+      }
 
-      // 모달 닫기
+      // 모달 닫기 (먼저 닫아서 사용자에게 빠른 피드백)
       closeMagicBrush();
 
-      showAlert(`${updateCount}개 옵션의 이미지가 업데이트되었습니다. 변경사항을 저장하려면 상단의 "저장" 버튼을 클릭하세요.`, 'success');
+      // UI 갱신 - 모든 관련 영역 업데이트
+      renderOptions();              // 옵션 테이블
+      refreshImageTabs();           // 이미지 탭 (추가 이미지, 옵션 이미지)
+      renderDetailSources();        // 상세페이지 소스 이미지
+      renderDetailCanvas();         // 상세페이지 캔버스
+      scheduleAutoSave();           // 자동 저장 예약
+
+      const msg = updateCount > 0
+        ? `${updateCount}개 옵션의 이미지가 업데이트되었습니다.`
+        : '이미지가 업데이트되었습니다.';
+      showAlert(msg, 'success');
     }
 
     // detailPageItems를 HTML 문자열로 변환
