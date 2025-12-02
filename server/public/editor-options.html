@@ -8101,11 +8101,20 @@
       const title = indicator.querySelector('.ai-loading-title');
       title.textContent = message;
       indicator.style.display = 'block';
+
+      // 플로팅 액션바 숨기기 (겹침 방지)
+      const floatingBtn = document.getElementById('floatingDeleteBtn');
+      if (floatingBtn) {
+        floatingBtn.style.display = 'none';
+      }
     }
 
     // AI 로딩 인디케이터 숨기기
     function hideAiLoading() {
       document.getElementById('aiLoadingIndicator').style.display = 'none';
+
+      // 플로팅 액션바 다시 표시 (선택된 옵션이 있으면)
+      updateFloatingDeleteBtn();
     }
 
     // AI 생성 취소
