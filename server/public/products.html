@@ -235,6 +235,21 @@
       box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
     }
 
+    .floating-pill .btn-set {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+    }
+
+    .floating-pill .btn-set:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    }
+
+    .set-mode-btn:hover {
+      border-color: #667eea !important;
+      background: #f8f9ff !important;
+    }
+
     .btn-danger {
       background: #ef4444;
       color: white;
@@ -1462,8 +1477,54 @@
   <div class="floating-actions" id="floatingActions">
     <div class="floating-pill">
       <span class="selected-badge" id="selectedCountText">0개</span>
+      <button class="action-btn btn-set" onclick="openSetCreationModal()">📦 세트 만들기</button>
       <button class="action-btn btn-delete" onclick="deleteSelected()">🗑️ 삭제</button>
       <button class="action-btn btn-quote" onclick="generateQuote()">🚀 제품 등록</button>
+    </div>
+  </div>
+
+  <!-- 세트 만들기 모달 -->
+  <div class="modal-overlay" id="setCreationModal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2>📦 세트 만들기</h2>
+        <button class="modal-close" onclick="closeSetCreationModal()">×</button>
+      </div>
+      <div class="modal-body" style="padding: 24px;">
+        <p style="margin-bottom: 20px; color: #555; text-align: center;">
+          선택한 상품들을 하나의 세트 상품으로 합칩니다.<br>
+          세트 생성 방식을 선택해주세요.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <button class="set-mode-btn" onclick="createSet('normal')" style="
+            padding: 16px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fff;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+          ">
+            <div style="font-weight: bold; margin-bottom: 4px;">📷 이미지 편집 없이 생성</div>
+            <div style="font-size: 12px; color: #888;">첫 번째 상품의 이미지를 그대로 사용합니다.</div>
+          </button>
+          <button class="set-mode-btn" onclick="createSet('ai_merge')" style="
+            padding: 16px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fff;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+          ">
+            <div style="font-weight: bold; margin-bottom: 4px;">🤖 AI 이미지 합치기 <span style="color: #FF9800; font-size: 12px;">(준비 중)</span></div>
+            <div style="font-size: 12px; color: #888;">여러 이미지를 AI로 합쳐 새로운 이미지를 생성합니다.</div>
+          </button>
+        </div>
+        <p style="margin-top: 16px; font-size: 12px; color: #999; text-align: center;">
+          ※ 세트 상품은 선택한 옵션들의 이름과 가격이 합산됩니다.
+        </p>
+      </div>
     </div>
   </div>
 
@@ -2411,6 +2472,117 @@
         alert('상품 삭제에 실패했습니다.');
       }
     }
+
+    // ============ 세트 만들기 기능 ============
+
+    // 세트 만들기 모달 열기
+    function openSetCreationModal() {
+      if (selectedProducts.size < 2) {
+        showToast('세트를 만들려면 최소 2개 이상의 상품을 선택해야 합니다.', 'warning');
+        return;
+      }
+      document.getElementById('setCreationModal').style.display = 'flex';
+    }
+
+    // 세트 만들기 모달 닫기
+    function closeSetCreationModal() {
+      document.getElementById('setCreationModal').style.display = 'none';
+    }
+
+    // 세트 생성
+    async function createSet(mode) {
+      closeSetCreationModal();
+
+      if (mode === 'ai_merge') {
+        showToast('AI 이미지 합치기 기능은 준비 중입니다.', 'info');
+        return;
+      }
+
+      // 선택된 상품들 가져오기
+      const selectedProductsData = allProducts.filter(p => selectedProducts.has(p.id));
+
+      if (selectedProductsData.length < 2) {
+        showToast('세트를 만들려면 최소 2개 이상의 상품을 선택해야 합니다.', 'warning');
+        return;
+      }
+
+      try {
+        // 첫 번째 상품의 기본 정보 사용
+        const firstProduct = selectedProductsData[0];
+
+        // 옵션 이름들 합치기
+        const combinedOptionParts = [];
+        let totalPrice = 0;
+
+        selectedProductsData.forEach(product => {
+          // 상품명 또는 첫 번째 옵션명 사용
+          const productName = product.title || product.titleCn || '상품';
+          // 짧은 이름으로 변환 (첫 20자만)
+          const shortName = productName.length > 20 ? productName.substring(0, 20) + '...' : productName;
+          combinedOptionParts.push(shortName);
+
+          // 가격 합산 (첫 번째 옵션의 가격 사용)
+          if (product.results && product.results.length > 0) {
+            const price = parseFloat(product.results[0].optionName2Price) || parseFloat(product.results[0].price) || 0;
+            totalPrice += price;
+          }
+        });
+
+        // 세트 옵션 이름 생성
+        const setOptionName = combinedOptionParts.join(' & ');
+
+        // 첫 번째 상품의 이미지 사용
+        const setImage = firstProduct.mainImage ||
+                        (firstProduct.titleImage && Array.isArray(firstProduct.titleImage) ? firstProduct.titleImage[0] : null) ||
+                        firstProduct.imageLink ||
+                        (firstProduct.results && firstProduct.results[0] && firstProduct.results[0].imageLink) ||
+                        '';
+
+        // 세트 상품 데이터 생성
+        const setProduct = {
+          title: `[세트] ${setOptionName}`,
+          titleCn: firstProduct.titleCn || '',
+          platform: firstProduct.platform || '1688-product',
+          url: firstProduct.url || '',
+          mainImage: setImage,
+          titleImage: [setImage],
+          results: [{
+            optionName1: setOptionName,
+            optionName2: '',
+            optionName1Cn: '',
+            optionName2Cn: '',
+            optionName2Price: totalPrice.toString(),
+            price: totalPrice.toString(),
+            imageLink: setImage,
+            amount: 1
+          }],
+          isSet: true,
+          setItems: selectedProductsData.map(p => p.id),
+          savedAt: new Date().toISOString()
+        };
+
+        // 서버에 세트 상품 저장
+        const response = await authFetch('/api/products/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: setProduct })
+        });
+
+        if (response.ok) {
+          showToast(`세트 상품이 생성되었습니다! (${selectedProductsData.length}개 상품 합침)`, 'success');
+          selectedProducts.clear();
+          updateActionBar();
+          loadProducts();
+        } else {
+          throw new Error('세트 생성 실패');
+        }
+      } catch (error) {
+        console.error('세트 생성 오류:', error);
+        showToast('세트 생성에 실패했습니다.', 'error');
+      }
+    }
+
+    // ============ 삭제 기능 ============
 
     // 선택 상품 삭제
     async function deleteSelected() {
