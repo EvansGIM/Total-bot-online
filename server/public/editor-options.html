@@ -8145,6 +8145,8 @@
         return;
       }
 
+      console.log('[중복검사] 시작, 옵션 수:', productData.results.length);
+
       // 옵션명 조합 카운트
       const optionCombinations = new Map();
 
@@ -8154,6 +8156,7 @@
 
         // 옵션2가 있으면 옵션1+옵션2 조합, 없으면 옵션1만
         const key = opt2 ? `${opt1}|||${opt2}` : opt1;
+        console.log(`[중복검사] 행 ${index + 1}: key="${key}"`);
 
         if (!optionCombinations.has(key)) {
           optionCombinations.set(key, []);
@@ -8173,6 +8176,8 @@
           });
         }
       });
+
+      console.log('[중복검사] 중복 발견:', duplicates.length, duplicates);
 
       if (duplicates.length > 0) {
         showDuplicateWarning(duplicates);
