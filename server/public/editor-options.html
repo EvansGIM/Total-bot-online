@@ -7178,10 +7178,14 @@
                 border: 1px solid #e5e8eb;
               `;
             }
-            optionSubtitle.textContent = item.option2List || '';
-
             textContainer.appendChild(optionTitle);
-            textContainer.appendChild(optionSubtitle);
+
+            // 옵션2가 있을 때만 서브타이틀 박스 추가
+            if (item.option2List && item.option2List.trim()) {
+              optionSubtitle.textContent = item.option2List;
+              textContainer.appendChild(optionSubtitle);
+            }
+
             optionBlock.appendChild(textContainer);
 
             previewContent.appendChild(optionBlock);
