@@ -3116,14 +3116,24 @@ async function handleFillQuotationExcels(data) {
     if (data.downloadOnly === true) {
       console.log('📥 downloadOnly 모드: 쿠팡 탭 열지 않고 파일만 다운로드');
 
+      // Blob을 Data URL로 변환하는 헬퍼 함수
+      const blobToDataUrl = (blob) => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      };
+
       let downloadCount = 0;
 
       // Excel 파일 다운로드
       for (const item of excelBlobs) {
-        const url = URL.createObjectURL(item.blob);
+        const dataUrl = await blobToDataUrl(item.blob);
         await chrome.downloads.download({
-          url: url,
-          filename: item.filename,
+          url: dataUrl,
+          filename: `TotalBot/${item.filename}`,
           saveAs: false
         });
         downloadCount++;
@@ -3132,10 +3142,10 @@ async function handleFillQuotationExcels(data) {
 
       // 상품 이미지 다운로드 (detail, option images 등)
       for (const item of productImageBlobs) {
-        const url = URL.createObjectURL(item.blob);
+        const dataUrl = await blobToDataUrl(item.blob);
         await chrome.downloads.download({
-          url: url,
-          filename: item.filename,
+          url: dataUrl,
+          filename: `TotalBot/${item.filename}`,
           saveAs: false
         });
         downloadCount++;
@@ -3144,10 +3154,10 @@ async function handleFillQuotationExcels(data) {
 
       // 라벨 이미지 다운로드
       for (const item of labelImageBlobs) {
-        const url = URL.createObjectURL(item.blob);
+        const dataUrl = await blobToDataUrl(item.blob);
         await chrome.downloads.download({
-          url: url,
-          filename: item.filename,
+          url: dataUrl,
+          filename: `TotalBot/${item.filename}`,
           saveAs: false
         });
         downloadCount++;
