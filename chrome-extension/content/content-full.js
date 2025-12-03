@@ -2881,10 +2881,10 @@ function showCrawlIndicator() {
 
         if (response.ok) {
           indicator.innerHTML = '✅ 완료!';
+          // 1초 후 탭 닫기
           setTimeout(() => {
-            indicator.innerHTML = '🤖 TotalBot';
-            indicator.style.pointerEvents = 'auto';
-          }, 2000);
+            chrome.runtime.sendMessage({ action: 'closeCurrentTab' });
+          }, 1000);
         } else {
           throw new Error('서버 저장 실패');
         }

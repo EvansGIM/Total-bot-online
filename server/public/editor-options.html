@@ -7047,32 +7047,12 @@
       detailPageItems = [];
       let imageCounter = 1;
 
-      // 1. 브랜드 이미지 (설정에서 업로드한 이미지 우선 사용)
-      const brandImageSrc = settings.brandImageUrl || productData.mainImage;
-      if (brandImageSrc) {
-        detailPageItems.push({
-          type: 'brand-image',
-          imageSrc: brandImageSrc,
-          label: '브랜드 이미지',
-          imageNumber: imageCounter++
-        });
-      }
-
-      // 2. 제품명 (타이틀) - 기본: 큰 사이즈(28px), 중앙 정렬
+      // 기본 데이터 준비
       const productTitle = productData.title || productData.titleCn || '제품명';
-      detailPageItems.push({
-        type: 'title',
-        text: productTitle,
-        label: productTitle,
-        fontSize: '28',
-        align: 'center'
-      });
+      const brandImageSrc = settings.brandImageUrl || productData.mainImage;
 
-      // 3. 추가 이미지는 기본적으로 포함 안함 (사용자가 수동으로 추가)
-
-      // 4. 옵션 블록들 - 옵션1별로 그룹핑
+      // 옵션 블록 데이터 준비
       const option1Groups = new Map();
-
       if (productData.results && productData.results.length > 0) {
         productData.results.forEach(option => {
           const opt1 = option.optionName1 || option.optionName1Cn || '옵션1';
@@ -7092,28 +7072,9 @@
             option1Groups.get(opt1).option2List.push(opt2);
           }
         });
-
-        // 옵션 블록 추가
-        option1Groups.forEach((group, opt1) => {
-          // 옵션2 중복 제거 (빈 값 필터링)
-          const uniqueOption2 = [...new Set(group.option2List)].filter(v => v);
-          const option2Text = uniqueOption2.length > 0
-            ? uniqueOption2.join(', ')
-            : '';
-
-          detailPageItems.push({
-            type: 'option-block',
-            imageSrc: group.imageSrc,
-            imageLabel: '[Image #' + imageCounter++ + ']',
-            optionName: group.optionName,
-            option2List: option2Text,
-            template: selectedOptionTemplate
-          });
-        });
       }
 
-      // 5. 품질표시사항 추가
-      // 옵션1 유니크 값들 (색상용)
+      // 품질표시사항 데이터 준비
       const uniqueOption1Values = [];
       const uniqueOption2Values = [];
       if (productData.results && productData.results.length > 0) {
@@ -7160,10 +7121,78 @@
         });
       }
 
-      detailPageItems.push({
-        type: 'quality-table',
-        title: '품질표시사항',
-        rows: qualityRows
+      // 설정된 템플릿 순서에 따라 아이템 생성
+      const templateOrder = settings.defaultDetailTemplate || [
+        { type: 'brand-image', label: '브랜드 이미지' },
+        { type: 'title', label: '제품명' },
+        { type: 'option-blocks', label: '옵션 블록들' },
+        { type: 'quality-table', label: '품질표시사항' }
+      ];
+
+      console.log('[Editor] 템플릿 순서 적용:', templateOrder.map(t => t.type).join(' → '));
+
+      templateOrder.forEach(templateItem => {
+        switch (templateItem.type) {
+          case 'brand-image':
+            if (brandImageSrc) {
+              detailPageItems.push({
+                type: 'brand-image',
+                imageSrc: brandImageSrc,
+                label: '브랜드 이미지',
+                imageNumber: imageCounter++
+              });
+            }
+            break;
+
+          case 'title':
+            detailPageItems.push({
+              type: 'title',
+              text: productTitle,
+              label: productTitle,
+              fontSize: '28',
+              align: 'center'
+            });
+            break;
+
+          case 'option-blocks':
+            option1Groups.forEach((group, opt1) => {
+              const uniqueOption2 = [...new Set(group.option2List)].filter(v => v);
+              const option2Text = uniqueOption2.length > 0
+                ? uniqueOption2.join(', ')
+                : '';
+
+              detailPageItems.push({
+                type: 'option-block',
+                imageSrc: group.imageSrc,
+                imageLabel: '[Image #' + imageCounter++ + ']',
+                optionName: group.optionName,
+                option2List: option2Text,
+                template: selectedOptionTemplate
+              });
+            });
+            break;
+
+          case 'quality-table':
+            detailPageItems.push({
+              type: 'quality-table',
+              title: '품질표시사항',
+              rows: qualityRows
+            });
+            break;
+
+          case 'text':
+            // 사용자 추가 텍스트
+            if (templateItem.text) {
+              detailPageItems.push({
+                type: 'text',
+                text: templateItem.text,
+                label: templateItem.label || '텍스트',
+                fontSize: templateItem.fontSize || '16',
+                align: templateItem.align || 'left'
+              });
+            }
+            break;
+        }
       });
 
       renderDetailCanvas();

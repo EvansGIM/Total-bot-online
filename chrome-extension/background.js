@@ -1272,6 +1272,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  // 현재 탭 닫기 (수집 완료 후)
+  if (message.action === 'closeCurrentTab') {
+    if (sender.tab && sender.tab.id) {
+      chrome.tabs.remove(sender.tab.id);
+    }
+    return false;
+  }
+
   // 대용량 데이터 청크 요청 (content script에서 호출)
   if (message.action === 'getUploadDataChunk') {
     const { type, index } = message;
