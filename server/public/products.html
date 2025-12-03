@@ -1490,6 +1490,7 @@
       <span class="selected-badge" id="selectedCountText">0개</span>
       <button class="action-btn btn-delete" onclick="deleteSelected()">🗑️ 삭제</button>
       <button class="action-btn btn-quote" onclick="generateQuote()">🚀 제품 등록</button>
+      <button class="action-btn" onclick="showDirectQuoteIdInput()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">📝 ID 입력</button>
     </div>
   </div>
 
@@ -3917,6 +3918,57 @@
     }
   </style>
 
+  <!-- 직접 견적서 ID 입력 모달 (편집완료 상품용) -->
+  <div id="directQuoteIdModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10002; align-items: center; justify-content: center;">
+    <div class="coupang-modal-content" style="max-width: 450px; border-radius: 16px; overflow: hidden;">
+      <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 25px 30px; color: white;">
+        <h2 style="margin: 0; font-size: 22px; font-weight: 600;">
+          📝 견적서 ID 직접 입력
+        </h2>
+        <p style="margin: 8px 0 0; opacity: 0.9; font-size: 14px;">
+          이미 쿠팡에 업로드한 상품의 견적서 ID를 입력하세요
+        </p>
+      </div>
+
+      <div style="padding: 25px 30px;">
+        <p style="margin: 0 0 15px; color: #666; font-size: 14px;">
+          선택한 상품: <strong id="directQuoteSelectedCount">0</strong>개
+        </p>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">
+            견적서 ID (숫자)
+          </label>
+          <input
+            type="text"
+            id="directQuoteIdInput"
+            placeholder="예: 12345678"
+            style="width: 100%; padding: 14px 16px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; box-sizing: border-box; transition: border-color 0.2s;"
+            onfocus="this.style.borderColor='#10b981'"
+            onblur="this.style.borderColor='#e0e0e0'"
+          >
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <button
+            onclick="saveDirectQuoteId()"
+            style="width: 100%; padding: 14px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.1s, box-shadow 0.2s;"
+            onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 15px rgba(16,185,129,0.4)'"
+            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
+          >
+            ✅ 업로드 완료로 이동
+          </button>
+          <button
+            onclick="closeDirectQuoteIdModal()"
+            style="width: 100%; padding: 12px; background: transparent; color: #666; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; cursor: pointer;"
+          >
+            취소
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 견적서 ID 입력 모달 -->
   <div id="quoteIdInputModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10002; align-items: center; justify-content: center;">
     <div class="coupang-modal-content" style="max-width: 450px; border-radius: 16px; overflow: hidden;">
@@ -4166,6 +4218,88 @@
 
     // 다운로드 후 견적서 ID 입력용 상품 데이터 저장
     let pendingDownloadProducts = [];
+
+    // 직접 견적서 ID 입력 모달 표시
+    window.showDirectQuoteIdInput = function() {
+      if (selectedProducts.size === 0) {
+        alert('견적서 ID를 입력할 상품을 선택해주세요.');
+        return;
+      }
+
+      document.getElementById('directQuoteSelectedCount').textContent = selectedProducts.size;
+      document.getElementById('directQuoteIdInput').value = '';
+      document.getElementById('directQuoteIdModal').style.display = 'flex';
+    }
+
+    // 직접 견적서 ID 입력 모달 닫기
+    window.closeDirectQuoteIdModal = function() {
+      document.getElementById('directQuoteIdModal').style.display = 'none';
+    }
+
+    // 직접 견적서 ID 저장 및 상품 상태 업데이트
+    window.saveDirectQuoteId = async function() {
+      const quoteId = document.getElementById('directQuoteIdInput').value.trim();
+
+      if (!quoteId) {
+        alert('견적서 ID를 입력해주세요.');
+        return;
+      }
+
+      const productIds = Array.from(selectedProducts);
+      if (productIds.length === 0) {
+        alert('선택된 상품이 없습니다.');
+        return;
+      }
+
+      try {
+        console.log('📤 직접 ID 입력 - 상품 상태 업데이트 중...', productIds);
+
+        // 상태를 'uploaded'로 변경
+        const statusResponse = await authFetch('/api/products/batch-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ids: productIds,
+            status: 'uploaded'
+          })
+        });
+        const statusResult = await statusResponse.json();
+        console.log('📥 batch-status 응답:', statusResult);
+
+        if (!statusResponse.ok) {
+          throw new Error(statusResult.message || '상태 변경 실패');
+        }
+
+        // 각 상품에 quoteId 저장
+        for (const productId of productIds) {
+          await authFetch(`/api/products/${productId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              quoteId: quoteId,
+              uploadedAt: new Date().toISOString()
+            })
+          });
+        }
+
+        console.log('✅ 직접 ID 입력 완료');
+
+        // 선택 초기화
+        selectedProducts.clear();
+        updateSelectedCount();
+
+        closeDirectQuoteIdModal();
+
+        alert(`✅ 견적서 ID "${quoteId}"가 저장되었습니다.\n${productIds.length}개 상품이 업로드 완료로 이동했습니다.`);
+
+        // 상품 목록 새로고침
+        loadProducts();
+
+      } catch (error) {
+        console.error('❌ 직접 ID 저장 오류:', error);
+        alert(`저장 중 오류가 발생했습니다:\n${error.message}`);
+      }
+    }
 
     // 다운로드 진행 모달 표시/숨김
     function showDownloadProgressModal(text) {
