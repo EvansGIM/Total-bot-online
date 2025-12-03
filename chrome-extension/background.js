@@ -597,6 +597,51 @@ let excelDataStore = []; // Excel 파일 데이터를 메모리에 저장 (Array
 let coupangOperationCount = 0;
 const COOKIE_CLEAR_THRESHOLD = 10; // 10번 작업 후 쿠키 삭제
 
+// 쿠팡 탭 자동 새로고침 설정 (세션 만료 방지)
+let coupangTabRefreshTimers = new Map(); // tabId -> timerId
+const COUPANG_REFRESH_INTERVAL = 20 * 60 * 1000; // 20분
+
+/**
+ * 쿠팡 탭 자동 새로고침 타이머 시작
+ */
+function startCoupangRefreshTimer(tabId) {
+  // 기존 타이머 제거
+  stopCoupangRefreshTimer(tabId);
+
+  console.log(`⏰ 쿠팡 탭 새로고침 타이머 시작: ${tabId} (${COUPANG_REFRESH_INTERVAL / 60000}분 간격)`);
+
+  const timerId = setInterval(() => {
+    chrome.tabs.get(tabId, (tab) => {
+      if (chrome.runtime.lastError || !tab) {
+        console.log(`⚠️ 쿠팡 탭 ${tabId} 없음, 타이머 정리`);
+        stopCoupangRefreshTimer(tabId);
+        return;
+      }
+      // 쿠팡 도메인이면 새로고침
+      if (tab.url && tab.url.includes('coupang.com')) {
+        console.log(`🔄 쿠팡 탭 자동 새로고침: ${tabId}`);
+        chrome.tabs.reload(tabId);
+      } else {
+        // 쿠팡이 아니면 타이머 정리
+        stopCoupangRefreshTimer(tabId);
+      }
+    });
+  }, COUPANG_REFRESH_INTERVAL);
+
+  coupangTabRefreshTimers.set(tabId, timerId);
+}
+
+/**
+ * 쿠팡 탭 자동 새로고침 타이머 중지
+ */
+function stopCoupangRefreshTimer(tabId) {
+  if (coupangTabRefreshTimers.has(tabId)) {
+    clearInterval(coupangTabRefreshTimers.get(tabId));
+    coupangTabRefreshTimers.delete(tabId);
+    console.log(`⏹️ 쿠팡 탭 새로고침 타이머 중지: ${tabId}`);
+  }
+}
+
 /**
  * 캐시 관련 쿠키만 선택적 삭제 (로그인 유지)
  * 페이지 캐시 문제를 일으키는 쿠키들만 삭제
@@ -1164,12 +1209,14 @@ startApprovalChecker();
 
 // localhost 탭에 자동으로 content script 주입 + 쿠팡 탭 Heartbeat 시작
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  // 쿠팡 탭 로드 완료 시 Heartbeat 시작
+  // 쿠팡 탭 로드 완료 시 Heartbeat 시작 + 자동 새로고침 타이머 시작
   if (changeInfo.status === 'complete' &&
       tab.url &&
       tab.url.includes('supplier.coupang.com')) {
     console.log('🔔 쿠팡 탭 로드 완료, Heartbeat 시작');
     startCoupangHeartbeat();
+    // 세션 만료 방지를 위한 자동 새로고침 타이머 시작
+    startCoupangRefreshTimer(tabId);
   }
 
   // 탭이 완전히 로드되고, totalbot.cafe24.com/node-api이며, 아직 주입하지 않았을 때
@@ -1218,6 +1265,9 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 // 탭이 닫히면 추적에서 제거 + 마지막 쿠팡 탭 닫힘 시 Heartbeat 중지
 chrome.tabs.onRemoved.addListener(async (tabId) => {
   injectedTabs.delete(tabId);
+
+  // 쿠팡 탭 자동 새로고침 타이머 정리
+  stopCoupangRefreshTimer(tabId);
 
   // 쿠팡 탭이 남아있는지 확인
   if (heartbeatActive) {
