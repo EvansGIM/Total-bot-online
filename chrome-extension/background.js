@@ -3082,6 +3082,83 @@ async function handleFillQuotationExcels(data) {
 
     console.log('\n✅ 견적서 자동 작성 완료');
 
+    // Excel Blob 데이터 수집 (서버에서 편집된 파일 그대로 사용 - 서식 보존)
+    console.log('📋 Excel 파일 Blob 수집 중...');
+
+    const excelBlobs = [];
+    for (const fileInfo of filesData) {
+      const { dataIndex, filename } = fileInfo;
+      const excelData = excelDataStore[dataIndex];
+
+      if (excelData) {
+        // ✅ SheetJS 없이 arrayBuffer를 직접 Blob으로 변환 (서식 보존)
+        const blob = new Blob([excelData.arrayBuffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+
+        excelBlobs.push({
+          blob: blob,
+          filename: filename
+        });
+        console.log(`   ✅ Excel Blob 준비: ${filename} (${excelData.arrayBuffer.byteLength} bytes, 서식 보존)`);
+      }
+    }
+
+    console.log(`📋 Excel 파일 ${excelBlobs.length}개 준비됨`);
+    console.log(`📊 상품 이미지: ${productImageBlobs.length}개, 라벨컷 이미지: ${labelImageBlobs.length}개`);
+
+    // ⚡ downloadOnly 모드인 경우 쿠팡 업로드 건너뛰고 바로 다운로드
+    if (data.downloadOnly) {
+      console.log('📥 downloadOnly 모드: 쿠팡 탭 열지 않고 파일만 다운로드');
+
+      let downloadCount = 0;
+
+      // Excel 파일 다운로드
+      for (const item of excelBlobs) {
+        const url = URL.createObjectURL(item.blob);
+        await chrome.downloads.download({
+          url: url,
+          filename: item.filename,
+          saveAs: false
+        });
+        downloadCount++;
+        console.log(`   ✅ Excel 다운로드: ${item.filename}`);
+      }
+
+      // 상품 이미지 다운로드 (detail, option images 등)
+      for (const item of productImageBlobs) {
+        const url = URL.createObjectURL(item.blob);
+        await chrome.downloads.download({
+          url: url,
+          filename: item.filename,
+          saveAs: false
+        });
+        downloadCount++;
+      }
+      console.log(`   ✅ 상품 이미지 ${productImageBlobs.length}개 다운로드 완료`);
+
+      // 라벨 이미지 다운로드
+      for (const item of labelImageBlobs) {
+        const url = URL.createObjectURL(item.blob);
+        await chrome.downloads.download({
+          url: url,
+          filename: item.filename,
+          saveAs: false
+        });
+        downloadCount++;
+      }
+      console.log(`   ✅ 라벨 이미지 ${labelImageBlobs.length}개 다운로드 완료`);
+
+      console.log(`\n✅ 총 ${downloadCount}개 파일 다운로드 완료 (쿠팡 업로드 생략)`);
+
+      return {
+        success: true,
+        downloadOnly: true,
+        count: excelBlobs.length,
+        imageCount: productImageBlobs.length + labelImageBlobs.length
+      };
+    }
+
     // ======================================
     // 🚀 쿠팡 자동 업로드 시작
     // ======================================
@@ -3125,76 +3202,6 @@ async function handleFillQuotationExcels(data) {
       await new Promise(resolve => setTimeout(resolve, 2000)); // 추가 2초 대기
 
       await updateProgress('open', 'completed');
-
-      // 3. Excel Blob 데이터 수집 (서버에서 편집된 파일 그대로 사용 - 서식 보존)
-      console.log('📋 Excel 파일 Blob 수집 중...');
-
-      const excelBlobs = [];
-      for (const fileInfo of filesData) {
-        const { dataIndex, filename } = fileInfo;
-        const excelData = excelDataStore[dataIndex];
-
-        if (excelData) {
-          // ✅ SheetJS 없이 arrayBuffer를 직접 Blob으로 변환 (서식 보존)
-          const blob = new Blob([excelData.arrayBuffer], {
-            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-          });
-
-          excelBlobs.push({
-            blob: blob,
-            filename: filename
-          });
-          console.log(`   ✅ Excel Blob 준비: ${filename} (${excelData.arrayBuffer.byteLength} bytes, 서식 보존)`);
-        }
-      }
-
-      console.log(`📋 Excel 파일 ${excelBlobs.length}개 준비됨`);
-
-      // ⚡ downloadOnly 모드인 경우 업로드 건너뛰고 바로 다운로드
-      if (data.downloadOnly) {
-        console.log('📥 downloadOnly 모드: 업로드 건너뛰고 파일만 다운로드');
-
-        // Excel 파일 다운로드
-        for (const item of excelBlobs) {
-          const url = URL.createObjectURL(item.blob);
-          await chrome.downloads.download({
-            url: url,
-            filename: item.filename,
-            saveAs: false
-          });
-          console.log(`   ✅ 다운로드: ${item.filename}`);
-        }
-
-        // 상품 이미지 다운로드 (모든 이미지 통합 다운로드)
-        for (const item of productImageBlobs) {
-          const url = URL.createObjectURL(item.blob);
-          await chrome.downloads.download({
-            url: url,
-            filename: item.filename,
-            saveAs: false
-          });
-        }
-        console.log(`   ✅ 상품 이미지 ${productImageBlobs.length}개 다운로드`);
-
-        // 라벨 이미지 다운로드
-        for (const item of labelImageBlobs) {
-          const url = URL.createObjectURL(item.blob);
-          await chrome.downloads.download({
-            url: url,
-            filename: item.filename,
-            saveAs: false
-          });
-        }
-        console.log(`   ✅ 라벨 이미지 ${labelImageBlobs.length}개 다운로드`);
-
-        console.log('✅ 파일 다운로드 완료 (업로드 생략)');
-
-        return {
-          success: true,
-          downloadOnly: true,
-          count: excelBlobs.length
-        };
-      }
 
       // 4. 상품 이미지 Blob을 Base64로 변환
       console.log('🖼️ 상품 이미지 Base64 변환 중...');

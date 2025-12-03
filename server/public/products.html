@@ -1387,6 +1387,12 @@
       background: #e0e7ff;
       color: #3730a3;
     }
+
+    .status-badge.manual_pending {
+      background: #fef3c7;
+      color: #b45309;
+      border: 1px dashed #f59e0b;
+    }
   </style>
 </head>
 <body>
@@ -1926,7 +1932,8 @@
       const labels = {
         'collected': '수집됨',
         'uploaded': '심사중',
-        'approved': '승인완료'
+        'approved': '승인완료',
+        'manual_pending': '수동 대기'
       };
       return labels[status] || '수집됨';
     }
@@ -4143,7 +4150,34 @@
       document.getElementById('quoteIdInputModal').style.display = 'flex';
     }
 
-    window.closeQuoteIdModal = function() {
+    window.closeQuoteIdModal = async function() {
+      // 나중에 입력하기: 상품 상태를 'manual_pending'으로 변경
+      if (pendingDownloadProducts.length > 0) {
+        try {
+          const productIds = pendingDownloadProducts.map(p => p.id).filter(id => id);
+
+          if (productIds.length > 0) {
+            // 상태를 'manual_pending'으로 변경 (수동 업로드 대기)
+            await fetch(`${SERVER_URL}/api/products/batch-status`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+              },
+              body: JSON.stringify({
+                ids: productIds,
+                status: 'manual_pending'
+              })
+            });
+
+            console.log(`✅ ${productIds.length}개 상품 상태 -> manual_pending`);
+            loadProducts(); // 목록 새로고침
+          }
+        } catch (error) {
+          console.error('상태 변경 실패:', error);
+        }
+      }
+
       document.getElementById('quoteIdInputModal').style.display = 'none';
       pendingDownloadProducts = [];
     }
