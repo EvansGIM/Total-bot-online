@@ -4182,9 +4182,16 @@
       pendingDownloadProducts = [];
     }
 
-    // 견적서 ID 저장
+    // 견적서 ID 저장 (다운로드 후 수동 입력용)
     window.saveManualQuoteId = async function() {
-      const quoteId = document.getElementById('manualQuoteIdInput').value.trim();
+      console.log('🔵 saveManualQuoteId 함수 시작');
+      console.log('🔵 pendingDownloadProducts:', pendingDownloadProducts);
+      console.log('🔵 pendingDownloadProducts.length:', pendingDownloadProducts?.length);
+
+      const quoteIdInput = document.getElementById('manualQuoteIdInput');
+      console.log('🔵 quoteIdInput element:', quoteIdInput);
+
+      const quoteId = quoteIdInput?.value?.trim();
 
       if (!quoteId) {
         alert('견적서 ID를 입력해주세요.');
@@ -4270,7 +4277,10 @@
       } catch (error) {
         hideDownloadProgressModal();
         console.error('❌ 견적서 ID 저장 오류:', error);
-        alert(`견적서 ID 저장 중 오류가 발생했습니다:\n${error.message}`);
+        console.error('❌ 오류 스택:', error.stack);
+        console.error('❌ 오류 타입:', error.name);
+        console.error('❌ pendingDownloadProducts:', pendingDownloadProducts);
+        alert(`견적서 ID 저장 중 오류가 발생했습니다:\n${error.message || error.toString()}`);
       }
     }
 
