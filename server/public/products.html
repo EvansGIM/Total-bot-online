@@ -4865,7 +4865,7 @@
       closeRejectedModal();
       closeUploadFailedModal();
 
-      document.getElementById('manualQuoteIdInput').value = '';
+      document.getElementById('uploadedManualQuoteIdInput').value = '';
       document.getElementById('manualUploadModal').style.display = 'flex';
     }
 
@@ -4874,9 +4874,9 @@
       document.getElementById('manualUploadModal').style.display = 'none';
     }
 
-    // 수동 견적서 ID 저장
-    window.saveManualQuoteId = function() {
-      const quoteId = document.getElementById('manualQuoteIdInput').value.trim();
+    // 수동 업로드 견적서 ID 저장 (uploaded.html 용)
+    window.saveUploadedManualQuoteId = function() {
+      const quoteId = document.getElementById('uploadedManualQuoteIdInput').value.trim();
       if (!quoteId) {
         alert('견적서 ID를 입력해주세요.');
         return;
@@ -5030,7 +5030,7 @@
           </label>
           <input
             type="text"
-            id="manualQuoteIdInput"
+            id="uploadedManualQuoteIdInput"
             placeholder="예: 88eeff72-f3c2-417e-9a07-742d73350956"
             style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; font-family: monospace;"
           >
@@ -5043,7 +5043,7 @@
           <button onclick="closeManualUploadModal()" style="flex: 1; padding: 14px; background: #e0e0e0; color: #333; border: none; border-radius: 8px; font-size: 15px; cursor: pointer;">
             취소
           </button>
-          <button onclick="saveManualQuoteId()" style="flex: 1; padding: 14px; background: #4caf50; color: white; border: none; border-radius: 8px; font-size: 15px; cursor: pointer;">
+          <button onclick="saveUploadedManualQuoteId()" style="flex: 1; padding: 14px; background: #4caf50; color: white; border: none; border-radius: 8px; font-size: 15px; cursor: pointer;">
             저장
           </button>
         </div>
