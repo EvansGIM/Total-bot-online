@@ -4893,10 +4893,21 @@
       document.getElementById('uploadFailedModal').style.display = 'none';
     }
 
+    // 업로드 실패 시 처리 중이던 상품 ID 저장
+    let failedUploadProductIds = [];
+
     // 수동 업로드 모달 표시
     window.showManualUploadModal = function() {
       closeRejectedModal();
       closeUploadFailedModal();
+
+      // 이전에 선택했던 상품 ID 가져오기 (견적서 생성 시 선택한 상품들)
+      if (window.selectedFullProductsData && window.selectedFullProductsData.length > 0) {
+        failedUploadProductIds = window.selectedFullProductsData.map(p => p.id).filter(id => id);
+      } else {
+        failedUploadProductIds = Array.from(selectedProducts);
+      }
+      console.log('📝 수동 업로드 대상 상품:', failedUploadProductIds);
 
       document.getElementById('uploadedManualQuoteIdInput').value = '';
       document.getElementById('manualUploadModal').style.display = 'flex';
@@ -4907,23 +4918,65 @@
       document.getElementById('manualUploadModal').style.display = 'none';
     }
 
-    // 수동 업로드 견적서 ID 저장 (uploaded.html 용)
-    window.saveUploadedManualQuoteId = function() {
+    // 수동 업로드 견적서 ID 저장 - 실제로 상품 상태 업데이트
+    window.saveUploadedManualQuoteId = async function() {
       const quoteId = document.getElementById('uploadedManualQuoteIdInput').value.trim();
       if (!quoteId) {
         alert('견적서 ID를 입력해주세요.');
         return;
       }
 
-      // localStorage에 저장
-      const recentQuotes = JSON.parse(localStorage.getItem('recentQuotations') || '[]');
-      if (!recentQuotes.includes(quoteId)) {
-        recentQuotes.unshift(quoteId);
-        localStorage.setItem('recentQuotations', JSON.stringify(recentQuotes.slice(0, 10)));
-      }
+      try {
+        // 상품 ID가 있으면 상태 업데이트
+        if (failedUploadProductIds.length > 0) {
+          console.log('📤 상품 상태 업데이트 중...', failedUploadProductIds);
 
-      alert(`견적서 ID "${quoteId}"가 저장되었습니다.`);
-      closeManualUploadModal();
+          // 상태를 'uploaded'로 변경
+          const statusResponse = await authFetch('/api/products/batch-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ids: failedUploadProductIds,
+              status: 'uploaded'
+            })
+          });
+          const statusResult = await statusResponse.json();
+          console.log('📥 batch-status 응답:', statusResult);
+
+          // 각 상품에 quoteId 저장
+          for (const productId of failedUploadProductIds) {
+            await authFetch(`/api/products/${productId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                quoteId: quoteId,
+                uploadedAt: new Date().toISOString()
+              })
+            });
+          }
+
+          console.log('✅ 상품 상태 업데이트 완료');
+        }
+
+        // localStorage에도 저장
+        const recentQuotes = JSON.parse(localStorage.getItem('recentQuotations') || '[]');
+        if (!recentQuotes.includes(quoteId)) {
+          recentQuotes.unshift(quoteId);
+          localStorage.setItem('recentQuotations', JSON.stringify(recentQuotes.slice(0, 10)));
+        }
+
+        alert(`✅ 견적서 ID "${quoteId}"가 저장되었습니다.\n${failedUploadProductIds.length}개 상품이 업로드 완료로 변경되었습니다.`);
+
+        // 상품 목록 새로고침
+        loadProducts();
+
+        closeManualUploadModal();
+        failedUploadProductIds = [];
+
+      } catch (error) {
+        console.error('❌ 수동 업로드 저장 오류:', error);
+        alert(`저장 중 오류가 발생했습니다:\n${error.message}`);
+      }
     }
 
     // 검증 진행 중 모달 표시
