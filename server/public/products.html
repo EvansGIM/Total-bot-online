@@ -2188,6 +2188,15 @@
       loadProducts();
     });
 
+    // 뒤로가기/앞으로가기로 페이지 복원 시 새로고침
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted) {
+        // bfcache에서 복원된 경우 상품 목록 다시 로드
+        console.log('[Products] 페이지 복원됨, 상품 목록 새로고침');
+        loadProducts();
+      }
+    });
+
     // 상품 목록 불러오기 (수집 상품만)
     async function loadProducts() {
       try {
