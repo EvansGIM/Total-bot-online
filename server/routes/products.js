@@ -491,7 +491,8 @@ router.post('/batch-status', authMiddleware, async (req, res) => {
     res.json({ success: true, message: `${updatedCount}개 상품 상태가 변경되었습니다.`, updatedCount });
   } catch (error) {
     console.error('상품 일괄 상태 변경 오류:', error);
-    res.status(500).json({ success: false, message: '상품 상태 변경 실패' });
+    console.error('상품 일괄 상태 변경 오류 스택:', error.stack);
+    res.status(500).json({ success: false, message: '상품 상태 변경 실패', error: error.message });
   }
 });
 
