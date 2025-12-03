@@ -1445,6 +1445,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'fillQuotationExcels') {
     // 견적서 Excel 파일 자동 작성
     incrementCoupangOperation();
+    console.log('🎯 INTERNAL fillQuotationExcels 핸들러 실행됨!');
+    console.log('📦 INTERNAL message.downloadOnly:', message.downloadOnly);
     handleFillQuotationExcels(message)
       .then(result => sendResponse(result))
       .catch(error => sendResponse({ success: false, error: error.message }));
@@ -1677,6 +1679,7 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
     incrementCoupangOperation();
     console.log('🎯 EXTERNAL fillQuotationExcels 핸들러 실행됨!');
     console.log('📦 받은 message 객체:', message);
+    console.log('📦 message.downloadOnly:', message.downloadOnly);  // 🔥 downloadOnly 확인
     console.log('📦 message.products 타입:', typeof message.products);
     console.log('📦 message.products 배열 여부:', Array.isArray(message.products));
     console.log('📦 message.products 값:', message.products);
@@ -1951,6 +1954,7 @@ async function handleFillQuotationExcels(data) {
     console.log('   - searchTags:', data.searchTags);
     console.log('   - size:', data.size);
     console.log('   - weight:', data.weight);
+    console.log('   - downloadOnly:', data.downloadOnly);  // 🔥 다운로드만 모드 확인
 
     if (data.products && data.products.length > 0) {
       console.log('\n📦 첫 번째 상품 정보 샘플:');
@@ -3108,7 +3112,8 @@ async function handleFillQuotationExcels(data) {
     console.log(`📊 상품 이미지: ${productImageBlobs.length}개, 라벨컷 이미지: ${labelImageBlobs.length}개`);
 
     // ⚡ downloadOnly 모드인 경우 쿠팡 업로드 건너뛰고 바로 다운로드
-    if (data.downloadOnly) {
+    console.log('🔍 downloadOnly 체크:', data.downloadOnly, '타입:', typeof data.downloadOnly);
+    if (data.downloadOnly === true) {
       console.log('📥 downloadOnly 모드: 쿠팡 탭 열지 않고 파일만 다운로드');
 
       let downloadCount = 0;
