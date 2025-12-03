@@ -3861,6 +3861,80 @@
     </div>
   </div>
 
+  <!-- 다운로드 진행 모달 -->
+  <div id="downloadProgressModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10002; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 16px; padding: 40px 50px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+      <div class="download-spinner" style="width: 60px; height: 60px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+      <h3 style="margin: 0 0 10px; color: #333; font-size: 20px;">파일 다운로드 중...</h3>
+      <p id="downloadProgressText" style="margin: 0; color: #666; font-size: 14px;">잠시만 기다려주세요</p>
+    </div>
+  </div>
+
+  <style>
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+
+  <!-- 견적서 ID 입력 모달 -->
+  <div id="quoteIdInputModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10002; align-items: center; justify-content: center;">
+    <div class="coupang-modal-content" style="max-width: 450px; border-radius: 16px; overflow: hidden;">
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px 30px; color: white;">
+        <h2 style="margin: 0; font-size: 22px; font-weight: 600;">
+          📋 견적서 ID 입력
+        </h2>
+        <p style="margin: 8px 0 0; opacity: 0.9; font-size: 14px;">
+          파일 다운로드가 완료되었습니다!
+        </p>
+      </div>
+
+      <div style="padding: 30px;">
+        <p style="margin: 0 0 20px; color: #555; font-size: 14px; line-height: 1.6;">
+          쿠팡 윙에서 견적서를 수동으로 업로드한 후,<br>
+          발급받은 <strong>견적서 ID</strong>를 입력해주세요.
+        </p>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333; font-size: 14px;">
+            견적서 ID (숫자)
+          </label>
+          <input
+            type="text"
+            id="manualQuoteIdInput"
+            placeholder="예: 12345678"
+            style="width: 100%; padding: 14px 16px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; box-sizing: border-box; transition: border-color 0.2s;"
+            onfocus="this.style.borderColor='#667eea'"
+            onblur="this.style.borderColor='#e0e0e0'"
+          >
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <button
+            onclick="saveManualQuoteId()"
+            style="width: 100%; padding: 14px; background: linear-gradient(135deg, #00c73c 0%, #00a030 100%); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.1s, box-shadow 0.2s;"
+            onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 15px rgba(0,199,60,0.4)'"
+            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
+          >
+            ✅ 지금 입력하기
+          </button>
+          <button
+            onclick="closeQuoteIdModal()"
+            style="width: 100%; padding: 14px; background: #f5f5f5; color: #666; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; transition: background 0.2s;"
+            onmouseover="this.style.background='#ebebeb'"
+            onmouseout="this.style.background='#f5f5f5'"
+          >
+            나중에 입력하기
+          </button>
+        </div>
+
+        <p style="margin: 20px 0 0; color: #999; font-size: 12px; text-align: center;">
+          💡 나중에 상품 목록에서 다시 입력할 수 있습니다
+        </p>
+      </div>
+    </div>
+  </div>
+
   <script>
     // 상세 카테고리 설정 상태
     let detailCategoryState = {
@@ -4050,6 +4124,106 @@
       fillQuotationExcels();
     }
 
+    // 다운로드 후 견적서 ID 입력용 상품 데이터 저장
+    let pendingDownloadProducts = [];
+
+    // 다운로드 진행 모달 표시/숨김
+    function showDownloadProgressModal(text) {
+      document.getElementById('downloadProgressText').textContent = text || '잠시만 기다려주세요';
+      document.getElementById('downloadProgressModal').style.display = 'flex';
+    }
+
+    function hideDownloadProgressModal() {
+      document.getElementById('downloadProgressModal').style.display = 'none';
+    }
+
+    // 견적서 ID 입력 모달 표시/숨김
+    function showQuoteIdModal() {
+      document.getElementById('manualQuoteIdInput').value = '';
+      document.getElementById('quoteIdInputModal').style.display = 'flex';
+    }
+
+    window.closeQuoteIdModal = function() {
+      document.getElementById('quoteIdInputModal').style.display = 'none';
+      pendingDownloadProducts = [];
+    }
+
+    // 견적서 ID 저장
+    window.saveManualQuoteId = async function() {
+      const quoteId = document.getElementById('manualQuoteIdInput').value.trim();
+
+      if (!quoteId) {
+        alert('견적서 ID를 입력해주세요.');
+        return;
+      }
+
+      if (!/^\d+$/.test(quoteId)) {
+        alert('견적서 ID는 숫자만 입력 가능합니다.');
+        return;
+      }
+
+      if (pendingDownloadProducts.length === 0) {
+        alert('저장할 상품 정보가 없습니다.');
+        closeQuoteIdModal();
+        return;
+      }
+
+      try {
+        showDownloadProgressModal('상품 상태 업데이트 중...');
+
+        // 상품 상태를 'uploaded'로 변경하고 quoteId 저장
+        const productIds = pendingDownloadProducts.map(p => p.id).filter(id => id);
+
+        if (productIds.length > 0) {
+          // 일괄 상태 변경
+          const statusResponse = await fetch(`${SERVER_URL}/api/products/batch-status`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+              ids: productIds,
+              status: 'uploaded'
+            })
+          });
+
+          if (!statusResponse.ok) {
+            throw new Error('상태 변경 실패');
+          }
+
+          // 각 상품에 quoteId 저장
+          for (const productId of productIds) {
+            await fetch(`${SERVER_URL}/api/products/${productId}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+              },
+              body: JSON.stringify({
+                quoteId: quoteId,
+                uploadedAt: new Date().toISOString()
+              })
+            });
+          }
+        }
+
+        hideDownloadProgressModal();
+        closeQuoteIdModal();
+
+        alert(`✅ 견적서 ID가 저장되었습니다!\n\n견적서 ID: ${quoteId}\n상품 ${productIds.length}개가 업로드 완료로 변경되었습니다.`);
+
+        // 상품 목록 새로고침
+        loadProducts();
+        pendingDownloadProducts = [];
+
+      } catch (error) {
+        hideDownloadProgressModal();
+        console.error('❌ 견적서 ID 저장 오류:', error);
+        alert(`견적서 ID 저장 중 오류가 발생했습니다:\n${error.message}`);
+      }
+    }
+
     // 파일만 다운받기 (자동 업로드 없이)
     window.saveAllDataDownloadOnly = async function() {
       // 사이즈 수집
@@ -4080,6 +4254,9 @@
       }
 
       console.log('📥 파일만 다운로드 시작...');
+
+      // 로딩 모달 표시
+      showDownloadProgressModal('파일 생성 및 다운로드 중...');
 
       try {
         // 선택한 상품 데이터 준비
@@ -4117,10 +4294,17 @@
           downloadOnly: true  // 다운로드만 수행
         });
 
+        hideDownloadProgressModal();
+
         if (response.success) {
           console.log('✅ 파일 다운로드 완료:', response);
-          alert('📥 파일 다운로드가 완료되었습니다.\n다운로드 폴더를 확인해주세요.');
           closeDetailCategoryModal();
+
+          // 견적서 ID 입력을 위해 상품 데이터 저장
+          pendingDownloadProducts = selectedProductsData;
+
+          // 견적서 ID 입력 모달 표시
+          showQuoteIdModal();
         } else if (response.needsInput && response.missingRequiredFields) {
           // 필수 칸 입력 필요
           showRequiredFieldsModal(response.missingRequiredFields);
@@ -4133,12 +4317,22 @@
             weight: detailCategoryState.weight,
             handlingCare: detailCategoryState.handlingCare,
             season: detailCategoryState.season,
+            brandName: settings.brandName || '',
+            quotationMappings: window.quotationMappings || settings.quotationMappings || [],
+            priceSettings: {
+              exchangeRate: settings.exchangeRate,
+              supplyMargins: settings.supplyMargins,
+              saleMargins: settings.saleMargins,
+              packagingCost: settings.packagingCost || 500,
+              minMargin: settings.minMargin || 1000
+            },
             downloadOnly: true
           };
         } else {
           throw new Error(response.error || '알 수 없는 오류');
         }
       } catch (error) {
+        hideDownloadProgressModal();
         console.error('❌ 파일 다운로드 오류:', error);
         alert(`파일 다운로드 중 오류가 발생했습니다:\n${error.message}`);
       }
@@ -4378,12 +4572,18 @@
         if (response.success) {
           if (isDownloadOnly) {
             console.log('✅ 파일 다운로드 완료:', response);
-            alert('📥 파일 다운로드가 완료되었습니다.\n다운로드 폴더를 확인해주세요.');
+            closeDetailCategoryModal();
+
+            // 견적서 ID 입력을 위해 상품 데이터 저장
+            pendingDownloadProducts = pendingQuotationData.products || [];
+
+            // 견적서 ID 입력 모달 표시
+            showQuoteIdModal();
           } else {
             console.log('✅ 견적서 자동 작성 완료:', response);
             alert(`✅ 견적서 자동 작성 완료!\n\n${response.count}개의 Excel 파일이 업데이트되었습니다.`);
+            closeDetailCategoryModal();
           }
-          closeDetailCategoryModal();
           pendingQuotationData = null;
         } else if (response.needsInput && response.missingRequiredFields) {
           // 아직도 필수 칸이 더 있는 경우
