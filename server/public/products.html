@@ -3818,13 +3818,18 @@
         </div>
       </div>
 
-      <div class="coupang-modal-footer">
-        <button id="categoryNextBtn" class="coupang-download-btn" onclick="goToAdditionalInfo()" style="background: #0070f3;">
-          다음
+      <div class="coupang-modal-footer" style="flex-direction: column; gap: 12px;">
+        <button id="categoryNextBtn" class="coupang-download-btn" onclick="goToAdditionalInfo()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+          다음 단계로
         </button>
-        <button id="categoryFinalBtn" class="coupang-download-btn" onclick="saveAllData()" style="background: #00c73c; display: none;">
-          완료
-        </button>
+        <div id="categoryFinalBtns" style="display: none; width: 100%;">
+          <button class="coupang-download-btn" onclick="saveAllData()" style="background: linear-gradient(135deg, #00c73c 0%, #00a030 100%); margin-bottom: 10px;">
+            ✅ 완료 (자동 업로드)
+          </button>
+          <button class="coupang-download-btn" onclick="saveAllDataDownloadOnly()" style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); font-size: 13px; padding: 10px;">
+            📥 파일만 다운받기
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -3941,7 +3946,7 @@
       document.getElementById('categorySelectionStep').style.display = 'block';
       document.getElementById('additionalInfoStep').style.display = 'none';
       document.getElementById('categoryNextBtn').style.display = 'block';
-      document.getElementById('categoryFinalBtn').style.display = 'none';
+      document.getElementById('categoryFinalBtns').style.display = 'none';
       document.getElementById('searchTagInput').value = '';
       document.getElementById('sizeWidth').value = '';
       document.getElementById('sizeHeight').value = '';
@@ -3966,7 +3971,7 @@
       document.getElementById('categorySelectionStep').style.display = 'none';
       document.getElementById('additionalInfoStep').style.display = 'block';
       document.getElementById('categoryNextBtn').style.display = 'none';
-      document.getElementById('categoryFinalBtn').style.display = 'block';
+      document.getElementById('categoryFinalBtns').style.display = 'block';
     }
 
     // 태그 입력 처리
@@ -4045,6 +4050,100 @@
       fillQuotationExcels();
     }
 
+    // 파일만 다운받기 (자동 업로드 없이)
+    window.saveAllDataDownloadOnly = async function() {
+      // 사이즈 수집
+      detailCategoryState.size = {
+        width: document.getElementById('sizeWidth').value,
+        height: document.getElementById('sizeHeight').value,
+        depth: document.getElementById('sizeDepth').value
+      };
+
+      // 무게 수집
+      detailCategoryState.weight = document.getElementById('weightInput').value;
+
+      // 취급주의 사유 수집
+      detailCategoryState.handlingCare = document.getElementById('handlingCareInput').value;
+
+      // 계절 수집
+      detailCategoryState.season = document.getElementById('seasonInput').value;
+
+      // 유효성 검사
+      if (!detailCategoryState.size.width || !detailCategoryState.size.height || !detailCategoryState.size.depth) {
+        alert('사이즈를 모두 입력해주세요.');
+        return;
+      }
+
+      if (!detailCategoryState.weight) {
+        alert('무게를 입력해주세요.');
+        return;
+      }
+
+      console.log('📥 파일만 다운로드 시작...');
+
+      try {
+        // 선택한 상품 데이터 준비
+        const selectedProductsData = allProducts.filter(p => selectedProducts.has(p.id));
+
+        // 각 파일 정보와 선택된 카테고리 매핑
+        const filesData = detailCategoryState.excelData.map((item, index) => {
+          const selection = detailCategoryState.selections[index];
+          return {
+            dataIndex: item.dataIndex,
+            filename: item.downloadedFilename || item.filename,
+            category: selection ? selection.optionValue : ''
+          };
+        });
+
+        // 확장 프로그램으로 메시지 전송 (downloadOnly 플래그 추가)
+        const response = await sendMessageToExtension('fillQuotationExcels', {
+          action: 'fillQuotationExcels',
+          filesData: filesData,
+          products: selectedProductsData,
+          searchTags: detailCategoryState.tags,
+          size: detailCategoryState.size,
+          weight: detailCategoryState.weight,
+          handlingCare: detailCategoryState.handlingCare,
+          season: detailCategoryState.season,
+          brandName: settings.brandName || '',
+          quotationMappings: window.quotationMappings || settings.quotationMappings || [],
+          priceSettings: {
+            exchangeRate: settings.exchangeRate,
+            supplyMargins: settings.supplyMargins,
+            saleMargins: settings.saleMargins,
+            packagingCost: settings.packagingCost || 500,
+            minMargin: settings.minMargin || 1000
+          },
+          downloadOnly: true  // 다운로드만 수행
+        });
+
+        if (response.success) {
+          console.log('✅ 파일 다운로드 완료:', response);
+          alert('📥 파일 다운로드가 완료되었습니다.\n다운로드 폴더를 확인해주세요.');
+          closeDetailCategoryModal();
+        } else if (response.needsInput && response.missingRequiredFields) {
+          // 필수 칸 입력 필요
+          showRequiredFieldsModal(response.missingRequiredFields);
+          // 재시도용 데이터 저장 (downloadOnly 플래그 포함)
+          pendingQuotationData = {
+            filesData: filesData,
+            products: selectedProductsData,
+            searchTags: detailCategoryState.tags,
+            size: detailCategoryState.size,
+            weight: detailCategoryState.weight,
+            handlingCare: detailCategoryState.handlingCare,
+            season: detailCategoryState.season,
+            downloadOnly: true
+          };
+        } else {
+          throw new Error(response.error || '알 수 없는 오류');
+        }
+      } catch (error) {
+        console.error('❌ 파일 다운로드 오류:', error);
+        alert(`파일 다운로드 중 오류가 발생했습니다:\n${error.message}`);
+      }
+    }
+
     // 필수 칸 입력 관련 전역 변수
     let requiredFieldsData = null;
     let pendingQuotationData = null;
@@ -4095,7 +4194,7 @@
           }
         }
 
-        // 데이터 저장 (재시도용)
+        // 데이터 저장 (재시도용 - 모든 설정 포함)
         pendingQuotationData = {
           filesData: filesData,
           products: selectedProductsData,
@@ -4103,7 +4202,16 @@
           size: detailCategoryState.size,
           weight: detailCategoryState.weight,
           handlingCare: detailCategoryState.handlingCare,
-          season: detailCategoryState.season
+          season: detailCategoryState.season,
+          brandName: settings.brandName || '',
+          quotationMappings: window.quotationMappings || settings.quotationMappings || [],
+          priceSettings: {
+            exchangeRate: settings.exchangeRate,
+            supplyMargins: settings.supplyMargins,
+            saleMargins: settings.saleMargins,
+            packagingCost: settings.packagingCost || 500,
+            minMargin: settings.minMargin || 1000
+          }
         };
 
         // 준비 단계 완료, Excel 작성 단계 시작
@@ -4258,14 +4366,23 @@
       if (pendingQuotationData) {
         console.log('🔄 견적서 자동 작성 재시도...');
 
+        const isDownloadOnly = pendingQuotationData.downloadOnly || false;
+
         const response = await sendMessageToExtension('fillQuotationExcels', {
           action: 'fillQuotationExcels',
-          ...pendingQuotationData
+          ...pendingQuotationData,
+          // 업데이트된 quotationMappings 사용 (새로 추가된 필수 칸 포함)
+          quotationMappings: window.quotationMappings || settings.quotationMappings || []
         });
 
         if (response.success) {
-          console.log('✅ 견적서 자동 작성 완료:', response);
-          alert(`✅ 견적서 자동 작성 완료!\n\n${response.count}개의 Excel 파일이 업데이트되었습니다.`);
+          if (isDownloadOnly) {
+            console.log('✅ 파일 다운로드 완료:', response);
+            alert('📥 파일 다운로드가 완료되었습니다.\n다운로드 폴더를 확인해주세요.');
+          } else {
+            console.log('✅ 견적서 자동 작성 완료:', response);
+            alert(`✅ 견적서 자동 작성 완료!\n\n${response.count}개의 Excel 파일이 업데이트되었습니다.`);
+          }
           closeDetailCategoryModal();
           pendingQuotationData = null;
         } else if (response.needsInput && response.missingRequiredFields) {

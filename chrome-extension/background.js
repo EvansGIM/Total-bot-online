@@ -3150,6 +3150,52 @@ async function handleFillQuotationExcels(data) {
 
       console.log(`📋 Excel 파일 ${excelBlobs.length}개 준비됨`);
 
+      // ⚡ downloadOnly 모드인 경우 업로드 건너뛰고 바로 다운로드
+      if (data.downloadOnly) {
+        console.log('📥 downloadOnly 모드: 업로드 건너뛰고 파일만 다운로드');
+
+        // Excel 파일 다운로드
+        for (const item of excelBlobs) {
+          const url = URL.createObjectURL(item.blob);
+          await chrome.downloads.download({
+            url: url,
+            filename: item.filename,
+            saveAs: false
+          });
+          console.log(`   ✅ 다운로드: ${item.filename}`);
+        }
+
+        // 상품 이미지 다운로드 (모든 이미지 통합 다운로드)
+        for (const item of productImageBlobs) {
+          const url = URL.createObjectURL(item.blob);
+          await chrome.downloads.download({
+            url: url,
+            filename: item.filename,
+            saveAs: false
+          });
+        }
+        console.log(`   ✅ 상품 이미지 ${productImageBlobs.length}개 다운로드`);
+
+        // 라벨 이미지 다운로드
+        for (const item of labelImageBlobs) {
+          const url = URL.createObjectURL(item.blob);
+          await chrome.downloads.download({
+            url: url,
+            filename: item.filename,
+            saveAs: false
+          });
+        }
+        console.log(`   ✅ 라벨 이미지 ${labelImageBlobs.length}개 다운로드`);
+
+        console.log('✅ 파일 다운로드 완료 (업로드 생략)');
+
+        return {
+          success: true,
+          downloadOnly: true,
+          count: excelBlobs.length
+        };
+      }
+
       // 4. 상품 이미지 Blob을 Base64로 변환
       console.log('🖼️ 상품 이미지 Base64 변환 중...');
       const productImagesData = await Promise.all(
