@@ -3111,60 +3111,72 @@ async function handleFillQuotationExcels(data) {
     console.log(`📋 Excel 파일 ${excelBlobs.length}개 준비됨`);
     console.log(`📊 상품 이미지: ${productImageBlobs.length}개, 라벨컷 이미지: ${labelImageBlobs.length}개`);
 
-    // ⚡ downloadOnly 모드인 경우 쿠팡 업로드 건너뛰고 바로 다운로드
+    // ⚡ downloadOnly 모드인 경우 쿠팡 업로드 건너뛰고 ZIP으로 다운로드
     console.log('🔍 downloadOnly 체크:', data.downloadOnly, '타입:', typeof data.downloadOnly);
     if (data.downloadOnly === true) {
-      console.log('📥 downloadOnly 모드: 쿠팡 탭 열지 않고 파일만 다운로드');
+      console.log('📥 downloadOnly 모드: 쿠팡 탭 열지 않고 ZIP 파일로 다운로드');
 
-      // Blob을 Data URL로 변환하는 헬퍼 함수
-      const blobToDataUrl = (blob) => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      };
+      // ZIP 파일 생성
+      const zip = new JSZip();
 
-      let downloadCount = 0;
+      // 카테고리명 추출 (파일명에서 날짜 부분 제거)
+      const firstFilename = filesData[0]?.filename || 'quotation';
+      const categoryName = firstFilename.replace(/_\d{8}_\d{4}\.xlsx?$/i, '').replace(/\.xlsx?$/i, '');
 
-      // Excel 파일 다운로드
+      // 현재 날짜시간 (년월일시분)
+      const now = new Date();
+      const dateStr = now.getFullYear().toString() +
+        String(now.getMonth() + 1).padStart(2, '0') +
+        String(now.getDate()).padStart(2, '0') +
+        String(now.getHours()).padStart(2, '0') +
+        String(now.getMinutes()).padStart(2, '0');
+
+      const zipFilename = `${categoryName} ${dateStr}.zip`;
+      console.log(`   📦 ZIP 파일명: ${zipFilename}`);
+
+      let fileCount = 0;
+
+      // Excel 파일 추가
       for (const item of excelBlobs) {
-        const dataUrl = await blobToDataUrl(item.blob);
-        await chrome.downloads.download({
-          url: dataUrl,
-          filename: `TotalBot/${item.filename}`,
-          saveAs: false
-        });
-        downloadCount++;
-        console.log(`   ✅ Excel 다운로드: ${item.filename}`);
+        zip.file(item.filename, item.blob);
+        fileCount++;
+        console.log(`   📄 Excel 추가: ${item.filename}`);
       }
 
-      // 상품 이미지 다운로드 (detail, option images 등)
+      // 상품 이미지 추가 (images 폴더에)
       for (const item of productImageBlobs) {
-        const dataUrl = await blobToDataUrl(item.blob);
-        await chrome.downloads.download({
-          url: dataUrl,
-          filename: `TotalBot/${item.filename}`,
-          saveAs: false
-        });
-        downloadCount++;
+        zip.file(`images/${item.filename}`, item.blob);
+        fileCount++;
       }
-      console.log(`   ✅ 상품 이미지 ${productImageBlobs.length}개 다운로드 완료`);
+      console.log(`   🖼️ 상품 이미지 ${productImageBlobs.length}개 추가`);
 
-      // 라벨 이미지 다운로드
+      // 라벨 이미지 추가 (labels 폴더에)
       for (const item of labelImageBlobs) {
-        const dataUrl = await blobToDataUrl(item.blob);
-        await chrome.downloads.download({
-          url: dataUrl,
-          filename: `TotalBot/${item.filename}`,
-          saveAs: false
-        });
-        downloadCount++;
+        zip.file(`labels/${item.filename}`, item.blob);
+        fileCount++;
       }
-      console.log(`   ✅ 라벨 이미지 ${labelImageBlobs.length}개 다운로드 완료`);
+      console.log(`   🏷️ 라벨 이미지 ${labelImageBlobs.length}개 추가`);
 
-      console.log(`\n✅ 총 ${downloadCount}개 파일 다운로드 완료 (쿠팡 업로드 생략)`);
+      // ZIP 생성 및 다운로드
+      console.log(`   🔧 ZIP 파일 생성 중... (총 ${fileCount}개 파일)`);
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+      // Blob을 Data URL로 변환
+      const zipDataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(zipBlob);
+      });
+
+      // ZIP 파일 다운로드
+      await chrome.downloads.download({
+        url: zipDataUrl,
+        filename: `TotalBot/${zipFilename}`,
+        saveAs: false
+      });
+
+      console.log(`\n✅ ZIP 파일 다운로드 완료: ${zipFilename} (${fileCount}개 파일 포함)`);
 
       return {
         success: true,
