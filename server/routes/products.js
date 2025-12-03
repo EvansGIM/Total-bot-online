@@ -239,6 +239,8 @@ router.get('/list', authMiddleware, async (req, res) => {
       price: p.results?.[0]?.price || p.results?.[0]?.unitPrice,
       // 편집 완료 여부 (detailPageItems 유무로 판단)
       isEdited: !!(p.detailPageItems && p.detailPageItems.length > 0),
+      // 승인 상태 정보 (uploaded.html용)
+      skuStatus: p.skuStatus,
       // 무거운 필드 제외: detailPageItems, detailHtml, images, results 전체
     }));
 

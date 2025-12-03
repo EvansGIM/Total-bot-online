@@ -738,7 +738,7 @@
       }
 
       const html = allProducts.map(product => {
-        const mainImage = product.mainImages?.[0] || product.images?.[0] || '';
+        const mainImage = product.mainImage || product.mainImages?.[0] || product.images?.[0] || '';
         const skuStatus = product.skuStatus;
         const quoteId = product.quoteId || '-';
 
