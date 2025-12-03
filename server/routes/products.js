@@ -237,6 +237,8 @@ router.get('/list', authMiddleware, async (req, res) => {
       resultsCount: p.results?.length || 0,
       // results에서 첫번째 항목의 가격만 (목록 표시용)
       price: p.results?.[0]?.price || p.results?.[0]?.unitPrice,
+      // 편집 완료 여부 (detailPageItems 유무로 판단)
+      isEdited: !!(p.detailPageItems && p.detailPageItems.length > 0),
       // 무거운 필드 제외: detailPageItems, detailHtml, images, results 전체
     }));
 
