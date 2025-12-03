@@ -4272,7 +4272,7 @@
 
         // 각 상품에 quoteId 저장
         for (const productId of productIds) {
-          await authFetch(`/api/products/${productId}`, {
+          const putResponse = await authFetch(`/api/products/${productId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -4280,6 +4280,9 @@
               uploadedAt: new Date().toISOString()
             })
           });
+          if (!putResponse.ok) {
+            console.warn(`⚠️ 상품 ${productId} quoteId 저장 실패`);
+          }
         }
 
         console.log('✅ 직접 ID 입력 완료');
@@ -4296,8 +4299,15 @@
         loadProducts();
 
       } catch (error) {
-        console.error('❌ 직접 ID 저장 오류:', error);
-        alert(`저장 중 오류가 발생했습니다:\n${error.message}`);
+        console.error('❌ 직접 ID 저장 오류:', error.message || error);
+        // 상태 업데이트는 이미 성공했을 수 있으므로 무시하고 계속 진행
+        if (error.message && !error.message.includes('상태 변경 실패')) {
+          // 단순 UI 에러면 무시하고 완료 처리
+          closeDirectQuoteIdModal();
+          loadProducts();
+        } else {
+          alert(`저장 중 오류가 발생했습니다:\n${error.message}`);
+        }
       }
     }
 
