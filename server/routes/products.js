@@ -427,12 +427,12 @@ router.put('/:id/status', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
     const { status } = req.body;
-    const validStatuses = ['collected', 'uploaded', 'approved'];
+    const validStatuses = ['collected', 'edited', 'uploaded', 'manual_pending', 'approved'];
 
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: '유효하지 않은 상태입니다. (collected, uploaded, approved 중 하나)'
+        message: '유효하지 않은 상태입니다. (collected, edited, uploaded, manual_pending, approved 중 하나)'
       });
     }
 
@@ -461,7 +461,7 @@ router.post('/batch-status', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
     const { ids, status } = req.body;
-    const validStatuses = ['collected', 'uploaded', 'approved'];
+    const validStatuses = ['collected', 'edited', 'uploaded', 'manual_pending', 'approved'];
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ success: false, message: '상품 ID가 필요합니다.' });
@@ -470,7 +470,7 @@ router.post('/batch-status', authMiddleware, async (req, res) => {
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: '유효하지 않은 상태입니다. (collected, uploaded, approved 중 하나)'
+        message: '유효하지 않은 상태입니다. (collected, edited, uploaded, manual_pending, approved 중 하나)'
       });
     }
 

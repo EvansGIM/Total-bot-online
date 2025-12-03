@@ -4207,9 +4207,11 @@
 
         // 상품 상태를 'uploaded'로 변경하고 quoteId 저장
         const productIds = pendingDownloadProducts.map(p => p.id).filter(id => id);
+        console.log('📝 견적서 ID 저장 시작:', { quoteId, productIds, pendingCount: pendingDownloadProducts.length });
 
         if (productIds.length > 0) {
           // 일괄 상태 변경
+          console.log('📤 batch-status API 호출...');
           const statusResponse = await fetch(`${SERVER_URL}/api/products/batch-status`, {
             method: 'POST',
             headers: {
@@ -4222,13 +4224,17 @@
             })
           });
 
+          const statusResult = await statusResponse.json();
+          console.log('📥 batch-status 응답:', statusResult);
+
           if (!statusResponse.ok) {
-            throw new Error('상태 변경 실패');
+            throw new Error(statusResult.message || '상태 변경 실패');
           }
 
           // 각 상품에 quoteId 저장
+          console.log('📤 각 상품에 quoteId 저장 시작...');
           for (const productId of productIds) {
-            await fetch(`${SERVER_URL}/api/products/${productId}`, {
+            const updateResponse = await fetch(`${SERVER_URL}/api/products/${productId}`, {
               method: 'PUT',
               headers: {
                 'Content-Type': 'application/json',
@@ -4239,17 +4245,27 @@
                 uploadedAt: new Date().toISOString()
               })
             });
+            const updateResult = await updateResponse.json();
+            console.log(`📥 상품 ${productId} 업데이트:`, updateResult);
           }
+          console.log('✅ 모든 상품 업데이트 완료');
+        } else {
+          console.warn('⚠️ 업데이트할 상품 ID가 없습니다');
         }
 
         hideDownloadProgressModal();
-        closeQuoteIdModal();
 
-        alert(`✅ 견적서 ID가 저장되었습니다!\n\n견적서 ID: ${quoteId}\n상품 ${productIds.length}개가 업로드 완료로 변경되었습니다.`);
+        // closeQuoteIdModal()이 상태를 다시 변경하지 않도록 먼저 데이터 초기화
+        const savedCount = productIds.length;
+        pendingDownloadProducts = [];
+
+        // 모달 닫기 (데이터가 비어있으므로 상태 변경 없음)
+        document.getElementById('quoteIdInputModal').style.display = 'none';
+
+        alert(`✅ 견적서 ID가 저장되었습니다!\n\n견적서 ID: ${quoteId}\n상품 ${savedCount}개가 업로드 완료로 변경되었습니다.`);
 
         // 상품 목록 새로고침
         loadProducts();
-        pendingDownloadProducts = [];
 
       } catch (error) {
         hideDownloadProgressModal();
