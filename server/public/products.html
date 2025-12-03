@@ -4160,6 +4160,7 @@
             // 상태를 'manual_pending'으로 변경 (수동 업로드 대기)
             await authFetch('/api/products/batch-status', {
               method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 ids: productIds,
                 status: 'manual_pending'
@@ -4215,25 +4216,33 @@
         if (productIds.length > 0) {
           // 일괄 상태 변경
           console.log('📤 batch-status API 호출...');
-          const statusResult = await authFetch('/api/products/batch-status', {
+          const statusResponse = await authFetch('/api/products/batch-status', {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               ids: productIds,
               status: 'uploaded'
             })
           });
+          const statusResult = await statusResponse.json();
           console.log('📥 batch-status 응답:', statusResult);
+
+          if (!statusResponse.ok) {
+            throw new Error(statusResult.message || '상태 변경 실패');
+          }
 
           // 각 상품에 quoteId 저장
           console.log('📤 각 상품에 quoteId 저장 시작...');
           for (const productId of productIds) {
-            const updateResult = await authFetch(`/api/products/${productId}`, {
+            const updateResponse = await authFetch(`/api/products/${productId}`, {
               method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 quoteId: quoteId,
                 uploadedAt: new Date().toISOString()
               })
             });
+            const updateResult = await updateResponse.json();
             console.log(`📥 상품 ${productId} 업데이트:`, updateResult);
           }
           console.log('✅ 모든 상품 업데이트 완료');
