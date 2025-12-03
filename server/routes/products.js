@@ -214,15 +214,57 @@ async function translateText(text) {
 // 인증 필요 API (유저별 데이터)
 // ============================================
 
-// 상품 목록 조회 (인증 필요)
+// 상품 목록 조회 (인증 필요) - 경량 데이터만 반환
 router.get('/list', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
     const products = await loadUserProducts(userId);
-    res.json({ success: true, products });
+
+    // 목록용 경량 데이터만 추출 (무거운 필드 제외)
+    const lightProducts = products.map(p => ({
+      id: p.id,
+      title: p.title,
+      titleCn: p.titleCn,
+      mainImage: p.mainImage,
+      platform: p.platform,
+      url: p.url,
+      status: p.status,
+      savedAt: p.savedAt,
+      updatedAt: p.updatedAt,
+      statusUpdatedAt: p.statusUpdatedAt,
+      quoteId: p.quoteId,
+      uploadedAt: p.uploadedAt,
+      resultsCount: p.results?.length || 0,
+      // results에서 첫번째 항목의 가격만 (목록 표시용)
+      price: p.results?.[0]?.price || p.results?.[0]?.unitPrice,
+      // 무거운 필드 제외: detailPageItems, detailHtml, images, results 전체
+    }));
+
+    res.json({ success: true, products: lightProducts });
   } catch (error) {
     console.error('상품 목록 조회 오류:', error);
     res.status(500).json({ success: false, message: '상품 목록 조회 실패' });
+  }
+});
+
+// 여러 상품 전체 데이터 조회 (인증 필요) - 견적서 생성용
+router.post('/bulk', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { ids } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: '상품 ID가 필요합니다.' });
+    }
+
+    const products = await loadUserProducts(userId);
+    const selectedProducts = products.filter(p => ids.includes(p.id));
+
+    console.log(`[Products API] 상품 bulk 조회 (User: ${userId}): ${selectedProducts.length}개`);
+    res.json({ success: true, products: selectedProducts });
+  } catch (error) {
+    console.error('상품 bulk 조회 오류:', error);
+    res.status(500).json({ success: false, message: '상품 조회 실패' });
   }
 });
 

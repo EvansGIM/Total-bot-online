@@ -2480,10 +2480,40 @@
       }
     }
 
+    // 선택한 상품들의 전체 데이터 로드 (견적서 생성용)
+    async function loadFullProductData(productIds) {
+      try {
+        const response = await authFetch('/api/products/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: productIds })
+        });
+        const data = await response.json();
+        if (data.success) {
+          return data.products;
+        }
+        throw new Error(data.message || '상품 데이터 로드 실패');
+      } catch (error) {
+        console.error('상품 전체 데이터 로드 오류:', error);
+        throw error;
+      }
+    }
+
     // 견적서 생성 - 쿠팡 카테고리 검색 모달 열기
     async function generateQuote() {
-      // ⚠️ 먼저 편집되지 않은 제품이 있는지 확인
-      const selectedProductsData = allProducts.filter(p => selectedProducts.has(p.id));
+      if (selectedProducts.size === 0) {
+        alert('견적서를 생성할 상품을 선택해주세요.');
+        return;
+      }
+
+      // ⚠️ 선택한 상품의 전체 데이터 로드 (목록은 경량 데이터만 있음)
+      let selectedProductsData;
+      try {
+        selectedProductsData = await loadFullProductData(Array.from(selectedProducts));
+      } catch (error) {
+        alert('상품 데이터를 불러오는데 실패했습니다.');
+        return;
+      }
 
       if (selectedProductsData.length === 0) {
         alert('견적서를 생성할 상품을 선택해주세요.');
@@ -2504,6 +2534,9 @@
         alert(`다음 상품들이 편집되지 않았습니다:\n\n${uneditedProducts.map((name, idx) => `${idx + 1}. ${name}`).join('\n')}\n\n먼저 "편집" 버튼을 눌러 각 상품의 상세페이지를 편집하고 저장해주세요.`);
         return;
       }
+
+      // 전체 데이터를 임시 저장 (후속 작업에서 사용)
+      window.selectedFullProductsData = selectedProductsData;
 
       // 쿠팡 카테고리 검색 모달 열기
       openCoupangCategoryModal();
@@ -4309,8 +4342,8 @@
       showDownloadProgressModal('파일 생성 및 다운로드 중...');
 
       try {
-        // 선택한 상품 데이터 준비
-        const selectedProductsData = allProducts.filter(p => selectedProducts.has(p.id));
+        // 선택한 상품 데이터 사용 (generateQuote에서 이미 로드됨)
+        const selectedProductsData = window.selectedFullProductsData || [];
 
         // 각 파일 정보와 선택된 카테고리 매핑
         const filesData = detailCategoryState.excelData.map((item, index) => {
@@ -4397,8 +4430,8 @@
       try {
         console.log('📝 견적서 자동 작성 시작...');
 
-        // 선택한 상품 데이터 준비
-        const selectedProductsData = allProducts.filter(p => selectedProducts.has(p.id));
+        // 선택한 상품 데이터 사용 (generateQuote에서 이미 로드됨)
+        const selectedProductsData = window.selectedFullProductsData || [];
         console.log(`🛍️  선택한 상품 ${selectedProductsData.length}개:`, selectedProductsData);
 
         // 각 파일 정보와 선택된 카테고리 매핑
