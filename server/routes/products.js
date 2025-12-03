@@ -32,21 +32,94 @@ function getUserProductsFile(userId) {
   return path.join(DATA_DIR, String(userId), 'products.json');
 }
 
+// 유저별 이미지 디렉토리 경로
+function getUserImagesDir(userId) {
+  return path.join(DATA_DIR, String(userId), 'images');
+}
+
 // 유저별 디렉토리 생성
 async function ensureUserDirectoryExists(userId) {
   const userDir = path.join(DATA_DIR, String(userId));
+  const imagesDir = getUserImagesDir(userId);
   try {
     await fs.mkdir(userDir, { recursive: true });
+    await fs.mkdir(imagesDir, { recursive: true });
   } catch (error) {
     console.error('디렉토리 생성 오류:', error);
   }
 }
 
+// 파일 잠금 관리 (동시 쓰기 방지)
+const fileLocks = new Map();
+
+async function acquireLock(filePath, timeout = 10000) {
+  const startTime = Date.now();
+  while (fileLocks.get(filePath)) {
+    if (Date.now() - startTime > timeout) {
+      throw new Error('파일 잠금 획득 시간 초과');
+    }
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  fileLocks.set(filePath, true);
+}
+
+function releaseLock(filePath) {
+  fileLocks.delete(filePath);
+}
+
+// base64 이미지를 파일로 저장하고 경로 반환
+async function saveBase64Image(userId, base64Data, prefix = 'img') {
+  if (!base64Data || !base64Data.startsWith('data:')) {
+    return base64Data; // base64가 아니면 그대로 반환
+  }
+
+  try {
+    const matches = base64Data.match(/^data:image\/([a-zA-Z+]+);base64,(.+)$/);
+    if (!matches) return '';
+
+    const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+    const imageData = matches[2];
+    const fileName = `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${ext}`;
+    const imagesDir = getUserImagesDir(userId);
+    const filePath = path.join(imagesDir, fileName);
+
+    await fs.writeFile(filePath, imageData, 'base64');
+
+    // 상대 경로 반환 (서버에서 접근 가능한 URL)
+    return `/api/products/images/${userId}/${fileName}`;
+  } catch (error) {
+    console.error('이미지 저장 오류:', error);
+    return '';
+  }
+}
+
+// 상품 데이터에서 base64 이미지 추출 및 파일로 저장
+async function extractAndSaveImages(userId, product) {
+  // detailPageItems의 generatedImage 처리
+  if (product.detailPageItems && Array.isArray(product.detailPageItems)) {
+    for (const item of product.detailPageItems) {
+      if (item.generatedImage && item.generatedImage.startsWith('data:')) {
+        item.generatedImage = await saveBase64Image(userId, item.generatedImage, 'detail');
+      }
+    }
+  }
+
+  // detailHtml에서 base64 이미지 추출 (너무 큰 경우 비움)
+  if (product.detailHtml && product.detailHtml.length > 100000) {
+    // 100KB 이상의 detailHtml은 비움 (이미지가 포함된 경우)
+    console.log(`[Products] detailHtml 크기 초과 (${(product.detailHtml.length/1024).toFixed(1)}KB), 비움`);
+    product.detailHtml = '';
+  }
+
+  return product;
+}
+
 // 유저별 상품 데이터 로드
 async function loadUserProducts(userId) {
+  const filePath = getUserProductsFile(userId);
   try {
     await ensureUserDirectoryExists(userId);
-    const filePath = getUserProductsFile(userId);
+    await acquireLock(filePath);
     const data = await fs.readFile(filePath, 'utf-8');
     return JSON.parse(data);
   } catch (error) {
@@ -54,14 +127,37 @@ async function loadUserProducts(userId) {
       return []; // 파일이 없으면 빈 배열 반환
     }
     throw error;
+  } finally {
+    releaseLock(filePath);
   }
 }
 
-// 유저별 상품 데이터 저장
-async function saveUserProducts(userId, products) {
+// 유저별 상품 데이터 저장 (이미지 추출 포함)
+async function saveUserProducts(userId, products, extractImages = false) {
   await ensureUserDirectoryExists(userId);
   const filePath = getUserProductsFile(userId);
-  await fs.writeFile(filePath, JSON.stringify(products, null, 2), 'utf-8');
+
+  try {
+    await acquireLock(filePath);
+
+    // 이미지 추출 옵션이 켜져 있으면 처리
+    if (extractImages) {
+      for (let i = 0; i < products.length; i++) {
+        products[i] = await extractAndSaveImages(userId, products[i]);
+      }
+    }
+
+    // JSON 크기 체크 (경고용)
+    const jsonStr = JSON.stringify(products);
+    const sizeMB = jsonStr.length / 1024 / 1024;
+    if (sizeMB > 10) {
+      console.warn(`[Products] 경고: 상품 데이터가 ${sizeMB.toFixed(1)}MB입니다. 최적화가 필요합니다.`);
+    }
+
+    await fs.writeFile(filePath, jsonStr, 'utf-8');
+  } finally {
+    releaseLock(filePath);
+  }
 }
 
 // 로컬 폰트를 포함한 CSS 생성
@@ -211,8 +307,81 @@ async function translateText(text) {
 }
 
 // ============================================
+// 이미지 제공 API (인증 불필요)
+// ============================================
+
+// 저장된 이미지 제공
+router.get('/images/:userId/:filename', async (req, res) => {
+  try {
+    const { userId, filename } = req.params;
+    const imagePath = path.join(DATA_DIR, String(userId), 'images', filename);
+
+    // 보안: 경로 탈출 방지
+    if (filename.includes('..') || filename.includes('/')) {
+      return res.status(400).send('Invalid filename');
+    }
+
+    const fsSync = require('fs');
+    if (!fsSync.existsSync(imagePath)) {
+      return res.status(404).send('Image not found');
+    }
+
+    res.sendFile(imagePath);
+  } catch (error) {
+    console.error('이미지 제공 오류:', error);
+    res.status(500).send('Error serving image');
+  }
+});
+
+// ============================================
 // 인증 필요 API (유저별 데이터)
 // ============================================
+
+// 기존 데이터 최적화 (base64 이미지를 파일로 변환)
+router.post('/optimize', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const products = await loadUserProducts(userId);
+
+    let extractedCount = 0;
+    let clearedHtmlCount = 0;
+
+    for (let i = 0; i < products.length; i++) {
+      const product = products[i];
+
+      // detailPageItems의 base64 이미지 추출
+      if (product.detailPageItems && Array.isArray(product.detailPageItems)) {
+        for (const item of product.detailPageItems) {
+          if (item.generatedImage && item.generatedImage.startsWith('data:')) {
+            item.generatedImage = await saveBase64Image(userId, item.generatedImage, 'detail');
+            extractedCount++;
+          }
+        }
+      }
+
+      // 큰 detailHtml 비우기
+      if (product.detailHtml && product.detailHtml.length > 100000) {
+        product.detailHtml = '';
+        clearedHtmlCount++;
+      }
+    }
+
+    await saveUserProducts(userId, products, false);
+
+    const filePath = getUserProductsFile(userId);
+    const fsSync = require('fs');
+    const newSize = fsSync.statSync(filePath).size;
+
+    res.json({
+      success: true,
+      message: `최적화 완료: ${extractedCount}개 이미지 추출, ${clearedHtmlCount}개 HTML 정리`,
+      newSizeMB: (newSize / 1024 / 1024).toFixed(2)
+    });
+  } catch (error) {
+    console.error('데이터 최적화 오류:', error);
+    res.status(500).json({ success: false, message: '최적화 실패: ' + error.message });
+  }
+});
 
 // 상품 목록 조회 (인증 필요) - 경량 데이터만 반환
 router.get('/list', authMiddleware, async (req, res) => {
@@ -377,13 +546,20 @@ router.put('/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, message: '상품을 찾을 수 없습니다.' });
     }
 
-    products[index] = {
+    let updatedProduct = {
       ...products[index],
       ...req.body,
       id: req.params.id,
       userId: userId,
       updatedAt: new Date().toISOString()
     };
+
+    // detailPageItems가 있으면 base64 이미지 추출
+    if (req.body.detailPageItems) {
+      updatedProduct = await extractAndSaveImages(userId, updatedProduct);
+    }
+
+    products[index] = updatedProduct;
 
     await saveUserProducts(userId, products);
 
@@ -406,13 +582,20 @@ router.patch('/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, message: '상품을 찾을 수 없습니다.' });
     }
 
-    products[index] = {
+    let updatedProduct = {
       ...products[index],
       ...req.body,
       id: req.params.id,
       userId: userId,
       updatedAt: new Date().toISOString()
     };
+
+    // detailPageItems가 있으면 base64 이미지 추출
+    if (req.body.detailPageItems) {
+      updatedProduct = await extractAndSaveImages(userId, updatedProduct);
+    }
+
+    products[index] = updatedProduct;
 
     await saveUserProducts(userId, products);
 
