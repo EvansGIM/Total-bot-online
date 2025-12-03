@@ -11927,19 +11927,18 @@
         input.style.cssText = 'flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;';
         input.dataset.field = fieldName;
         input.dataset.originalValue = value;
+        input.dataset.containerId = containerId;
 
-        // Enter 키 처리
+        // Enter 키: 값 적용 후 다음으로 이동
         input.addEventListener('keydown', (e) => {
           if (e.key === 'Enter') {
             e.preventDefault();
-            // 값 적용 후 다음 input으로 이동
             const originalVal = input.dataset.originalValue;
             const newVal = input.value;
             if (originalVal !== newVal) {
               applyMappingChangeWithoutRerender(fieldName, originalVal, newVal);
               input.dataset.originalValue = newVal;
             }
-
             // 다음 input으로 이동
             const allInputs = container.querySelectorAll('.mapping-input');
             const currentIndex = Array.from(allInputs).indexOf(input);
@@ -11947,71 +11946,33 @@
               allInputs[currentIndex + 1].focus();
               allInputs[currentIndex + 1].select();
             }
-          } else if (e.key === 'Tab') {
-            e.preventDefault();
-
-            // 현재 값 적용 (리렌더링 없이)
-            const originalVal = input.dataset.originalValue;
-            const newVal = input.value;
-            if (originalVal !== newVal) {
-              applyMappingChangeWithoutRerender(fieldName, originalVal, newVal);
-              input.dataset.originalValue = newVal;
-            }
-
-            const allInputs = container.querySelectorAll('.mapping-input');
-            const currentIndex = Array.from(allInputs).indexOf(input);
-
-            if (!e.shiftKey) {
-              // Tab: 다음 입력 필드로 이동
-              if (currentIndex < allInputs.length - 1) {
-                allInputs[currentIndex + 1].focus();
-                allInputs[currentIndex + 1].select();
-              } else {
-                // 옵션1 -> 옵션2로 이동
-                const otherContainerId = containerId === 'option1MappingList' ? 'option2MappingList' : 'option1MappingList';
-                const otherContainer = document.getElementById(otherContainerId);
-                if (otherContainer) {
-                  const otherInputs = otherContainer.querySelectorAll('.mapping-input');
-                  if (otherInputs.length > 0) {
-                    otherInputs[0].focus();
-                    otherInputs[0].select();
-                  }
-                }
-              }
-            } else {
-              // Shift+Tab: 이전 입력 필드로 이동
-              if (currentIndex > 0) {
-                allInputs[currentIndex - 1].focus();
-                allInputs[currentIndex - 1].select();
-              } else {
-                // 다른 컬럼의 마지막으로 이동
-                const otherContainerId = containerId === 'option1MappingList' ? 'option2MappingList' : 'option1MappingList';
-                const otherContainer = document.getElementById(otherContainerId);
-                if (otherContainer) {
-                  const otherInputs = otherContainer.querySelectorAll('.mapping-input');
-                  if (otherInputs.length > 0) {
-                    otherInputs[otherInputs.length - 1].focus();
-                    otherInputs[otherInputs.length - 1].select();
-                  }
-                }
-              }
-            }
           }
+          // Tab은 브라우저 기본 동작 사용 (preventDefault 안 함)
         });
 
+        // blur: 값 적용 (리렌더링은 매핑 영역 밖으로 나갈 때만)
         input.addEventListener('blur', (e) => {
-          // setTimeout으로 지연 처리하여 focus 이동 완료 후 확인
+          const originalVal = input.dataset.originalValue;
+          const newVal = input.value;
+
+          // 값이 변경되었으면 먼저 데이터 적용
+          if (originalVal !== newVal) {
+            applyMappingChangeWithoutRerender(fieldName, originalVal, newVal);
+            input.dataset.originalValue = newVal;
+          }
+
+          // 리렌더링 여부는 지연 후 판단
           setTimeout(() => {
-            // 현재 포커스가 매핑 input인지 확인
             const activeElement = document.activeElement;
+            // 매핑 input 간 이동이면 리렌더링 안함
             if (activeElement && activeElement.classList.contains('mapping-input')) {
-              // 매핑 input 간 이동 - 리렌더링 하지 않음
               return;
             }
-
-            // 매핑 영역 밖으로 나간 경우 전체 리렌더링
-            applyMappingChange(fieldName, input.dataset.originalValue, input.value);
-          }, 10);
+            // 밖으로 나간 경우 테이블 리렌더링
+            renderOptions();
+            renderMappingLists();
+            syncDetailPageOptionBlocks();
+          }, 50);
         });
 
         // 삭제 버튼
