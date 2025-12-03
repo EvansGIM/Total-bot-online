@@ -445,6 +445,26 @@
       transition: all 0.2s ease;
     }
 
+    .source-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .source-link:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      opacity: 0.9;
+    }
+
     .actions {
       display: flex;
       gap: 8px;
@@ -2266,7 +2286,7 @@
                 <td><input type="checkbox" class="checkbox" onclick="event.stopPropagation()" onchange="toggleProduct('${product.id || index}')"></td>
                 <td><img src="${productImage}" class="product-image" data-preview="${productImage}" onmouseenter="showImagePreview(event)" onmouseleave="hideImagePreview()" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22 font-size=%2214%22%3E이미지 없음%3C/text%3E%3C/svg%3E'"></td>
                 <td><div class="product-title" title="${product.title || product.titleCn || ''}">${product.title || product.titleCn || '제목 없음'}</div></td>
-                <td>${product.url ? `<a href="${product.url}" target="_blank" rel="noopener noreferrer" class="platform-link" title="원본 링크로 이동" onclick="event.stopPropagation()"><span class="platform-badge badge-${product.platform?.split('-')[0] || 'unknown'}">${getPlatformName(product.platform)}</span></a>` : `<span class="platform-badge badge-${product.platform?.split('-')[0] || 'unknown'}">${getPlatformName(product.platform)}</span>`}</td>
+                <td>${product.url ? `<a href="${product.url}" target="_blank" rel="noopener noreferrer" class="source-link" title="${getPlatformName(product.platform)} 원본 페이지로 이동" onclick="event.stopPropagation()">🔗 원본 링크</a>` : `<span style="color: #999;">-</span>`}</td>
                 <td>${product.results?.length || 0}개</td>
                 <td style="font-weight: bold; color: #e63946;">¥${displayPrice}</td>
                 <td><span class="status-badge ${product.isEdited && (product.status || 'collected') === 'collected' ? 'edited' : (product.status || 'collected')}">${getStatusLabel(product.status || 'collected', product.isEdited)}</span></td>
