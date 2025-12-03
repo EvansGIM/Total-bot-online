@@ -73,7 +73,7 @@ const MAX_HEARTBEAT_FAILURES = 3;         // 연속 실패 허용 횟수
 
 // ===== 쿠팡 API 직접 호출 함수 (캐시 문제 우회) =====
 
-// API 전용 탭 ID 캐시
+// API 전용 탭 ID 캐시 (메모리 + storage.session)
 let apiTabId = null;
 
 /**
@@ -81,16 +81,34 @@ let apiTabId = null;
  * 기존 쿠팡 탭의 캐시/에러 상태를 피하기 위해 별도 탭 사용
  */
 async function getOrCreateApiTab() {
+  // 메모리에 없으면 storage.session에서 복원 시도
+  if (!apiTabId) {
+    try {
+      const stored = await chrome.storage.session.get('apiTabId');
+      if (stored.apiTabId) {
+        apiTabId = stored.apiTabId;
+        console.log('📌 API 탭 ID 복원:', apiTabId);
+      }
+    } catch (e) {
+      // storage.session 지원 안 할 수 있음
+    }
+  }
+
   // 기존 API 탭이 유효한지 확인
   if (apiTabId) {
     try {
       const tab = await chrome.tabs.get(apiTabId);
       if (tab && tab.url && tab.url.includes('supplier.coupang.com')) {
+        console.log('📌 기존 API 탭 재사용:', apiTabId);
         return apiTabId;
       }
     } catch (e) {
       // 탭이 닫혔거나 유효하지 않음
+      console.log('📌 기존 API 탭 무효, 새로 생성 필요');
       apiTabId = null;
+      try {
+        await chrome.storage.session.remove('apiTabId');
+      } catch (e2) {}
     }
   }
 
@@ -101,6 +119,11 @@ async function getOrCreateApiTab() {
     active: false
   });
   apiTabId = newTab.id;
+
+  // storage.session에 저장 (서비스 워커 재시작 시 복원용)
+  try {
+    await chrome.storage.session.set({ apiTabId: apiTabId });
+  } catch (e) {}
 
   // 페이지 로드 대기
   await new Promise(resolve => {
@@ -138,6 +161,9 @@ async function closeApiTab() {
       console.log('⚠️ API 탭 닫기 실패 (이미 닫힌 듯):', e.message);
     }
     apiTabId = null;
+    try {
+      await chrome.storage.session.remove('apiTabId');
+    } catch (e) {}
   }
 }
 
@@ -1299,6 +1325,15 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 // 탭이 닫히면 추적에서 제거 + 마지막 쿠팡 탭 닫힘 시 Heartbeat 중지
 chrome.tabs.onRemoved.addListener(async (tabId) => {
   injectedTabs.delete(tabId);
+
+  // API 전용 탭이 닫혔으면 캐시 정리
+  if (tabId === apiTabId) {
+    console.log('📌 API 전용 탭이 닫힘, 캐시 정리');
+    apiTabId = null;
+    try {
+      await chrome.storage.session.remove('apiTabId');
+    } catch (e) {}
+  }
 
   // 쿠팡 탭 자동 새로고침 타이머 정리
   stopCoupangRefreshTimer(tabId);
