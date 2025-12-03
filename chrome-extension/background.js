@@ -755,10 +755,11 @@ async function incrementCoupangOperation() {
 // ======================================
 const APPROVAL_CHECK_INTERVAL = 10 * 60 * 1000; // 10분
 let approvalCheckerStarted = false;
+let approvalCheckerIntervalId = null;
 let cachedVendorId = null;
 
 /**
- * 자동 승인 확인 시작
+ * 자동 승인 확인 시작 (uploaded.html 페이지 진입 시에만)
  */
 function startApprovalChecker() {
   if (approvalCheckerStarted) {
@@ -766,16 +767,33 @@ function startApprovalChecker() {
     return;
   }
 
-  console.log('🔄 자동 승인 확인 시작 (10분 간격)');
+  console.log('🔄 자동 승인 확인 시작 (10분 간격) - uploaded.html 활성화');
   approvalCheckerStarted = true;
 
   // 즉시 한 번 실행
   checkUploadedProductsApproval();
 
   // 10분마다 실행
-  setInterval(() => {
+  approvalCheckerIntervalId = setInterval(() => {
     checkUploadedProductsApproval();
   }, APPROVAL_CHECK_INTERVAL);
+}
+
+/**
+ * 자동 승인 확인 중지 (uploaded.html 페이지에서 나갈 때)
+ */
+function stopApprovalChecker() {
+  if (!approvalCheckerStarted) {
+    return;
+  }
+
+  console.log('⏹️ 자동 승인 확인 중지 - uploaded.html 비활성화');
+
+  if (approvalCheckerIntervalId) {
+    clearInterval(approvalCheckerIntervalId);
+    approvalCheckerIntervalId = null;
+  }
+  approvalCheckerStarted = false;
 }
 
 /**
@@ -1178,10 +1196,10 @@ async function updateProductsSkuStatus(productIds, statusResult) {
   }
 }
 
-// 확장 프로그램 시작 시 자동 승인 확인 시작 + 쿠팡 탭 있으면 Heartbeat 시작
+// 확장 프로그램 시작 시 쿠팡 탭 있으면 Heartbeat 시작
 chrome.runtime.onStartup.addListener(async () => {
   console.log('🚀 확장 프로그램 시작됨');
-  startApprovalChecker();
+  // 승인 확인은 uploaded.html 진입 시에만 시작됨
 
   // 브라우저 시작 시 쿠팡 탭이 이미 열려 있으면 Heartbeat 시작
   const coupangTab = await findActiveCoupangTab();
@@ -1194,7 +1212,7 @@ chrome.runtime.onStartup.addListener(async () => {
 // 확장 프로그램 설치/업데이트 시
 chrome.runtime.onInstalled.addListener(async () => {
   console.log('📦 확장 프로그램 설치/업데이트됨');
-  startApprovalChecker();
+  // 승인 확인은 uploaded.html 진입 시에만 시작됨
 
   // 설치/업데이트 시에도 쿠팡 탭 있으면 Heartbeat 시작
   const coupangTab = await findActiveCoupangTab();
@@ -1204,8 +1222,8 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
 });
 
-// 서비스 워커 활성화 시에도 시작 (MV3 특성상 필요)
-startApprovalChecker();
+// 서비스 워커 활성화 시 (승인 확인은 uploaded.html 진입 시에만)
+// startApprovalChecker(); // 제거됨 - uploaded.html 진입 시에만 시작
 
 // localhost 탭에 자동으로 content script 주입 + 쿠팡 탭 Heartbeat 시작
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -1217,6 +1235,22 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     startCoupangHeartbeat();
     // 세션 만료 방지를 위한 자동 새로고침 타이머 시작
     startCoupangRefreshTimer(tabId);
+  }
+
+  // uploaded.html 진입 시 자동 승인 확인 시작
+  if (changeInfo.status === 'complete' &&
+      tab.url &&
+      tab.url.includes('totalbot.cafe24.com/uploaded.html')) {
+    console.log('📋 업로드 완료 페이지 진입, 자동 승인 확인 시작');
+    startApprovalChecker();
+  }
+
+  // uploaded.html에서 다른 페이지로 이동 시 승인 확인 중지
+  if (changeInfo.url &&
+      !changeInfo.url.includes('uploaded.html') &&
+      approvalCheckerStarted) {
+    // URL이 변경되었고, uploaded.html이 아니면 중지
+    stopApprovalChecker();
   }
 
   // 탭이 완전히 로드되고, totalbot.cafe24.com/node-api이며, 아직 주입하지 않았을 때
@@ -1275,6 +1309,15 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
     if (!remainingCoupangTab) {
       console.log('🔔 마지막 쿠팡 탭 닫힘, Heartbeat 중지');
       stopCoupangHeartbeat();
+    }
+  }
+
+  // uploaded.html 탭이 남아있는지 확인
+  if (approvalCheckerStarted) {
+    const tabs = await chrome.tabs.query({ url: '*://totalbot.cafe24.com/uploaded.html*' });
+    if (tabs.length === 0) {
+      console.log('📋 마지막 업로드 완료 페이지 닫힘, 승인 확인 중지');
+      stopApprovalChecker();
     }
   }
 });
