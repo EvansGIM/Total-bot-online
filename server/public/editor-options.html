@@ -12000,21 +12000,18 @@
         });
 
         input.addEventListener('blur', (e) => {
-          // 다른 매핑 input으로 이동하는 경우 리렌더링 하지 않음
-          const nextElement = e.relatedTarget;
-          if (nextElement && nextElement.classList.contains('mapping-input')) {
-            // 값만 적용 (리렌더링 없이)
-            const originalVal = input.dataset.originalValue;
-            const newVal = input.value;
-            if (originalVal !== newVal) {
-              applyMappingChangeWithoutRerender(fieldName, originalVal, newVal);
-              input.dataset.originalValue = newVal;
+          // setTimeout으로 지연 처리하여 focus 이동 완료 후 확인
+          setTimeout(() => {
+            // 현재 포커스가 매핑 input인지 확인
+            const activeElement = document.activeElement;
+            if (activeElement && activeElement.classList.contains('mapping-input')) {
+              // 매핑 input 간 이동 - 리렌더링 하지 않음
+              return;
             }
-            return;
-          }
 
-          // 매핑 영역 밖으로 나가는 경우 전체 리렌더링
-          applyMappingChange(fieldName, input.dataset.originalValue, input.value);
+            // 매핑 영역 밖으로 나간 경우 전체 리렌더링
+            applyMappingChange(fieldName, input.dataset.originalValue, input.value);
+          }, 10);
         });
 
         // 삭제 버튼
