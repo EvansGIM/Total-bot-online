@@ -3569,8 +3569,30 @@
         }
       } catch (error) {
         console.error('카테고리 검색 오류:', error);
-        showCoupangStatus('error', `오류: ${error.message}`);
-        showCoupangEmptyState();
+
+        // HTML 응답 (로그인 페이지 리다이렉트) 또는 JSON 파싱 에러 감지
+        if (error.message.includes('<!DOCTYPE') || error.message.includes('Unexpected token')) {
+          showCoupangStatus('error', '⚠️ 쿠팡 로그인이 필요합니다. Wing에서 로그인 후 다시 시도해주세요.');
+          // 쿠팡 로그인 페이지 열기 버튼 표시
+          const resultsDiv = document.getElementById('coupangResults');
+          resultsDiv.innerHTML = `
+            <div style="text-align: center; padding: 30px;">
+              <p style="color: #e74c3c; font-size: 16px; margin-bottom: 15px;">
+                ⚠️ 쿠팡 Wing 로그인이 필요합니다
+              </p>
+              <p style="color: #666; margin-bottom: 20px;">
+                카테고리 검색을 위해 쿠팡 Wing에 먼저 로그인해주세요.
+              </p>
+              <button onclick="window.open('https://wing.coupang.com', '_blank')"
+                      style="padding: 12px 24px; background: #e74c3c; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                🔗 쿠팡 Wing 로그인하기
+              </button>
+            </div>
+          `;
+        } else {
+          showCoupangStatus('error', `오류: ${error.message}`);
+          showCoupangEmptyState();
+        }
       } finally {
         coupangCategoryState.loading = false;
       }
