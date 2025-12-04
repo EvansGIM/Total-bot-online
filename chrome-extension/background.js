@@ -730,6 +730,74 @@ async function clearCoupangCacheCookies() {
 }
 
 /**
+ * QVT 페이지 쿠키 리셋 및 새로고침
+ * QVT 등록 페이지에서 발생하는 쿠키/세션 문제 해결
+ */
+async function resetQvtCookiesAndReload() {
+  console.log('🔄 QVT 페이지 쿠키 리셋 시작...');
+
+  // QVT 관련 쿠키 패턴
+  const qvtCookiePatterns = [
+    /^WMONID/,
+    /^JSESSIONID/,
+    /^wcs_/,
+    /^_WCS/,
+    /qvt/i,
+    /^PCID/,
+    /^x-coupang-/,
+    /^supplier/i,
+  ];
+
+  let deletedCount = 0;
+
+  // supplier.coupang.com 쿠키 가져오기
+  const cookies = await chrome.cookies.getAll({ domain: 'supplier.coupang.com' });
+
+  for (const cookie of cookies) {
+    const shouldDelete = qvtCookiePatterns.some(pattern => pattern.test(cookie.name));
+    if (shouldDelete) {
+      try {
+        const url = `https://supplier.coupang.com${cookie.path}`;
+        await chrome.cookies.remove({ url, name: cookie.name });
+        deletedCount++;
+        console.log(`🗑️ 삭제된 쿠키: ${cookie.name}`);
+      } catch (e) {
+        // 무시
+      }
+    }
+  }
+
+  // .coupang.com 도메인 쿠키도 일부 삭제
+  const globalCookies = await chrome.cookies.getAll({ domain: '.coupang.com' });
+  for (const cookie of globalCookies) {
+    if (/^(WMONID|PCID|x-coupang-)/.test(cookie.name)) {
+      try {
+        const url = `https://coupang.com${cookie.path}`;
+        await chrome.cookies.remove({ url, name: cookie.name });
+        deletedCount++;
+      } catch (e) {
+        // 무시
+      }
+    }
+  }
+
+  console.log(`🧹 QVT 쿠키 ${deletedCount}개 삭제 완료`);
+
+  // QVT 탭 찾아서 새로고침
+  const tabs = await chrome.tabs.query({ url: '*://supplier.coupang.com/qvt/*' });
+  for (const tab of tabs) {
+    try {
+      await chrome.tabs.reload(tab.id, { bypassCache: true });
+      console.log(`🔄 QVT 탭 새로고침: ${tab.id}`);
+    } catch (e) {
+      console.log('⚠️ QVT 탭 새로고침 실패:', e.message);
+    }
+  }
+
+  return { deletedCount, reloadedTabs: tabs.length };
+}
+
+/**
  * 쿠팡 관련 쿠키 전체 삭제
  */
 async function clearCoupangCookies() {
@@ -1400,6 +1468,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  // QVT 쿠키 리셋 및 새로고침
+  if (message.action === 'resetQvtCookies') {
+    (async () => {
+      try {
+        const result = await resetQvtCookiesAndReload();
+        sendResponse({ success: true, ...result });
+      } catch (error) {
+        console.error('QVT 쿠키 리셋 오류:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+    return true;
+  }
+
   // 현재 탭 닫기 (수집 완료 후)
   if (message.action === 'closeCurrentTab') {
     if (sender.tab && sender.tab.id) {
@@ -1706,6 +1788,14 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
     checkCoupangLoginStatus()
       .then(result => sendResponse(result))
       .catch(error => sendResponse({ loggedIn: false }));
+    return true;
+  }
+
+  // QVT 쿠키 리셋 및 새로고침
+  if (message.action === 'resetQvtCookies') {
+    resetQvtCookiesAndReload()
+      .then(result => sendResponse({ success: true, ...result }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
 
@@ -3894,12 +3984,13 @@ async function bringTabToFront(tabId) {
 
 // 알림 표시
 function showNotification(title, message) {
-  // 알림은 선택적으로 사용 (아이콘 없이)
+  // 알림은 선택적으로 사용
   try {
     chrome.notifications.create({
       type: 'basic',
-      title: title,
-      message: message
+      iconUrl: chrome.runtime.getURL('icons/icon48.png'),
+      title: title || 'TotalBot',
+      message: message || ''
     });
   } catch (e) {
     console.log('⚠️ Notification skipped:', e.message);

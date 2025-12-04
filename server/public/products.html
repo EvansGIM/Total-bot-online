@@ -1480,6 +1480,7 @@
         <span id="coupangLoginIcon">❌</span>
         <span style="font-size: 11px; position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.1); padding: 1px 3px; border-radius: 3px;">쿠팡</span>
       </button>
+      <button class="btn btn-secondary" onclick="resetQvtCookies()" style="font-size: 14px; padding: 8px 12px;" title="쿠팡 QVT 쿠키 리셋">🔄 QVT</button>
       <button class="btn btn-secondary" onclick="openSettingsModal()" style="font-size: 18px; padding: 8px 12px;">⚙️</button>
     </div>
   </div>
@@ -3467,6 +3468,28 @@
         }
       } catch (error) {
         console.log('⚠️ Could not check login status:', error.message);
+      }
+    }
+
+    // QVT 쿠키 리셋
+    async function resetQvtCookies() {
+      if (!confirm('쿠팡 QVT 페이지의 쿠키를 리셋하고 새로고침합니다.\n\n쿠키 관련 오류가 발생할 때 사용하세요.')) {
+        return;
+      }
+
+      try {
+        const response = await sendMessageToExtension('resetQvtCookies', {
+          action: 'resetQvtCookies'
+        });
+
+        if (response && response.success) {
+          alert(`✅ QVT 쿠키 리셋 완료!\n\n삭제된 쿠키: ${response.deletedCount}개\n새로고침된 탭: ${response.reloadedTabs}개`);
+        } else {
+          alert('⚠️ QVT 쿠키 리셋 실패: ' + (response?.error || '알 수 없는 오류'));
+        }
+      } catch (error) {
+        console.error('QVT 쿠키 리셋 오류:', error);
+        alert('⚠️ QVT 쿠키 리셋 중 오류가 발생했습니다.');
       }
     }
 
