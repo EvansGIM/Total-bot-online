@@ -148,6 +148,8 @@ async function updateProductIndex(userId, product) {
       uploadedAt: product.uploadedAt,
       quoteId: product.quoteId,
       resultsCount: product.results?.length || 0,
+      // 가격 정보 (목록 표시용)
+      price: product.results?.[0]?.price || product.results?.[0]?.unitPrice || null,
       isEdited: !!(product.detailPageItems && product.detailPageItems.length > 0),
       skuStatus: product.skuStatus
     };
@@ -597,6 +599,35 @@ router.post('/optimize', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('데이터 최적화 오류:', error);
     res.status(500).json({ success: false, message: '최적화 실패: ' + error.message });
+  }
+});
+
+// 인덱스 재생성 (가격 등 누락된 필드 업데이트)
+router.post('/rebuild-index', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const itemsDir = getUserItemsDir(userId);
+
+    // items 디렉토리의 모든 상품 파일 읽기
+    const files = await fs.readdir(itemsDir);
+    const jsonFiles = files.filter(f => f.endsWith('.json'));
+
+    console.log(`[Rebuild Index] User ${userId}: ${jsonFiles.length}개 상품 인덱스 재생성 시작`);
+
+    // 각 상품 파일을 읽어서 인덱스 재생성
+    for (const file of jsonFiles) {
+      const productId = file.replace('.json', '');
+      const product = await loadProduct(userId, productId);
+      if (product) {
+        await updateProductIndex(userId, product);
+      }
+    }
+
+    console.log(`[Rebuild Index] User ${userId}: 인덱스 재생성 완료`);
+    res.json({ success: true, message: `${jsonFiles.length}개 상품 인덱스가 재생성되었습니다.` });
+  } catch (error) {
+    console.error('인덱스 재생성 오류:', error);
+    res.status(500).json({ success: false, message: '인덱스 재생성 실패: ' + error.message });
   }
 });
 
