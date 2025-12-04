@@ -1215,6 +1215,11 @@ router.post('/generate-images', authMiddleware, async (req, res) => {
       // products[i]는 이미 위에서 loadProduct로 최신 데이터로 교체됨
       const product = products[i];
 
+      // 디버깅: detailHtml 상태 확인
+      console.log(`   [${i + 1}] ${(product.title || product.titleCn || '').substring(0, 30)}`);
+      console.log(`       - detailHtml: ${product.detailHtml ? `있음 (${product.detailHtml.length}자)` : '없음 -> 기본 템플릿 사용'}`);
+      console.log(`       - detailPageItems: ${product.detailPageItems ? `있음 (${product.detailPageItems.length}개)` : '없음'}`);
+
       const detailHtml = product.detailHtml || generateDetailPageHtml(product);
       const labelHtml = generateLabelHtml(product);
 
