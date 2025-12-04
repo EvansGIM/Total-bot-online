@@ -27,7 +27,7 @@ async function loadUserSettings(userId) {
   }
 }
 
-// 유저별 상품 파일 경로 반환
+// 유저별 상품 파일 경로 반환 (레거시 - 마이그레이션용)
 function getUserProductsFile(userId) {
   return path.join(DATA_DIR, String(userId), 'products.json');
 }
@@ -37,15 +37,214 @@ function getUserImagesDir(userId) {
   return path.join(DATA_DIR, String(userId), 'images');
 }
 
+// 유저별 개별 상품 디렉토리 경로 (새 구조)
+function getUserItemsDir(userId) {
+  return path.join(DATA_DIR, String(userId), 'items');
+}
+
+// 개별 상품 파일 경로
+function getProductFilePath(userId, productId) {
+  return path.join(getUserItemsDir(userId), `${productId}.json`);
+}
+
+// 유저별 인덱스 파일 경로 (가벼운 메타데이터만)
+function getUserIndexFile(userId) {
+  return path.join(DATA_DIR, String(userId), 'index.json');
+}
+
 // 유저별 디렉토리 생성
 async function ensureUserDirectoryExists(userId) {
   const userDir = path.join(DATA_DIR, String(userId));
   const imagesDir = getUserImagesDir(userId);
+  const itemsDir = getUserItemsDir(userId);
   try {
     await fs.mkdir(userDir, { recursive: true });
     await fs.mkdir(imagesDir, { recursive: true });
+    await fs.mkdir(itemsDir, { recursive: true });
   } catch (error) {
     console.error('디렉토리 생성 오류:', error);
+  }
+}
+
+// ===== 새로운 개별 파일 기반 저장 시스템 =====
+
+// 개별 상품 저장
+async function saveProduct(userId, product) {
+  await ensureUserDirectoryExists(userId);
+  const filePath = getProductFilePath(userId, product.id);
+
+  try {
+    await acquireLock(filePath);
+
+    // base64 이미지 추출 및 저장
+    product = await extractAndSaveImages(userId, product);
+
+    await fs.writeFile(filePath, JSON.stringify(product, null, 2), 'utf-8');
+
+    // 인덱스 업데이트
+    await updateProductIndex(userId, product);
+  } finally {
+    releaseLock(filePath);
+  }
+}
+
+// 개별 상품 로드
+async function loadProduct(userId, productId) {
+  const filePath = getProductFilePath(userId, productId);
+  try {
+    const data = await fs.readFile(filePath, 'utf-8');
+    return JSON.parse(data);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return null;
+    }
+    throw error;
+  }
+}
+
+// 개별 상품 삭제
+async function deleteProduct(userId, productId) {
+  const filePath = getProductFilePath(userId, productId);
+  try {
+    await fs.unlink(filePath);
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      throw error;
+    }
+  }
+
+  // 인덱스에서 제거
+  await removeFromIndex(userId, productId);
+}
+
+// 인덱스 업데이트 (가벼운 메타데이터만 저장)
+async function updateProductIndex(userId, product) {
+  const indexPath = getUserIndexFile(userId);
+
+  try {
+    await acquireLock(indexPath);
+
+    let index = [];
+    try {
+      const data = await fs.readFile(indexPath, 'utf-8');
+      index = JSON.parse(data);
+    } catch (e) {
+      if (e.code !== 'ENOENT') throw e;
+    }
+
+    // 기존 항목 찾기
+    const existingIdx = index.findIndex(item => item.id === product.id);
+
+    // 인덱스용 경량 데이터
+    const indexItem = {
+      id: product.id,
+      title: product.title,
+      titleCn: product.titleCn,
+      mainImage: product.mainImage,
+      platform: product.platform,
+      url: product.url,
+      status: product.status,
+      savedAt: product.savedAt,
+      uploadedAt: product.uploadedAt,
+      quoteId: product.quoteId,
+      resultsCount: product.results?.length || 0,
+      isEdited: !!(product.detailPageItems && product.detailPageItems.length > 0),
+      skuStatus: product.skuStatus
+    };
+
+    if (existingIdx >= 0) {
+      index[existingIdx] = indexItem;
+    } else {
+      index.push(indexItem);
+    }
+
+    await fs.writeFile(indexPath, JSON.stringify(index, null, 2), 'utf-8');
+  } finally {
+    releaseLock(indexPath);
+  }
+}
+
+// 인덱스에서 상품 제거
+async function removeFromIndex(userId, productId) {
+  const indexPath = getUserIndexFile(userId);
+
+  try {
+    await acquireLock(indexPath);
+
+    let index = [];
+    try {
+      const data = await fs.readFile(indexPath, 'utf-8');
+      index = JSON.parse(data);
+    } catch (e) {
+      if (e.code !== 'ENOENT') throw e;
+    }
+
+    index = index.filter(item => item.id !== productId);
+    await fs.writeFile(indexPath, JSON.stringify(index, null, 2), 'utf-8');
+  } finally {
+    releaseLock(indexPath);
+  }
+}
+
+// 인덱스 로드 (상품 목록용 - 가벼움)
+async function loadProductIndex(userId) {
+  await ensureUserDirectoryExists(userId);
+  const indexPath = getUserIndexFile(userId);
+
+  try {
+    const data = await fs.readFile(indexPath, 'utf-8');
+    return JSON.parse(data);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      // 인덱스가 없으면 레거시 파일에서 마이그레이션 시도
+      return await migrateFromLegacy(userId);
+    }
+    throw error;
+  }
+}
+
+// 레거시 products.json에서 새 구조로 마이그레이션
+async function migrateFromLegacy(userId) {
+  const legacyPath = getUserProductsFile(userId);
+
+  try {
+    const data = await fs.readFile(legacyPath, 'utf-8');
+    const products = JSON.parse(data);
+
+    console.log(`[Migration] User ${userId}: ${products.length}개 상품 마이그레이션 시작`);
+
+    // 각 상품을 개별 파일로 저장
+    for (const product of products) {
+      await saveProduct(userId, product);
+    }
+
+    // 레거시 파일 백업 후 삭제
+    const backupPath = legacyPath.replace('.json', `.backup.${Date.now()}.json`);
+    await fs.rename(legacyPath, backupPath);
+
+    console.log(`[Migration] User ${userId}: 마이그레이션 완료, 백업: ${backupPath}`);
+
+    // 새로 생성된 인덱스 반환
+    const indexPath = getUserIndexFile(userId);
+    const indexData = await fs.readFile(indexPath, 'utf-8');
+    return JSON.parse(indexData);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return []; // 레거시 파일도 없으면 빈 배열
+    }
+    console.error(`[Migration] User ${userId} 마이그레이션 실패:`, error.message);
+    return [];
+  }
+}
+
+// 새 구조 사용 여부 확인
+async function isUsingNewStructure(userId) {
+  const indexPath = getUserIndexFile(userId);
+  try {
+    await fs.access(indexPath);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -337,80 +536,84 @@ router.get('/images/:userId/:filename', async (req, res) => {
 // 인증 필요 API (유저별 데이터)
 // ============================================
 
-// 기존 데이터 최적화 (base64 이미지를 파일로 변환)
+// 기존 데이터 최적화 및 마이그레이션 (레거시 → 새 구조)
 router.post('/optimize', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
-    const products = await loadUserProducts(userId);
 
-    let extractedCount = 0;
-    let clearedHtmlCount = 0;
+    // 이미 새 구조를 사용 중인지 확인
+    const usingNewStructure = await isUsingNewStructure(userId);
 
-    for (let i = 0; i < products.length; i++) {
-      const product = products[i];
+    if (usingNewStructure) {
+      // 새 구조에서는 개별 상품 최적화
+      const index = await loadProductIndex(userId);
+      let extractedCount = 0;
+      let clearedHtmlCount = 0;
 
-      // detailPageItems의 base64 이미지 추출
-      if (product.detailPageItems && Array.isArray(product.detailPageItems)) {
-        for (const item of product.detailPageItems) {
-          if (item.generatedImage && item.generatedImage.startsWith('data:')) {
-            item.generatedImage = await saveBase64Image(userId, item.generatedImage, 'detail');
-            extractedCount++;
+      for (const item of index) {
+        const product = await loadProduct(userId, item.id);
+        if (product) {
+          let updated = false;
+
+          // detailPageItems의 base64 이미지 추출
+          if (product.detailPageItems && Array.isArray(product.detailPageItems)) {
+            for (const pi of product.detailPageItems) {
+              if (pi.generatedImage && pi.generatedImage.startsWith('data:')) {
+                pi.generatedImage = await saveBase64Image(userId, pi.generatedImage, 'detail');
+                extractedCount++;
+                updated = true;
+              }
+            }
+          }
+
+          // 큰 detailHtml 비우기
+          if (product.detailHtml && product.detailHtml.length > 100000) {
+            product.detailHtml = '';
+            clearedHtmlCount++;
+            updated = true;
+          }
+
+          if (updated) {
+            await saveProduct(userId, product);
           }
         }
       }
 
-      // 큰 detailHtml 비우기
-      if (product.detailHtml && product.detailHtml.length > 100000) {
-        product.detailHtml = '';
-        clearedHtmlCount++;
-      }
+      res.json({
+        success: true,
+        message: `최적화 완료: ${extractedCount}개 이미지 추출, ${clearedHtmlCount}개 HTML 정리`,
+        structure: 'new'
+      });
+    } else {
+      // 레거시 구조에서 새 구조로 마이그레이션
+      const index = await migrateFromLegacy(userId);
+
+      res.json({
+        success: true,
+        message: `마이그레이션 완료: ${index.length}개 상품이 새 구조로 변환됨`,
+        structure: 'migrated'
+      });
     }
-
-    await saveUserProducts(userId, products, false);
-
-    const filePath = getUserProductsFile(userId);
-    const fsSync = require('fs');
-    const newSize = fsSync.statSync(filePath).size;
-
-    res.json({
-      success: true,
-      message: `최적화 완료: ${extractedCount}개 이미지 추출, ${clearedHtmlCount}개 HTML 정리`,
-      newSizeMB: (newSize / 1024 / 1024).toFixed(2)
-    });
   } catch (error) {
     console.error('데이터 최적화 오류:', error);
     res.status(500).json({ success: false, message: '최적화 실패: ' + error.message });
   }
 });
 
-// 상품 목록 조회 (인증 필요) - 경량 데이터만 반환
+// 상품 목록 조회 (인증 필요) - 새 구조: 인덱스에서 바로 반환
 router.get('/list', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
-    const products = await loadUserProducts(userId);
 
-    // 목록용 경량 데이터만 추출 (무거운 필드 제외)
-    const lightProducts = products.map(p => ({
-      id: p.id,
-      title: p.title,
-      titleCn: p.titleCn,
-      mainImage: p.mainImage,
-      platform: p.platform,
-      url: p.url,
-      status: p.status,
-      savedAt: p.savedAt,
+    // 새 구조: 인덱스 파일에서 바로 로드 (자동 마이그레이션 포함)
+    const index = await loadProductIndex(userId);
+
+    // 인덱스에 price 정보가 없으면 추가 (호환성)
+    const lightProducts = index.map(p => ({
+      ...p,
+      price: p.price || null,
       updatedAt: p.updatedAt,
-      statusUpdatedAt: p.statusUpdatedAt,
-      quoteId: p.quoteId,
-      uploadedAt: p.uploadedAt,
-      resultsCount: p.results?.length || 0,
-      // results에서 첫번째 항목의 가격만 (목록 표시용)
-      price: p.results?.[0]?.price || p.results?.[0]?.unitPrice,
-      // 편집 완료 여부 (detailPageItems 유무로 판단)
-      isEdited: !!(p.detailPageItems && p.detailPageItems.length > 0),
-      // 승인 상태 정보 (uploaded.html용)
-      skuStatus: p.skuStatus,
-      // 무거운 필드 제외: detailPageItems, detailHtml, images, results 전체
+      statusUpdatedAt: p.statusUpdatedAt
     }));
 
     res.json({ success: true, products: lightProducts });
@@ -430,8 +633,14 @@ router.post('/bulk', authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: '상품 ID가 필요합니다.' });
     }
 
-    const products = await loadUserProducts(userId);
-    const selectedProducts = products.filter(p => ids.includes(p.id));
+    // 새 구조: 개별 파일에서 로드
+    const selectedProducts = [];
+    for (const id of ids) {
+      const product = await loadProduct(userId, id);
+      if (product) {
+        selectedProducts.push(product);
+      }
+    }
 
     console.log(`[Products API] 상품 bulk 조회 (User: ${userId}): ${selectedProducts.length}개`);
     res.json({ success: true, products: selectedProducts });
@@ -445,8 +654,9 @@ router.post('/bulk', authMiddleware, async (req, res) => {
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
-    const products = await loadUserProducts(userId);
-    const product = products.find(p => p.id === req.params.id);
+
+    // 새 구조: 개별 파일에서 로드
+    const product = await loadProduct(userId, req.params.id);
 
     if (!product) {
       return res.status(404).json({ success: false, message: '상품을 찾을 수 없습니다.' });
@@ -522,10 +732,8 @@ router.post('/save', authMiddleware, async (req, res) => {
     productData.savedAt = new Date().toISOString();
     productData.status = 'collected';
 
-    // 유저별 상품 로드 및 저장
-    const products = await loadUserProducts(userId);
-    products.push(productData);
-    await saveUserProducts(userId, products);
+    // 새 구조: 개별 파일로 저장
+    await saveProduct(userId, productData);
 
     console.log(`[Products API] 상품 저장 완료 (User: ${userId}):`, id);
     res.json({ success: true, id, product: productData });
@@ -539,32 +747,27 @@ router.post('/save', authMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
-    const products = await loadUserProducts(userId);
-    const index = products.findIndex(p => p.id === req.params.id);
 
-    if (index === -1) {
+    // 새 구조: 개별 파일에서 로드
+    const existingProduct = await loadProduct(userId, req.params.id);
+
+    if (!existingProduct) {
       return res.status(404).json({ success: false, message: '상품을 찾을 수 없습니다.' });
     }
 
     let updatedProduct = {
-      ...products[index],
+      ...existingProduct,
       ...req.body,
       id: req.params.id,
       userId: userId,
       updatedAt: new Date().toISOString()
     };
 
-    // detailPageItems가 있으면 base64 이미지 추출
-    if (req.body.detailPageItems) {
-      updatedProduct = await extractAndSaveImages(userId, updatedProduct);
-    }
-
-    products[index] = updatedProduct;
-
-    await saveUserProducts(userId, products);
+    // 새 구조: 개별 파일로 저장 (이미지 추출 포함)
+    await saveProduct(userId, updatedProduct);
 
     console.log(`[Products API] 상품 수정 완료 (User: ${userId}):`, req.params.id);
-    res.json({ success: true, product: products[index] });
+    res.json({ success: true, product: updatedProduct });
   } catch (error) {
     console.error('상품 수정 오류:', error);
     res.status(500).json({ success: false, message: '상품 수정 실패' });
@@ -575,32 +778,27 @@ router.put('/:id', authMiddleware, async (req, res) => {
 router.patch('/:id', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
-    const products = await loadUserProducts(userId);
-    const index = products.findIndex(p => p.id === req.params.id);
 
-    if (index === -1) {
+    // 새 구조: 개별 파일에서 로드
+    const existingProduct = await loadProduct(userId, req.params.id);
+
+    if (!existingProduct) {
       return res.status(404).json({ success: false, message: '상품을 찾을 수 없습니다.' });
     }
 
     let updatedProduct = {
-      ...products[index],
+      ...existingProduct,
       ...req.body,
       id: req.params.id,
       userId: userId,
       updatedAt: new Date().toISOString()
     };
 
-    // detailPageItems가 있으면 base64 이미지 추출
-    if (req.body.detailPageItems) {
-      updatedProduct = await extractAndSaveImages(userId, updatedProduct);
-    }
-
-    products[index] = updatedProduct;
-
-    await saveUserProducts(userId, products);
+    // 새 구조: 개별 파일로 저장 (이미지 추출 포함)
+    await saveProduct(userId, updatedProduct);
 
     console.log(`[Products API] 상품 부분 수정 완료 (User: ${userId}):`, req.params.id);
-    res.json({ success: true, product: products[index] });
+    res.json({ success: true, product: updatedProduct });
   } catch (error) {
     console.error('상품 부분 수정 오류:', error);
     res.status(500).json({ success: false, message: '상품 수정 실패' });
@@ -611,14 +809,9 @@ router.patch('/:id', authMiddleware, async (req, res) => {
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
-    const products = await loadUserProducts(userId);
-    const filtered = products.filter(p => p.id !== req.params.id);
 
-    if (filtered.length === products.length) {
-      return res.status(404).json({ success: false, message: '상품을 찾을 수 없습니다.' });
-    }
-
-    await saveUserProducts(userId, filtered);
+    // 새 구조: 개별 파일 삭제
+    await deleteProduct(userId, req.params.id);
 
     console.log(`[Products API] 상품 삭제 완료 (User: ${userId}):`, req.params.id);
     res.json({ success: true, message: '상품이 삭제되었습니다.' });
@@ -638,10 +831,10 @@ router.post('/batch-delete', authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: '유효하지 않은 요청입니다.' });
     }
 
-    const products = await loadUserProducts(userId);
-    const filtered = products.filter(p => !ids.includes(p.id));
-
-    await saveUserProducts(userId, filtered);
+    // 새 구조: 각 상품 개별 삭제
+    for (const id of ids) {
+      await deleteProduct(userId, id);
+    }
 
     console.log(`[Products API] 상품 일괄 삭제 완료 (User: ${userId}):`, ids.length, '개');
     res.json({ success: true, message: `${ids.length}개 상품이 삭제되었습니다.` });
@@ -665,20 +858,21 @@ router.put('/:id/status', authMiddleware, async (req, res) => {
       });
     }
 
-    const products = await loadUserProducts(userId);
-    const index = products.findIndex(p => p.id === req.params.id);
+    // 새 구조: 개별 파일에서 로드
+    const product = await loadProduct(userId, req.params.id);
 
-    if (index === -1) {
+    if (!product) {
       return res.status(404).json({ success: false, message: '상품을 찾을 수 없습니다.' });
     }
 
-    products[index].status = status;
-    products[index].statusUpdatedAt = new Date().toISOString();
+    product.status = status;
+    product.statusUpdatedAt = new Date().toISOString();
 
-    await saveUserProducts(userId, products);
+    // 새 구조: 개별 파일로 저장
+    await saveProduct(userId, product);
 
     console.log(`[Products API] 상품 상태 변경 (User: ${userId}):`, req.params.id, '->', status);
-    res.json({ success: true, product: products[index] });
+    res.json({ success: true, product });
   } catch (error) {
     console.error('상품 상태 변경 오류:', error);
     res.status(500).json({ success: false, message: '상품 상태 변경 실패' });
@@ -703,18 +897,17 @@ router.post('/batch-status', authMiddleware, async (req, res) => {
       });
     }
 
-    const products = await loadUserProducts(userId);
+    // 새 구조: 각 상품 개별 업데이트
     let updatedCount = 0;
-
-    for (const product of products) {
-      if (ids.includes(product.id)) {
+    for (const id of ids) {
+      const product = await loadProduct(userId, id);
+      if (product) {
         product.status = status;
         product.statusUpdatedAt = new Date().toISOString();
+        await saveProduct(userId, product);
         updatedCount++;
       }
     }
-
-    await saveUserProducts(userId, products);
 
     console.log(`[Products API] 상품 일괄 상태 변경 (User: ${userId}):`, updatedCount, '개 ->', status);
     res.json({ success: true, message: `${updatedCount}개 상품 상태가 변경되었습니다.`, updatedCount });
@@ -952,15 +1145,16 @@ router.post('/generate-images', authMiddleware, async (req, res) => {
 
     // 편집하지 않은 제품 체크
     const uneditedProducts = [];
-    const userProducts = await loadUserProducts(userId);
 
     for (let i = 0; i < products.length; i++) {
       let product = products[i];
 
+      // 새 구조: 개별 파일에서 최신 데이터 로드
       if (product.id) {
-        const latestProduct = userProducts.find(p => p.id === product.id);
+        const latestProduct = await loadProduct(userId, product.id);
         if (latestProduct) {
           product = latestProduct;
+          products[i] = latestProduct; // 업데이트된 데이터로 교체
         }
       }
 
