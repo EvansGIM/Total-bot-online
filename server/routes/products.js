@@ -315,11 +315,26 @@ async function extractAndSaveImages(userId, product) {
     }
   }
 
-  // detailHtml에서 base64 이미지 추출 (너무 큰 경우 비움)
-  if (product.detailHtml && product.detailHtml.length > 100000) {
-    // 100KB 이상의 detailHtml은 비움 (이미지가 포함된 경우)
-    console.log(`[Products] detailHtml 크기 초과 (${(product.detailHtml.length/1024).toFixed(1)}KB), 비움`);
-    product.detailHtml = '';
+  // detailHtml 내 base64 이미지를 파일로 추출 (용량 절약)
+  if (product.detailHtml && product.detailHtml.includes('data:image')) {
+    const base64Regex = /data:image\/([a-zA-Z+]+);base64,([A-Za-z0-9+/=]+)/g;
+    let match;
+    let newDetailHtml = product.detailHtml;
+    let extractedCount = 0;
+
+    while ((match = base64Regex.exec(product.detailHtml)) !== null) {
+      const fullBase64 = match[0];
+      const savedPath = await saveBase64Image(userId, fullBase64, 'detail_html');
+      if (savedPath) {
+        newDetailHtml = newDetailHtml.replace(fullBase64, savedPath);
+        extractedCount++;
+      }
+    }
+
+    if (extractedCount > 0) {
+      console.log(`[Products] detailHtml에서 ${extractedCount}개 base64 이미지 추출`);
+      product.detailHtml = newDetailHtml;
+    }
   }
 
   return product;
