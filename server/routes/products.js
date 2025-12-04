@@ -1174,9 +1174,7 @@ router.post('/generate-images', authMiddleware, async (req, res) => {
 
     console.log(`[Generate Images] 시작 (User: ${userId}):`, products.length, '개 상품');
 
-    // 편집하지 않은 제품 체크
-    const uneditedProducts = [];
-
+    // 개별 파일에서 최신 데이터 로드 (편집 체크는 프론트엔드에서 이미 수행됨)
     for (let i = 0; i < products.length; i++) {
       let product = products[i];
 
@@ -1189,18 +1187,11 @@ router.post('/generate-images', authMiddleware, async (req, res) => {
         }
       }
 
+      // detailPageItems가 없으면 경고만 출력 (프론트엔드에서 이미 체크했으므로 에러로 중단하지 않음)
       if (!product.detailPageItems || product.detailPageItems.length === 0) {
         const productName = product.title || product.titleCn || `상품 ${i + 1}`;
-        uneditedProducts.push(productName);
+        console.warn(`   ⚠️ [${productName}] detailPageItems 없음 - 기본 템플릿으로 진행`);
       }
-    }
-
-    if (uneditedProducts.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: '일부 상품이 편집되지 않았습니다. 먼저 편집기에서 상세페이지를 편집하고 저장해주세요.',
-        uneditedProducts: uneditedProducts
-      });
     }
 
     const results = [];
@@ -1211,14 +1202,8 @@ router.post('/generate-images', authMiddleware, async (req, res) => {
     });
 
     for (let i = 0; i < products.length; i++) {
-      let product = products[i];
-
-      if (product.id) {
-        const latestProduct = userProducts.find(p => p.id === product.id);
-        if (latestProduct) {
-          product = latestProduct;
-        }
-      }
+      // products[i]는 이미 위에서 loadProduct로 최신 데이터로 교체됨
+      const product = products[i];
 
       const detailHtml = product.detailHtml || generateDetailPageHtml(product);
       const labelHtml = generateLabelHtml(product);
