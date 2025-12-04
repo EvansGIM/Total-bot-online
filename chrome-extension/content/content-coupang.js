@@ -643,21 +643,50 @@ async function searchCoupangCategories(keyword) {
       throw new Error('비밀번호가 만료되었습니다. 쿠팡 윙에서 비밀번호를 변경해주세요.');
     }
 
+    // 로그인 페이지로 리다이렉트된 경우
+    if (window.location.href.includes('/login') || window.location.href.includes('/xauth')) {
+      throw new Error('세션이 만료되었습니다. 쿠팡 Wing에 다시 로그인해주세요.');
+    }
+
     console.log('🔍 Searching for keyword:', keyword);
 
     const url = `https://supplier.coupang.com/qvt/kan-categories/search?keyword=${encodeURIComponent(keyword)}`;
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'accept': 'application/json, text/plain, */*',
-        'accept-language': 'ko-KR,ko;q=0.9',
-      },
-      credentials: 'include' // 쿠키 자동 전송
-    });
+    let response;
+    try {
+      response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'accept': 'application/json, text/plain, */*',
+          'accept-language': 'ko-KR,ko;q=0.9',
+        },
+        credentials: 'include' // 쿠키 자동 전송
+      });
+    } catch (fetchError) {
+      console.error('❌ Fetch failed:', fetchError);
+      // 네트워크 오류 시 세션 문제일 가능성 높음
+      throw new Error('네트워크 오류 - 쿠팡 Wing 탭을 새로고침하거나 다시 로그인해주세요.');
+    }
+
+    // 리다이렉트된 경우 (로그인 페이지 등)
+    if (response.redirected) {
+      console.log('🔄 Redirected to:', response.url);
+      if (response.url.includes('/login') || response.url.includes('/xauth')) {
+        throw new Error('세션이 만료되었습니다. 쿠팡 Wing에 다시 로그인해주세요.');
+      }
+    }
 
     if (!response.ok) {
-      throw new Error(`Search failed: ${response.status}`);
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('인증이 만료되었습니다. 쿠팡 Wing에 다시 로그인해주세요.');
+      }
+      throw new Error(`검색 실패: ${response.status}`);
+    }
+
+    // HTML 응답인지 확인 (로그인 페이지로 리다이렉트된 경우)
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('text/html')) {
+      throw new Error('세션이 만료되었습니다. 쿠팡 Wing에 다시 로그인해주세요.');
     }
 
     const data = await response.json();

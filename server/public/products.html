@@ -3593,23 +3593,42 @@
       } catch (error) {
         console.error('카테고리 검색 오류:', error);
 
-        // HTML 응답 (로그인 페이지 리다이렉트) 또는 JSON 파싱 에러 감지
-        if (error.message.includes('<!DOCTYPE') || error.message.includes('Unexpected token')) {
-          showCoupangStatus('error', '⚠️ 쿠팡 로그인이 필요합니다. Wing에서 로그인 후 다시 시도해주세요.');
-          // 쿠팡 로그인 페이지 열기 버튼 표시
+        // 로그인/세션 관련 오류 감지
+        const isLoginError = error.message.includes('<!DOCTYPE') ||
+                            error.message.includes('Unexpected token') ||
+                            error.message.includes('세션') ||
+                            error.message.includes('로그인') ||
+                            error.message.includes('인증') ||
+                            error.message.includes('Failed to fetch') ||
+                            error.message.includes('네트워크');
+
+        if (isLoginError) {
+          showCoupangStatus('error', '⚠️ 쿠팡 세션 문제가 발생했습니다.');
+          // 쿠팡 로그인/새로고침 안내 표시
           const resultsDiv = document.getElementById('coupangResults');
           resultsDiv.innerHTML = `
             <div style="text-align: center; padding: 30px;">
               <p style="color: #e74c3c; font-size: 16px; margin-bottom: 15px;">
-                ⚠️ 쿠팡 Wing 로그인이 필요합니다
+                ⚠️ 쿠팡 Wing 연결 문제
               </p>
               <p style="color: #666; margin-bottom: 20px;">
-                카테고리 검색을 위해 쿠팡 Wing에 먼저 로그인해주세요.
+                세션이 만료되었거나 네트워크 오류가 발생했습니다.<br>
+                아래 방법을 시도해주세요:
               </p>
-              <button onclick="window.open('https://wing.coupang.com', '_blank')"
-                      style="padding: 12px 24px; background: #e74c3c; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
-                🔗 쿠팡 Wing 로그인하기
-              </button>
+              <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                <button onclick="resetQvtCookies()"
+                        style="padding: 12px 24px; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                  🔄 QVT 쿠키 리셋
+                </button>
+                <button onclick="window.open('https://supplier.coupang.com/qvt/registration', '_blank')"
+                        style="padding: 12px 24px; background: #2ecc71; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                  🔗 QVT 페이지 열기
+                </button>
+                <button onclick="window.open('https://wing.coupang.com', '_blank')"
+                        style="padding: 12px 24px; background: #e74c3c; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                  🔐 Wing 로그인하기
+                </button>
+              </div>
             </div>
           `;
         } else {
