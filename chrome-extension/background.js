@@ -627,6 +627,9 @@ const COOKIE_CLEAR_THRESHOLD = 10; // 10번 작업 후 쿠키 삭제
 let coupangTabRefreshTimers = new Map(); // tabId -> timerId
 const COUPANG_REFRESH_INTERVAL = 20 * 60 * 1000; // 20분
 
+// 업로드 작업 진행 중 플래그 (새로고침 방지용)
+let isUploadInProgress = false;
+
 /**
  * 쿠팡 탭 자동 새로고침 타이머 시작
  */
@@ -637,6 +640,12 @@ function startCoupangRefreshTimer(tabId) {
   console.log(`⏰ 쿠팡 탭 새로고침 타이머 시작: ${tabId} (${COUPANG_REFRESH_INTERVAL / 60000}분 간격)`);
 
   const timerId = setInterval(() => {
+    // 업로드 중이면 새로고침 건너뛰기
+    if (isUploadInProgress) {
+      console.log(`⏸️ 업로드 진행 중, 탭 ${tabId} 새로고침 건너뜀`);
+      return;
+    }
+
     chrome.tabs.get(tabId, (tab) => {
       if (chrome.runtime.lastError || !tab) {
         console.log(`⚠️ 쿠팡 탭 ${tabId} 없음, 타이머 정리`);
@@ -3401,6 +3410,8 @@ async function handleFillQuotationExcels(data) {
 
       // 8. Content script로 업로드 데이터 전송
       await updateProgress('upload', 'in_progress');
+      isUploadInProgress = true;  // 업로드 중 탭 새로고침 방지
+      console.log('🚫 업로드 시작 - 탭 새로고침 비활성화');
       console.log('📤 Content script로 업로드 요청 전송...');
 
       // products에서 base64 이미지 데이터 제거 (메시지 크기 제한 회피)
@@ -3477,6 +3488,8 @@ async function handleFillQuotationExcels(data) {
 
       if (uploadResponse && uploadResponse.success) {
         console.log(`🎉 쿠팡 업로드 성공! 견적서 ID: ${uploadResponse.quoteId}`);
+        isUploadInProgress = false;  // 업로드 완료 - 탭 새로고침 재활성화
+        console.log('✅ 업로드 완료 - 탭 새로고침 재활성화');
 
         // 업로드 완료
         await updateProgress('upload', 'completed');
@@ -3544,6 +3557,7 @@ async function handleFillQuotationExcels(data) {
       } else if (uploadResponse && uploadResponse.rejected) {
         // 견적서 반려됨
         console.log('❌ 견적서 반려됨:', uploadResponse);
+        isUploadInProgress = false;  // 업로드 완료 - 탭 새로고침 재활성화
         await updateProgress('upload', 'completed');
         await updateProgress('validate', 'error');
 
@@ -3562,6 +3576,7 @@ async function handleFillQuotationExcels(data) {
       } else if (uploadResponse && uploadResponse.pending) {
         // 검증 진행 중 (시간 초과)
         console.log('⏳ 검증 진행 중:', uploadResponse);
+        isUploadInProgress = false;  // 업로드 완료 - 탭 새로고침 재활성화
         await updateProgress('upload', 'completed');
         await updateProgress('validate', 'pending');
 
@@ -3614,6 +3629,7 @@ async function handleFillQuotationExcels(data) {
         }
       } else {
         console.log('⚠️ 쿠팡 업로드 실패:', uploadResponse?.error || '알 수 없는 오류');
+        isUploadInProgress = false;  // 업로드 실패 - 탭 새로고침 재활성화
         await updateProgress('upload', 'error');
 
         // 실패 정보를 localhost 탭에 전송 (수동 업로드 옵션 제공)
@@ -3630,6 +3646,7 @@ async function handleFillQuotationExcels(data) {
     } catch (uploadError) {
       console.error('❌ 쿠팡 업로드 오류:', uploadError);
       console.log('⚠️ 견적서는 생성되었으나 자동 업로드에 실패했습니다.');
+      isUploadInProgress = false;  // 업로드 오류 - 탭 새로고침 재활성화
       // 업로드 실패해도 견적서 생성은 성공이므로 계속 진행
     }
 
@@ -3650,6 +3667,7 @@ async function handleFillQuotationExcels(data) {
 
   } catch (error) {
     console.error('❌ 견적서 작성 오류:', error);
+    isUploadInProgress = false;  // 오류 발생 - 탭 새로고침 재활성화
     return { success: false, error: error.message };
   }
 }
@@ -4176,10 +4194,13 @@ async function checkCoupangLoginStatus() {
 
 /**
  * 카테고리 검색 처리 (쿠팡 탭으로 전달)
+ * 세션 만료로 실패 시 자동으로 QVT 쿠키 리셋 후 재시도
  */
-async function handleCategorySearch(keyword) {
+async function handleCategorySearch(keyword, retryCount = 0) {
+  const MAX_RETRIES = 1;  // 최대 1회 자동 재시도
+
   try {
-    console.log('🔍 Handling category search:', keyword);
+    console.log('🔍 Handling category search:', keyword, retryCount > 0 ? `(재시도 ${retryCount}회차)` : '');
 
     // 쿠팡 탭 확인 및 생성
     await ensureCoupangTab();
@@ -4217,6 +4238,30 @@ async function handleCategorySearch(keyword) {
     });
 
     console.log('✅ Search response:', response);
+
+    // 세션 문제로 실패했는지 확인 (Failed to fetch, 로그인 필요 등)
+    if (!response.success && retryCount < MAX_RETRIES) {
+      const errorMsg = response.error || '';
+      const isSessionError =
+        errorMsg.includes('Failed to fetch') ||
+        errorMsg.includes('세션') ||
+        errorMsg.includes('로그인') ||
+        errorMsg.includes('네트워크 오류');
+
+      if (isSessionError) {
+        console.log('🔄 세션 문제 감지, QVT 쿠키 리셋 후 재시도...');
+
+        // QVT 쿠키 리셋
+        await resetQvtCookiesAndReload();
+
+        // 잠시 대기 후 재시도
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        // 재귀 호출로 재시도
+        return handleCategorySearch(keyword, retryCount + 1);
+      }
+    }
+
     return response;
 
   } catch (error) {
@@ -4225,6 +4270,30 @@ async function handleCategorySearch(keyword) {
       message: error.message,
       coupangTab: coupangTab
     });
+
+    // 세션 문제로 예외 발생 시 자동 재시도
+    if (retryCount < MAX_RETRIES) {
+      const errorMsg = error.message || '';
+      const isSessionError =
+        errorMsg.includes('Failed to fetch') ||
+        errorMsg.includes('세션') ||
+        errorMsg.includes('로그인') ||
+        errorMsg.includes('Could not establish connection');
+
+      if (isSessionError) {
+        console.log('🔄 세션 문제 감지 (예외), QVT 쿠키 리셋 후 재시도...');
+
+        // QVT 쿠키 리셋
+        await resetQvtCookiesAndReload();
+
+        // 잠시 대기 후 재시도
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        // 재귀 호출로 재시도
+        return handleCategorySearch(keyword, retryCount + 1);
+      }
+    }
+
     return { success: false, error: error.message, categories: [], total: 0 };
   }
 }
