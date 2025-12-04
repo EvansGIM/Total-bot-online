@@ -2218,8 +2218,11 @@
         const data = await response.json();
         allProducts = data.products || [];
 
-        // 수집 상품만 필터링 (업로드/승인된 상품은 uploaded.html에서 표시)
-        const collectedProducts = allProducts.filter(p => (p.status || 'collected') === 'collected');
+        // 수집 상품 필터링 (collected + manual_pending, 업로드/승인된 상품은 uploaded.html에서 표시)
+        const collectedProducts = allProducts.filter(p => {
+          const status = p.status || 'collected';
+          return status === 'collected' || status === 'manual_pending';
+        });
 
         // 상품 수 표시
         document.getElementById('productCount').textContent = `(${collectedProducts.length}개)`;
