@@ -135,6 +135,16 @@ async function updateProductIndex(userId, product) {
     // 기존 항목 찾기
     const existingIdx = index.findIndex(item => item.id === product.id);
 
+    // 가격 추출 (여러 위치에서 찾기)
+    const firstResult = product.results?.[0];
+    const extractedPrice = product.price ||
+                          firstResult?.price ||
+                          firstResult?.unitPrice ||
+                          firstResult?.optionName2Price ||
+                          product.salePrice ||
+                          product.basePrice ||
+                          null;
+
     // 인덱스용 경량 데이터
     const indexItem = {
       id: product.id,
@@ -148,8 +158,8 @@ async function updateProductIndex(userId, product) {
       uploadedAt: product.uploadedAt,
       quoteId: product.quoteId,
       resultsCount: product.results?.length || 0,
-      // 가격 정보 (목록 표시용)
-      price: product.results?.[0]?.price || product.results?.[0]?.unitPrice || null,
+      // 가격 정보 (목록 표시용) - 여러 위치에서 추출
+      price: extractedPrice,
       isEdited: !!(product.detailPageItems && product.detailPageItems.length > 0),
       skuStatus: product.skuStatus
     };
