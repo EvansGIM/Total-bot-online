@@ -1523,11 +1523,18 @@ Return the generated image.`;
           const imageData = await imageUrlToBase64(originalUrl);
           if (imageData) {
             const whiteBackgroundPrompt = `Create a clean, professional e-commerce product photo with a pure white background.
-Remove any existing background and replace it with a clean white (#FFFFFF) background.
-Keep only the product itself, clearly visible and well-lit.
-This should look like a professional product photo for online shopping.
-Maintain the product's original colors and details.
-Return the generated image with white background.`;
+
+IMPORTANT RULES:
+1. Keep the ENTIRE product intact - do NOT extract patterns, prints, or designs from the product
+2. If a person is wearing/holding the product, REMOVE the person but KEEP the complete product
+3. Show the product as a flat-lay or product display style (like hanging or laid flat)
+4. The product should look like it's displayed in an online shopping mall
+
+Example: If the image shows a person wearing a sweatshirt, remove the person and show only the complete sweatshirt on white background.
+
+Replace any existing background with pure white (#FFFFFF).
+Maintain the product's original colors, shape, and all details.
+Return the generated image.`;
 
             const transformedImage = await transformImageWithGemini(genAI, imageData.base64, imageData.mimeType, whiteBackgroundPrompt);
             if (transformedImage) {
