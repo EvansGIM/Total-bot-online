@@ -1387,7 +1387,117 @@
     }
 
     .canvas-container canvas.eraser-mode {
-      cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><circle cx="12" cy="12" r="10" fill="rgba(255,0,0,0.3)" stroke="red" stroke-width="2"/></svg>') 12 12, crosshair;
+      cursor: none;
+    }
+
+    .canvas-container canvas.crop-mode {
+      cursor: crosshair;
+    }
+
+    .canvas-container canvas.text-mode {
+      cursor: text;
+    }
+
+    /* 브러시 커서 프리뷰 */
+    .brush-cursor-preview {
+      position: fixed;
+      pointer-events: none;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 0, 0, 0.8);
+      background: rgba(255, 0, 0, 0.2);
+      transform: translate(-50%, -50%);
+      z-index: 10001;
+      display: none;
+      transition: width 0.1s, height 0.1s;
+    }
+
+    .brush-cursor-preview.eraser-preview {
+      border-color: rgba(100, 100, 100, 0.8);
+      background: rgba(100, 100, 100, 0.2);
+    }
+
+    /* 자르기 오버레이 */
+    .crop-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 100;
+      display: none;
+    }
+
+    .crop-overlay.active {
+      display: block;
+      pointer-events: auto;
+    }
+
+    .crop-selection {
+      position: absolute;
+      border: 2px dashed #fff;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+      cursor: move;
+    }
+
+    .crop-selection::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .crop-handle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #fff;
+      border: 2px solid #667eea;
+      border-radius: 2px;
+    }
+
+    .crop-handle.nw { top: -6px; left: -6px; cursor: nw-resize; }
+    .crop-handle.ne { top: -6px; right: -6px; cursor: ne-resize; }
+    .crop-handle.sw { bottom: -6px; left: -6px; cursor: sw-resize; }
+    .crop-handle.se { bottom: -6px; right: -6px; cursor: se-resize; }
+
+    .crop-size-info {
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    /* 텍스트 입력 오버레이 */
+    .text-input-overlay {
+      position: absolute;
+      z-index: 100;
+      display: none;
+    }
+
+    .text-input-overlay.active {
+      display: block;
+    }
+
+    .text-input-box {
+      background: transparent;
+      border: 2px dashed #667eea;
+      padding: 8px;
+      min-width: 100px;
+      min-height: 30px;
+      font-family: inherit;
+      outline: none;
+      resize: both;
+      overflow: hidden;
     }
 
     .editor-tools {
@@ -4006,9 +4116,21 @@
       <div class="modal-body" style="padding: 16px;">
         <div class="image-editor-container">
           <div class="canvas-wrapper">
-            <div class="canvas-container">
+            <div class="canvas-container" id="canvasContainer">
               <canvas id="imageCanvas"></canvas>
+              <!-- 자르기 오버레이 -->
+              <div class="crop-overlay" id="cropOverlay">
+                <div class="crop-selection" id="cropSelection">
+                  <div class="crop-handle nw" data-handle="nw"></div>
+                  <div class="crop-handle ne" data-handle="ne"></div>
+                  <div class="crop-handle sw" data-handle="sw"></div>
+                  <div class="crop-handle se" data-handle="se"></div>
+                  <div class="crop-size-info" id="cropSizeInfo">0 x 0</div>
+                </div>
+              </div>
             </div>
+            <!-- 브러시 커서 프리뷰 -->
+            <div class="brush-cursor-preview" id="brushCursorPreview"></div>
             <div class="zoom-controls">
               <button class="zoom-btn" onclick="zoomCanvas(0.5)">50%</button>
               <button class="zoom-btn" onclick="zoomCanvas(0.75)">75%</button>
@@ -4020,7 +4142,7 @@
             </div>
           </div>
           <div class="editor-tools">
-            <!-- AI 도구 -->
+            <!-- AI 매직 이레이저 -->
             <div class="tool-group" style="border-left: 3px solid #667eea;">
               <h3>🪄 AI 매직 이레이저</h3>
               <div class="tool-buttons">
@@ -4033,6 +4155,58 @@
               </div>
               <div class="tool-hint">
                 💡 제거할 영역을 빨간색으로 칠한 후 "AI 제거" 클릭
+              </div>
+            </div>
+
+            <!-- 자르기 (크롭) -->
+            <div class="tool-group" style="border-left: 3px solid #28a745;">
+              <h3>✂️ 자르기 (1:1)</h3>
+              <div class="tool-buttons">
+                <button class="tool-btn" id="cropBtn" onclick="toggleCropMode()">📐 영역 선택</button>
+                <button class="tool-btn primary-action" id="applyCropBtn" onclick="applyCrop()" style="display:none;">✓ 자르기 적용</button>
+              </div>
+              <div class="tool-buttons" style="margin-top: 6px;">
+                <button class="tool-btn" onclick="setCropPreset('full')">전체</button>
+                <button class="tool-btn" onclick="setCropPreset('center')">중앙</button>
+              </div>
+              <div class="tool-hint" id="cropHint">
+                💡 드래그하여 자를 영역 선택 (1:1 비율 고정)
+              </div>
+            </div>
+
+            <!-- 텍스트 추가 -->
+            <div class="tool-group" style="border-left: 3px solid #ff6b6b;">
+              <h3>✏️ 텍스트 추가</h3>
+              <div class="tool-buttons">
+                <button class="tool-btn" id="textBtn" onclick="toggleTextMode()">Aa 텍스트 모드</button>
+              </div>
+              <div id="textOptions" style="display: none; margin-top: 10px;">
+                <input type="text" id="textInput" placeholder="텍스트 입력..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 8px;">
+                <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                  <select id="textFont" style="flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="Arial">Arial</option>
+                    <option value="맑은 고딕">맑은 고딕</option>
+                    <option value="나눔고딕">나눔고딕</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Impact">Impact</option>
+                  </select>
+                  <input type="number" id="textSize" value="32" min="8" max="200" style="width: 60px; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                  <input type="color" id="textColor" value="#000000" style="width: 40px; height: 32px; border: none; cursor: pointer;">
+                  <button class="tool-btn" onclick="addTextToCanvas()" style="flex: 1;">텍스트 추가</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 회전 / 뒤집기 -->
+            <div class="tool-group">
+              <h3>🔄 회전 / 뒤집기</h3>
+              <div class="tool-buttons">
+                <button class="tool-btn" onclick="rotateImage(-90)">↶ 좌회전</button>
+                <button class="tool-btn" onclick="rotateImage(90)">↷ 우회전</button>
+                <button class="tool-btn" onclick="flipImage('horizontal')">↔ 좌우</button>
+                <button class="tool-btn" onclick="flipImage('vertical')">↕ 상하</button>
               </div>
             </div>
 
@@ -4056,7 +4230,7 @@
               </div>
             </div>
 
-            <!-- 조정 -->
+            <!-- 밝기 / 대비 -->
             <div class="tool-group">
               <h3>🌈 밝기 / 대비</h3>
               <div class="slider-group">
@@ -4553,6 +4727,18 @@
     let lastY = 0;
     let maskCanvas = null;
     let maskCtx = null;
+
+    // 자르기 관련 변수
+    let isCropping = false;
+    let cropStartX = 0, cropStartY = 0;
+    let cropWidth = 0, cropHeight = 0;
+    let isDraggingCrop = false;
+    let dragStartX = 0, dragStartY = 0;
+    let resizingHandle = null;
+
+    // 텍스트 관련 변수
+    let isTextMode = false;
+    let textX = 0, textY = 0;
 
     // 페이지 로드
     window.addEventListener('load', async () => {
@@ -10057,25 +10243,50 @@
 
     // 캔버스 이벤트 설정
     function setupCanvasEvents() {
+      const brushCursor = document.getElementById('brushCursorPreview');
+
       canvas.onmousedown = (e) => {
+        if (isCropping || isTextMode) return;
         const coords = getScaledCoordinates(e);
         startDrawing(coords);
       };
       canvas.onmousemove = (e) => {
+        // 브러시 커서 프리뷰 업데이트
+        if ((isErasing || isMagicErasing) && brushCursor) {
+          const size = brushSize * currentZoom;
+          brushCursor.style.width = size + 'px';
+          brushCursor.style.height = size + 'px';
+          brushCursor.style.left = e.clientX + 'px';
+          brushCursor.style.top = e.clientY + 'px';
+          brushCursor.style.display = 'block';
+          brushCursor.classList.toggle('eraser-preview', isErasing);
+        }
+
+        if (isCropping || isTextMode) return;
         const coords = getScaledCoordinates(e);
         draw(coords);
       };
       canvas.onmouseup = stopDrawing;
-      canvas.onmouseleave = stopDrawing;
+      canvas.onmouseleave = (e) => {
+        stopDrawing();
+        if (brushCursor) brushCursor.style.display = 'none';
+      };
+      canvas.onmouseenter = (e) => {
+        if ((isErasing || isMagicErasing) && brushCursor) {
+          brushCursor.style.display = 'block';
+        }
+      };
 
       // 터치 이벤트도 지원
       canvas.ontouchstart = (e) => {
+        if (isCropping || isTextMode) return;
         e.preventDefault();
         const coords = getScaledCoordinates(e);
         startDrawing(coords);
       };
 
       canvas.ontouchmove = (e) => {
+        if (isCropping || isTextMode) return;
         e.preventDefault();
         const coords = getScaledCoordinates(e);
         draw(coords);
@@ -10088,13 +10299,25 @@
     function toggleMagicEraser() {
       isMagicErasing = !isMagicErasing;
       isErasing = false;
+      isCropping = false;
+      isTextMode = false;
 
       const magicBtn = document.getElementById('magicEraserBtn');
       const eraserBtn = document.getElementById('eraserBtn');
+      const cropBtn = document.getElementById('cropBtn');
+      const textBtn = document.getElementById('textBtn');
+
+      // 다른 모드 해제
+      eraserBtn?.classList.remove('active');
+      cropBtn?.classList.remove('active');
+      textBtn?.classList.remove('active');
+      canvas.classList.remove('crop-mode', 'text-mode');
+      document.getElementById('cropOverlay')?.classList.remove('active');
+      document.getElementById('applyCropBtn').style.display = 'none';
+      document.getElementById('textOptions').style.display = 'none';
 
       if (isMagicErasing) {
         magicBtn.classList.add('active');
-        eraserBtn.classList.remove('active');
         canvas.classList.add('eraser-mode');
 
         // 마스크 캔버스 생성
@@ -10114,13 +10337,25 @@
     function toggleEraser() {
       isErasing = !isErasing;
       isMagicErasing = false;
+      isCropping = false;
+      isTextMode = false;
 
       const btn = document.getElementById('eraserBtn');
       const magicBtn = document.getElementById('magicEraserBtn');
+      const cropBtn = document.getElementById('cropBtn');
+      const textBtn = document.getElementById('textBtn');
+
+      // 다른 모드 해제
+      magicBtn?.classList.remove('active');
+      cropBtn?.classList.remove('active');
+      textBtn?.classList.remove('active');
+      canvas.classList.remove('crop-mode', 'text-mode');
+      document.getElementById('cropOverlay')?.classList.remove('active');
+      document.getElementById('applyCropBtn').style.display = 'none';
+      document.getElementById('textOptions').style.display = 'none';
 
       if (isErasing) {
         btn.classList.add('active');
-        magicBtn.classList.remove('active');
         canvas.classList.add('eraser-mode');
       } else {
         btn.classList.remove('active');
@@ -10132,6 +10367,14 @@
     function updateBrushSize() {
       brushSize = parseInt(document.getElementById('brushSizeSlider').value);
       document.getElementById('brushSizeValue').textContent = brushSize;
+
+      // 브러시 커서 프리뷰 크기 업데이트
+      const brushCursor = document.getElementById('brushCursorPreview');
+      if (brushCursor && (isErasing || isMagicErasing)) {
+        const size = brushSize * currentZoom;
+        brushCursor.style.width = size + 'px';
+        brushCursor.style.height = size + 'px';
+      }
     }
 
     // 드로잉 시작
@@ -10193,6 +10436,365 @@
       if (isErasing) {
         ctx.globalCompositeOperation = 'source-over'; // 일반 모드로 복귀
       }
+    }
+
+    // =====================================================
+    // 자르기 (크롭) 기능 - 1:1 비율 고정
+    // =====================================================
+    function toggleCropMode() {
+      isCropping = !isCropping;
+      isErasing = false;
+      isMagicErasing = false;
+      isTextMode = false;
+
+      const cropBtn = document.getElementById('cropBtn');
+      const applyCropBtn = document.getElementById('applyCropBtn');
+      const cropOverlay = document.getElementById('cropOverlay');
+      const eraserBtn = document.getElementById('eraserBtn');
+      const magicBtn = document.getElementById('magicEraserBtn');
+      const textBtn = document.getElementById('textBtn');
+      const brushCursor = document.getElementById('brushCursorPreview');
+
+      // 다른 모드 해제
+      eraserBtn?.classList.remove('active');
+      magicBtn?.classList.remove('active');
+      textBtn?.classList.remove('active');
+      canvas.classList.remove('eraser-mode', 'text-mode');
+      if (brushCursor) brushCursor.style.display = 'none';
+      document.getElementById('textOptions').style.display = 'none';
+
+      if (isCropping) {
+        cropBtn.classList.add('active');
+        applyCropBtn.style.display = 'block';
+        canvas.classList.add('crop-mode');
+        cropOverlay.classList.add('active');
+
+        // 기본 자르기 영역 설정 (중앙 정사각형)
+        const size = Math.min(canvas.width, canvas.height) * 0.8;
+        cropStartX = (canvas.width - size) / 2;
+        cropStartY = (canvas.height - size) / 2;
+        cropWidth = size;
+        cropHeight = size;
+        updateCropSelection();
+
+        // 자르기 오버레이 이벤트 설정
+        setupCropEvents();
+      } else {
+        cropBtn.classList.remove('active');
+        applyCropBtn.style.display = 'none';
+        canvas.classList.remove('crop-mode');
+        cropOverlay.classList.remove('active');
+      }
+    }
+
+    function setupCropEvents() {
+      const cropOverlay = document.getElementById('cropOverlay');
+      const cropSelection = document.getElementById('cropSelection');
+
+      cropOverlay.onmousedown = (e) => {
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+
+        // 핸들 클릭 확인
+        if (e.target.classList.contains('crop-handle')) {
+          resizingHandle = e.target.dataset.handle;
+          dragStartX = x;
+          dragStartY = y;
+          return;
+        }
+
+        // 선택 영역 내부 클릭 확인
+        if (x >= cropStartX && x <= cropStartX + cropWidth &&
+            y >= cropStartY && y <= cropStartY + cropHeight) {
+          isDraggingCrop = true;
+          dragStartX = x - cropStartX;
+          dragStartY = y - cropStartY;
+        } else {
+          // 새로운 선택 시작
+          cropStartX = x;
+          cropStartY = y;
+          cropWidth = 0;
+          cropHeight = 0;
+          isDraggingCrop = false;
+          resizingHandle = 'se';
+          dragStartX = x;
+          dragStartY = y;
+        }
+      };
+
+      cropOverlay.onmousemove = (e) => {
+        if (!isDraggingCrop && !resizingHandle) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+
+        if (isDraggingCrop) {
+          // 선택 영역 이동
+          cropStartX = Math.max(0, Math.min(canvas.width - cropWidth, x - dragStartX));
+          cropStartY = Math.max(0, Math.min(canvas.height - cropHeight, y - dragStartY));
+        } else if (resizingHandle) {
+          // 리사이징 (1:1 비율 유지)
+          let newSize;
+          const deltaX = x - dragStartX;
+          const deltaY = y - dragStartY;
+
+          if (resizingHandle === 'se') {
+            newSize = Math.max(Math.abs(x - cropStartX), Math.abs(y - cropStartY));
+            cropWidth = Math.min(newSize, canvas.width - cropStartX, canvas.height - cropStartY);
+            cropHeight = cropWidth;
+          } else if (resizingHandle === 'sw') {
+            newSize = Math.max(Math.abs(cropStartX + cropWidth - x), Math.abs(y - cropStartY));
+            const newX = cropStartX + cropWidth - newSize;
+            if (newX >= 0) {
+              cropStartX = newX;
+              cropWidth = newSize;
+              cropHeight = newSize;
+            }
+          } else if (resizingHandle === 'ne') {
+            newSize = Math.max(Math.abs(x - cropStartX), Math.abs(cropStartY + cropHeight - y));
+            const newY = cropStartY + cropHeight - newSize;
+            if (newY >= 0) {
+              cropStartY = newY;
+              cropWidth = newSize;
+              cropHeight = newSize;
+            }
+          } else if (resizingHandle === 'nw') {
+            newSize = Math.max(Math.abs(cropStartX + cropWidth - x), Math.abs(cropStartY + cropHeight - y));
+            const newX = cropStartX + cropWidth - newSize;
+            const newY = cropStartY + cropHeight - newSize;
+            if (newX >= 0 && newY >= 0) {
+              cropStartX = newX;
+              cropStartY = newY;
+              cropWidth = newSize;
+              cropHeight = newSize;
+            }
+          }
+        }
+
+        updateCropSelection();
+      };
+
+      cropOverlay.onmouseup = () => {
+        isDraggingCrop = false;
+        resizingHandle = null;
+      };
+
+      cropOverlay.onmouseleave = () => {
+        isDraggingCrop = false;
+        resizingHandle = null;
+      };
+    }
+
+    function updateCropSelection() {
+      const selection = document.getElementById('cropSelection');
+      const sizeInfo = document.getElementById('cropSizeInfo');
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = rect.width / canvas.width;
+      const scaleY = rect.height / canvas.height;
+
+      selection.style.left = (cropStartX * scaleX) + 'px';
+      selection.style.top = (cropStartY * scaleY) + 'px';
+      selection.style.width = (cropWidth * scaleX) + 'px';
+      selection.style.height = (cropHeight * scaleY) + 'px';
+
+      sizeInfo.textContent = `${Math.round(cropWidth)} x ${Math.round(cropHeight)}`;
+    }
+
+    function setCropPreset(preset) {
+      if (!isCropping) toggleCropMode();
+
+      if (preset === 'full') {
+        const size = Math.min(canvas.width, canvas.height);
+        cropStartX = (canvas.width - size) / 2;
+        cropStartY = (canvas.height - size) / 2;
+        cropWidth = size;
+        cropHeight = size;
+      } else if (preset === 'center') {
+        const size = Math.min(canvas.width, canvas.height) * 0.6;
+        cropStartX = (canvas.width - size) / 2;
+        cropStartY = (canvas.height - size) / 2;
+        cropWidth = size;
+        cropHeight = size;
+      }
+
+      updateCropSelection();
+    }
+
+    function applyCrop() {
+      if (!isCropping || cropWidth <= 0 || cropHeight <= 0) {
+        showAlert('자를 영역을 선택해주세요.', 'warning');
+        return;
+      }
+
+      // 자르기 적용
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = cropWidth;
+      tempCanvas.height = cropHeight;
+      const tempCtx = tempCanvas.getContext('2d');
+
+      tempCtx.drawImage(
+        canvas,
+        cropStartX, cropStartY, cropWidth, cropHeight,
+        0, 0, cropWidth, cropHeight
+      );
+
+      // 캔버스 크기 변경 및 이미지 적용
+      canvas.width = cropWidth;
+      canvas.height = cropHeight;
+      ctx.drawImage(tempCanvas, 0, 0);
+
+      // 자르기 모드 종료
+      toggleCropMode();
+      showAlert('이미지가 자르기되었습니다.', 'success');
+    }
+
+    // =====================================================
+    // 텍스트 추가 기능
+    // =====================================================
+    function toggleTextMode() {
+      isTextMode = !isTextMode;
+      isErasing = false;
+      isMagicErasing = false;
+      isCropping = false;
+
+      const textBtn = document.getElementById('textBtn');
+      const textOptions = document.getElementById('textOptions');
+      const eraserBtn = document.getElementById('eraserBtn');
+      const magicBtn = document.getElementById('magicEraserBtn');
+      const cropBtn = document.getElementById('cropBtn');
+      const brushCursor = document.getElementById('brushCursorPreview');
+
+      // 다른 모드 해제
+      eraserBtn?.classList.remove('active');
+      magicBtn?.classList.remove('active');
+      cropBtn?.classList.remove('active');
+      canvas.classList.remove('eraser-mode', 'crop-mode');
+      if (brushCursor) brushCursor.style.display = 'none';
+      document.getElementById('cropOverlay').classList.remove('active');
+      document.getElementById('applyCropBtn').style.display = 'none';
+
+      if (isTextMode) {
+        textBtn.classList.add('active');
+        textOptions.style.display = 'block';
+        canvas.classList.add('text-mode');
+
+        // 캔버스 클릭 이벤트 추가
+        canvas.onclick = handleTextClick;
+      } else {
+        textBtn.classList.remove('active');
+        textOptions.style.display = 'none';
+        canvas.classList.remove('text-mode');
+        canvas.onclick = null;
+      }
+    }
+
+    function handleTextClick(e) {
+      if (!isTextMode) return;
+
+      const coords = getScaledCoordinates(e);
+      textX = coords.offsetX;
+      textY = coords.offsetY;
+
+      // 텍스트 입력 필드에 포커스
+      document.getElementById('textInput').focus();
+    }
+
+    function addTextToCanvas() {
+      const text = document.getElementById('textInput').value.trim();
+      if (!text) {
+        showAlert('텍스트를 입력해주세요.', 'warning');
+        return;
+      }
+
+      const font = document.getElementById('textFont').value;
+      const size = parseInt(document.getElementById('textSize').value) || 32;
+      const color = document.getElementById('textColor').value;
+
+      // 텍스트 위치가 설정되지 않았으면 중앙에
+      if (textX === 0 && textY === 0) {
+        textX = canvas.width / 2;
+        textY = canvas.height / 2;
+      }
+
+      ctx.save();
+      ctx.font = `${size}px "${font}"`;
+      ctx.fillStyle = color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, textX, textY);
+      ctx.restore();
+
+      // 입력 필드 초기화
+      document.getElementById('textInput').value = '';
+
+      showAlert('텍스트가 추가되었습니다.', 'success');
+    }
+
+    // =====================================================
+    // 회전 / 뒤집기 기능
+    // =====================================================
+    function rotateImage(degrees) {
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+
+      if (Math.abs(degrees) === 90) {
+        // 90도 회전시 가로세로 교체
+        tempCanvas.width = canvas.height;
+        tempCanvas.height = canvas.width;
+
+        tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+        tempCtx.rotate(degrees * Math.PI / 180);
+        tempCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+      } else {
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+
+        tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+        tempCtx.rotate(degrees * Math.PI / 180);
+        tempCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+      }
+
+      canvas.width = tempCanvas.width;
+      canvas.height = tempCanvas.height;
+      ctx.drawImage(tempCanvas, 0, 0);
+
+      // 자르기 영역이 있으면 업데이트
+      if (isCropping) {
+        updateCropSelection();
+      }
+
+      showAlert(`이미지가 ${degrees > 0 ? '우' : '좌'}회전되었습니다.`, 'success');
+    }
+
+    function flipImage(direction) {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = canvas.width;
+      tempCanvas.height = canvas.height;
+      const tempCtx = tempCanvas.getContext('2d');
+
+      if (direction === 'horizontal') {
+        tempCtx.translate(canvas.width, 0);
+        tempCtx.scale(-1, 1);
+      } else {
+        tempCtx.translate(0, canvas.height);
+        tempCtx.scale(1, -1);
+      }
+
+      tempCtx.drawImage(canvas, 0, 0);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(tempCanvas, 0, 0);
+
+      showAlert(`이미지가 ${direction === 'horizontal' ? '좌우' : '상하'} 뒤집혔습니다.`, 'success');
     }
 
     // 매직 이레이저 적용 (OpenCV Inpainting API 사용)
@@ -10389,11 +10991,20 @@
       // 상태 초기화
       isErasing = false;
       isMagicErasing = false;
+      isCropping = false;
+      isTextMode = false;
       isDrawing = false;
       currentEditingImage = null;
       currentEditingImageUrl = null;
       currentEditingOptionIndexes = null;
       originalImageData = null;
+
+      // UI 요소 초기화
+      document.getElementById('cropOverlay')?.classList.remove('active');
+      document.getElementById('brushCursorPreview').style.display = 'none';
+      document.getElementById('textOptions').style.display = 'none';
+      canvas.classList.remove('eraser-mode', 'crop-mode', 'text-mode');
+      canvas.onclick = null;
 
       // 마스크 캔버스 초기화
       if (maskCanvas) {
