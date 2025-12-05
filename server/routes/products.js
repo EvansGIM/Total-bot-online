@@ -1379,7 +1379,8 @@ router.post('/:id/ai-auto-edit', authMiddleware, async (req, res) => {
       title: null,
       optionsConverted: 0,
       styledImageCreated: false,
-      optionImagesProcessed: 0
+      optionImagesProcessed: 0,
+      detailImagesAdded: 0
     };
 
     // 2. AI 상품명 생성
@@ -1559,34 +1560,74 @@ Return the generated image with white background.`;
       }
     }
 
-    // 6. 상세페이지 구성 (연출 이미지를 브랜드 하단에 추가)
-    if (!product.detailPageItems) {
+    // 6. 상세페이지 구성
+    if (!product.detailPageItems || product.detailPageItems.length === 0) {
+      // 상세페이지가 비어있으면 자동으로 구성
       product.detailPageItems = [];
-    }
 
-    const imageToAdd = styledImageUrl || (product.images && product.images.length > 0 ? product.images[0] : null);
-
-    if (imageToAdd) {
-      // 브랜드 이미지 다음 위치 찾기 또는 맨 앞에 추가
-      let insertIndex = 0;
-      for (let i = 0; i < product.detailPageItems.length; i++) {
-        if (product.detailPageItems[i].type === 'brand-image') {
-          insertIndex = i + 1;
-          break;
-        }
+      // 브랜드 이미지 추가 (사용자 설정에서)
+      if (userSettings.brandImageUrl) {
+        product.detailPageItems.push({
+          id: `brand_${Date.now()}`,
+          type: 'brand-image',
+          src: userSettings.brandImageUrl,
+          alt: '브랜드 이미지'
+        });
       }
 
-      // 기존 styled-image 제거 후 새로 추가
-      product.detailPageItems = product.detailPageItems.filter(item => item.type !== 'styled-image');
+      // 연출 이미지 추가 (있는 경우)
+      const imageToAdd = styledImageUrl || (product.images && product.images.length > 0 ? product.images[0] : null);
+      if (imageToAdd) {
+        product.detailPageItems.push({
+          id: `styled_${Date.now()}`,
+          type: 'styled-image',
+          src: imageToAdd,
+          alt: '연출 이미지'
+        });
+      }
 
-      product.detailPageItems.splice(insertIndex, 0, {
-        id: `styled_${Date.now()}`,
-        type: 'styled-image',
-        src: imageToAdd,
-        alt: '연출 이미지'
-      });
+      // 상세 이미지들 추가
+      if (product.detailImages && product.detailImages.length > 0) {
+        product.detailImages.forEach((img, index) => {
+          product.detailPageItems.push({
+            id: `detail_${Date.now()}_${index}`,
+            type: 'detail-image',
+            src: img,
+            alt: `상세 이미지 ${index + 1}`
+          });
+        });
+        changes.detailImagesAdded = product.detailImages.length;
+        console.log(`[AI Auto Edit] 상세 이미지 ${product.detailImages.length}개 추가`);
+      }
+
       changes.detailPageUpdated = true;
-      console.log('[AI Auto Edit] 상세페이지에 연출 이미지 추가됨');
+      console.log('[AI Auto Edit] 상세페이지 자동 구성 완료');
+    } else {
+      // 기존 상세페이지가 있으면 연출 이미지만 추가/교체
+      const imageToAdd = styledImageUrl || (product.images && product.images.length > 0 ? product.images[0] : null);
+
+      if (imageToAdd) {
+        // 브랜드 이미지 다음 위치 찾기 또는 맨 앞에 추가
+        let insertIndex = 0;
+        for (let i = 0; i < product.detailPageItems.length; i++) {
+          if (product.detailPageItems[i].type === 'brand-image') {
+            insertIndex = i + 1;
+            break;
+          }
+        }
+
+        // 기존 styled-image 제거 후 새로 추가
+        product.detailPageItems = product.detailPageItems.filter(item => item.type !== 'styled-image');
+
+        product.detailPageItems.splice(insertIndex, 0, {
+          id: `styled_${Date.now()}`,
+          type: 'styled-image',
+          src: imageToAdd,
+          alt: '연출 이미지'
+        });
+        changes.detailPageUpdated = true;
+        console.log('[AI Auto Edit] 상세페이지에 연출 이미지 추가됨');
+      }
     }
 
     // 7. 상태 변경 및 저장

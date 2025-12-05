@@ -2763,8 +2763,11 @@
             if (changes.optionsConverted > 0) {
               addAILog(`  ✓ 옵션명 ${changes.optionsConverted}개 변환`, 'success');
             }
+            if (changes.detailImagesAdded > 0) {
+              addAILog(`  ✓ 상세 이미지 ${changes.detailImagesAdded}개 추가`, 'success');
+            }
             if (changes.detailPageUpdated) {
-              addAILog(`  ✓ 상세페이지 연출 이미지 추가`, 'success');
+              addAILog(`  ✓ 상세페이지 구성 완료`, 'success');
             }
             addAILog(`  ✓ 상품 처리 완료!`, 'success');
           } else {
