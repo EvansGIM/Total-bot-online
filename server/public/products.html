@@ -3837,13 +3837,24 @@
             <label style="display: block; font-weight: bold; margin-bottom: 8px;">
               🏷️ 검색태그
             </label>
-            <input
-              type="text"
-              id="searchTagInput"
-              placeholder="태그를 입력하고 Enter를 누르세요"
-              style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
-              onkeypress="handleTagInput(event)"
-            >
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input
+                type="text"
+                id="searchTagInput"
+                placeholder="태그를 입력하고 Enter를 누르세요"
+                style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
+                onkeypress="handleTagInput(event)"
+              >
+              <button
+                type="button"
+                id="aiTagBtn"
+                onclick="generateAITags()"
+                style="padding: 12px 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px;"
+              >
+                <span id="aiTagSpinner" style="display: none; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
+                <span id="aiTagText">AI 추천 태그</span>
+              </button>
+            </div>
             <div id="tagList" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px;"></div>
           </div>
 
@@ -4240,6 +4251,68 @@
     window.removeTag = function(index) {
       detailCategoryState.tags.splice(index, 1);
       renderTags();
+    }
+
+    // AI 추천 태그 생성
+    window.generateAITags = async function() {
+      const btn = document.getElementById('aiTagBtn');
+      const spinner = document.getElementById('aiTagSpinner');
+      const text = document.getElementById('aiTagText');
+
+      // 상품명 가져오기 (선택된 첫 번째 엑셀 데이터에서)
+      let productTitle = '';
+      let categoryName = '';
+
+      if (detailCategoryState.excelData && detailCategoryState.excelData.length > 0) {
+        const firstExcel = detailCategoryState.excelData[0];
+        productTitle = firstExcel.title || firstExcel.productName || '';
+
+        // 선택된 카테고리 정보
+        const firstKey = Object.keys(detailCategoryState.selections)[0];
+        if (firstKey && detailCategoryState.selections[firstKey]) {
+          categoryName = detailCategoryState.selections[firstKey].name || '';
+        }
+      }
+
+      if (!productTitle) {
+        alert('상품명을 찾을 수 없습니다.');
+        return;
+      }
+
+      // 버튼 상태 변경
+      btn.disabled = true;
+      spinner.style.display = 'inline-block';
+      text.textContent = '생성중...';
+
+      try {
+        const response = await fetch('/api/gemini/generate-tags', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productTitle,
+            categoryName
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success && result.tags && result.tags.length > 0) {
+          // 기존 태그와 중복되지 않는 태그만 추가
+          const newTags = result.tags.filter(tag => !detailCategoryState.tags.includes(tag));
+          detailCategoryState.tags.push(...newTags);
+          renderTags();
+          alert(`${newTags.length}개의 AI 추천 태그가 추가되었습니다!`);
+        } else {
+          alert(result.message || 'AI 태그 추천 실패');
+        }
+      } catch (error) {
+        console.error('AI 태그 추천 오류:', error);
+        alert('AI 태그 추천 중 오류가 발생했습니다.');
+      } finally {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        text.textContent = 'AI 추천 태그';
+      }
     }
 
     // 모든 데이터 저장

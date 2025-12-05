@@ -562,4 +562,105 @@ ${titleCn ? `중국어 원본: ${titleCn}` : ''}
   }
 });
 
+/**
+ * POST /api/gemini/generate-tags
+ * AI를 사용하여 검색 태그 추천
+ *
+ * Body:
+ * - productTitle: 상품명 (필수)
+ * - categoryName: 카테고리명 (선택)
+ */
+router.post('/generate-tags', async (req, res) => {
+  try {
+    const { productTitle, categoryName } = req.body;
+
+    if (!productTitle) {
+      return res.status(400).json({
+        success: false,
+        message: '상품명이 필요합니다.'
+      });
+    }
+
+    console.log('[Gemini API] 태그 추천 요청:', {
+      productTitle: productTitle.substring(0, 50) + '...',
+      categoryName
+    });
+
+    // Gemini Flash 모델 사용 (빠른 텍스트 처리)
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+
+    const prompt = `당신은 한국 쿠팡/네이버 쇼핑몰 검색 태그 전문가입니다.
+
+다음 상품에 대한 검색 태그를 추천해주세요:
+
+상품명: ${productTitle}
+${categoryName ? `카테고리: ${categoryName}` : ''}
+
+태그 생성 규칙:
+1. 구매자가 실제로 검색할 만한 키워드 위주로 선정
+2. 상품의 핵심 특징, 용도, 스타일을 포함
+3. 일반적인 키워드(예: 여성의류)부터 구체적인 키워드(예: 오버핏니트)까지 다양하게
+4. 시즌/계절 관련 키워드 포함 (해당되는 경우)
+5. 8~12개 정도의 태그 추천
+6. 각 태그는 1~4 단어로 간결하게
+7. 중복되거나 너무 일반적인 태그 제외
+
+중요:
+- 반드시 JSON 형식으로만 응답하세요
+- 응답 형식: {"tags": ["태그1", "태그2", "태그3", ...]}
+- JSON 외의 다른 텍스트는 포함하지 마세요`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let responseText = response.text().trim();
+
+    console.log('[Gemini API] 태그 응답:', responseText.substring(0, 200) + '...');
+
+    // JSON 파싱
+    let tags = [];
+
+    try {
+      // JSON 블록 추출 (```json ... ``` 형식 처리)
+      if (responseText.includes('```json')) {
+        responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      } else if (responseText.includes('```')) {
+        responseText = responseText.replace(/```\n?/g, '');
+      }
+
+      const parsed = JSON.parse(responseText);
+      tags = parsed.tags || [];
+    } catch (parseError) {
+      console.error('[Gemini API] JSON 파싱 실패:', parseError.message);
+      return res.status(500).json({
+        success: false,
+        message: '태그 생성 결과를 파싱하는데 실패했습니다.'
+      });
+    }
+
+    console.log('[Gemini API] 태그 추천 완료:', tags.length + '개');
+
+    res.json({
+      success: true,
+      tags,
+      message: `${tags.length}개 태그가 추천되었습니다.`
+    });
+
+  } catch (error) {
+    console.error('[Gemini API] 태그 추천 오류:', error);
+
+    let userMessage = '태그 추천 중 오류가 발생했습니다.';
+    const errorMessage = error.message || String(error);
+
+    if (errorMessage.includes('429') || errorMessage.includes('RESOURCE_EXHAUSTED')) {
+      userMessage = 'API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요.';
+    }
+
+    res.status(500).json({
+      success: false,
+      message: userMessage,
+      error: errorMessage
+    });
+  }
+});
+
 module.exports = router;
