@@ -1398,9 +1398,180 @@
       color: #6d28d9;
       font-weight: 600;
     }
+
+    /* AI Progress Modal */
+    .ai-progress-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 99999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .ai-progress-overlay.active {
+      display: flex;
+    }
+    .ai-progress-modal {
+      background: white;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow: hidden;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+    }
+    .ai-progress-header {
+      background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+      color: white;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .ai-progress-header h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .ai-spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    .ai-progress-body {
+      padding: 20px 24px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .ai-progress-status {
+      font-size: 15px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ai-progress-bar-container {
+      background: #e5e7eb;
+      border-radius: 8px;
+      height: 8px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .ai-progress-bar {
+      height: 100%;
+      background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+      border-radius: 8px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+    .ai-progress-logs {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 12px;
+      color: #555;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+    .ai-log-item {
+      padding: 6px 0;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .ai-log-item:last-child {
+      border-bottom: none;
+    }
+    .ai-log-time {
+      color: #9ca3af;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .ai-log-message {
+      flex: 1;
+    }
+    .ai-log-success {
+      color: #10b981;
+    }
+    .ai-log-error {
+      color: #ef4444;
+    }
+    .ai-log-info {
+      color: #6366f1;
+    }
+    .ai-progress-footer {
+      padding: 16px 24px;
+      border-top: 1px solid #e5e7eb;
+      text-align: center;
+    }
+    .ai-progress-footer p {
+      margin: 0;
+      font-size: 13px;
+      color: #6b7280;
+    }
+    .btn-close-modal {
+      margin-top: 12px;
+      padding: 10px 32px;
+      background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-close-modal:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(109, 40, 217, 0.3);
+    }
+    .ai-spinner.complete {
+      border: none;
+      animation: none;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
   </style>
 </head>
 <body>
+  <!-- AI Progress Modal -->
+  <div class="ai-progress-overlay" id="aiProgressOverlay">
+    <div class="ai-progress-modal">
+      <div class="ai-progress-header">
+        <div class="ai-spinner" id="aiSpinner"></div>
+        <h3>🤖 AI 자동 수정 진행중</h3>
+      </div>
+      <div class="ai-progress-body">
+        <div class="ai-progress-status">
+          <span id="aiProgressStatusText">준비중...</span>
+        </div>
+        <div class="ai-progress-bar-container">
+          <div class="ai-progress-bar" id="aiProgressBar"></div>
+        </div>
+        <div class="ai-progress-logs" id="aiProgressLogs">
+          <!-- 로그가 여기에 추가됨 -->
+        </div>
+      </div>
+      <div class="ai-progress-footer" id="aiProgressFooter">
+        <p id="aiProgressWarning">⚠️ 창을 닫지 마세요. AI가 이미지와 텍스트를 처리중입니다.</p>
+        <button id="aiProgressCloseBtn" class="btn-close-modal" style="display: none;" onclick="closeAIProgressAndRefresh()">닫기</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div id="toastContainer" class="toast-container"></div>
 
@@ -2460,6 +2631,78 @@
       }
     }
 
+    // AI Progress Modal 헬퍼 함수들
+    function showAIProgressModal() {
+      const overlay = document.getElementById('aiProgressOverlay');
+      const logs = document.getElementById('aiProgressLogs');
+      const bar = document.getElementById('aiProgressBar');
+      const status = document.getElementById('aiProgressStatusText');
+
+      // 초기화
+      logs.innerHTML = '';
+      bar.style.width = '0%';
+      status.textContent = '준비중...';
+      overlay.classList.add('active');
+    }
+
+    function hideAIProgressModal() {
+      const overlay = document.getElementById('aiProgressOverlay');
+      overlay.classList.remove('active');
+
+      // 상태 초기화
+      const spinner = document.getElementById('aiSpinner');
+      const warning = document.getElementById('aiProgressWarning');
+      const closeBtn = document.getElementById('aiProgressCloseBtn');
+
+      spinner.classList.remove('complete');
+      spinner.innerHTML = '';
+      warning.style.display = 'block';
+      closeBtn.style.display = 'none';
+    }
+
+    function showAIProgressComplete(success = true) {
+      const spinner = document.getElementById('aiSpinner');
+      const warning = document.getElementById('aiProgressWarning');
+      const closeBtn = document.getElementById('aiProgressCloseBtn');
+
+      spinner.classList.add('complete');
+      spinner.innerHTML = success ? '✅' : '⚠️';
+      warning.style.display = 'none';
+      closeBtn.style.display = 'inline-block';
+    }
+
+    let aiProgressCallback = null;
+
+    function closeAIProgressAndRefresh() {
+      hideAIProgressModal();
+      if (aiProgressCallback) {
+        aiProgressCallback();
+        aiProgressCallback = null;
+      }
+    }
+
+    function updateAIProgress(percent, statusText) {
+      const bar = document.getElementById('aiProgressBar');
+      const status = document.getElementById('aiProgressStatusText');
+      bar.style.width = `${percent}%`;
+      status.textContent = statusText;
+    }
+
+    function addAILog(message, type = 'info') {
+      const logs = document.getElementById('aiProgressLogs');
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+      const logItem = document.createElement('div');
+      logItem.className = 'ai-log-item';
+      logItem.innerHTML = `
+        <span class="ai-log-time">${timeStr}</span>
+        <span class="ai-log-message ai-log-${type}">${message}</span>
+      `;
+      logs.appendChild(logItem);
+      logs.scrollTop = logs.scrollHeight;
+    }
+
     // AI 자동 제품 수정
     async function processAIAutoEdit() {
       if (selectedProducts.size === 0) {
@@ -2467,7 +2710,7 @@
         return;
       }
 
-      if (!confirm(`선택한 ${selectedProducts.size}개 상품을 AI로 자동 수정하시겠습니까?\n\n수정 내용:\n- 상품명 AI 자동 생성\n- 옵션명 AI 변환\n- 상세페이지 자동 구성\n- 상태를 'AI 수정완료'로 변경`)) {
+      if (!confirm(`선택한 ${selectedProducts.size}개 상품을 AI로 자동 수정하시겠습니까?\n\n수정 내용:\n- 상품명 AI 자동 생성\n- 옵션 이미지 → 흰 배경 제품 이미지\n- 추가 이미지 → 연출 이미지\n- 옵션명 AI 변환\n- 상세페이지 자동 구성\n- 상태를 'AI 수정완료'로 변경`)) {
         return;
       }
 
@@ -2475,11 +2718,16 @@
       let successCount = 0;
       let failCount = 0;
 
-      // 진행 상황 표시
-      showToast(`AI 자동 수정 시작... (0/${productIds.length})`, 'info');
+      // 모달 표시
+      showAIProgressModal();
+      addAILog(`총 ${productIds.length}개 상품 AI 자동 수정 시작`, 'info');
 
       for (let i = 0; i < productIds.length; i++) {
         const productId = productIds[i];
+        const progress = Math.round(((i) / productIds.length) * 100);
+
+        updateAIProgress(progress, `상품 처리 중... (${i + 1}/${productIds.length})`);
+        addAILog(`[${i + 1}/${productIds.length}] 상품 ID: ${productId} 처리 시작...`, 'info');
 
         try {
           const response = await authFetch(`/api/products/${productId}/ai-auto-edit`, {
@@ -2491,33 +2739,56 @@
 
           if (result.success) {
             successCount++;
-            console.log(`[AI Auto Edit] 성공 (${i + 1}/${productIds.length}):`, result.changes);
+            const changes = result.changes || {};
+
+            // 세부 변경 내역 로그
+            if (changes.title) {
+              addAILog(`  ✓ 상품명: ${changes.title.substring(0, 30)}...`, 'success');
+            }
+            if (changes.optionImagesProcessed > 0) {
+              addAILog(`  ✓ 옵션 이미지 ${changes.optionImagesProcessed}개 흰 배경 변환`, 'success');
+            }
+            if (changes.styledImageCreated) {
+              addAILog(`  ✓ 연출 이미지 생성 완료`, 'success');
+            }
+            if (changes.optionsConverted > 0) {
+              addAILog(`  ✓ 옵션명 ${changes.optionsConverted}개 변환`, 'success');
+            }
+            addAILog(`  ✓ 상품 ${productId} 완료!`, 'success');
           } else {
             failCount++;
-            console.error(`[AI Auto Edit] 실패 (${productId}):`, result.message);
+            addAILog(`  ✗ 실패: ${result.message || '알 수 없는 오류'}`, 'error');
           }
         } catch (error) {
           failCount++;
-          console.error(`[AI Auto Edit] 오류 (${productId}):`, error);
-        }
-
-        // 진행 상황 업데이트
-        if ((i + 1) % 1 === 0 || i === productIds.length - 1) {
-          showToast(`AI 자동 수정 중... (${i + 1}/${productIds.length})`, 'info');
+          addAILog(`  ✗ 오류: ${error.message}`, 'error');
         }
       }
 
-      // 완료 메시지
+      // 완료
+      updateAIProgress(100, '완료!');
+
       if (failCount === 0) {
-        showToast(`✅ ${successCount}개 상품 AI 자동 수정 완료!`, 'success');
+        addAILog(`✅ 총 ${successCount}개 상품 AI 자동 수정 완료!`, 'success');
+        showAIProgressComplete(true);
       } else {
-        showToast(`AI 수정 완료: 성공 ${successCount}개, 실패 ${failCount}개`, 'warning');
+        addAILog(`⚠️ 완료: 성공 ${successCount}개, 실패 ${failCount}개`, 'error');
+        showAIProgressComplete(false);
       }
 
-      // 선택 초기화 및 목록 새로고침
-      selectedProducts.clear();
-      updateActionBar();
-      loadProducts();
+      // 닫기 버튼 클릭 시 콜백 설정
+      aiProgressCallback = () => {
+        if (failCount === 0) {
+          showToast(`✅ ${successCount}개 상품 AI 자동 수정 완료!`, 'success');
+        } else {
+          showToast(`AI 수정 완료: 성공 ${successCount}개, 실패 ${failCount}개`, 'warning');
+        }
+
+        // 선택 초기화 및 목록 새로고침
+        selectedProducts.clear();
+        updateActionBar();
+        loadProducts();
+      };
     }
 
     // 선택 상품 삭제
