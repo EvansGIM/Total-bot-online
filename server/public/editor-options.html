@@ -1477,27 +1477,50 @@
       white-space: nowrap;
     }
 
-    /* 텍스트 입력 오버레이 */
-    .text-input-overlay {
+    /* 드래그 가능 텍스트 오버레이 */
+    .draggable-text {
       position: absolute;
-      z-index: 100;
+      cursor: move;
+      pointer-events: auto;
+      padding: 8px 12px;
+      border: 2px dashed transparent;
+      border-radius: 4px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .draggable-text:hover {
+      border-color: #667eea;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    .draggable-text.selected {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    }
+
+    .draggable-text .delete-text-btn {
+      position: absolute;
+      top: -12px;
+      right: -12px;
+      width: 24px;
+      height: 24px;
+      background: #ff6b6b;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 14px;
+      cursor: pointer;
       display: none;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(255, 107, 107, 0.4);
     }
 
-    .text-input-overlay.active {
-      display: block;
-    }
-
-    .text-input-box {
-      background: transparent;
-      border: 2px dashed #667eea;
-      padding: 8px;
-      min-width: 100px;
-      min-height: 30px;
-      font-family: inherit;
-      outline: none;
-      resize: both;
-      overflow: hidden;
+    .draggable-text:hover .delete-text-btn,
+    .draggable-text.selected .delete-text-btn {
+      display: flex;
     }
 
     .editor-tools {
@@ -4128,6 +4151,8 @@
                   <div class="crop-size-info" id="cropSizeInfo">0 x 0</div>
                 </div>
               </div>
+              <!-- 텍스트 오버레이 컨테이너 -->
+              <div id="textOverlayContainer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden;"></div>
             </div>
             <!-- 브러시 커서 프리뷰 -->
             <div class="brush-cursor-preview" id="brushCursorPreview"></div>
@@ -4177,25 +4202,24 @@
             <!-- 텍스트 추가 -->
             <div class="tool-group" style="border-left: 3px solid #ff6b6b;">
               <h3>✏️ 텍스트 추가</h3>
-              <div class="tool-buttons">
-                <button class="tool-btn" id="textBtn" onclick="toggleTextMode()">Aa 텍스트 모드</button>
-              </div>
-              <div id="textOptions" style="display: none; margin-top: 10px;">
-                <input type="text" id="textInput" placeholder="텍스트 입력..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 8px;">
+              <div id="textOptions">
+                <input type="text" id="textInput" placeholder="텍스트 입력..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 8px;" oninput="updateTextPreview()">
                 <div style="display: flex; gap: 6px; margin-bottom: 8px;">
-                  <select id="textFont" style="flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                  <select id="textFont" style="flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" onchange="updateTextPreview()">
                     <option value="Arial">Arial</option>
                     <option value="맑은 고딕">맑은 고딕</option>
                     <option value="나눔고딕">나눔고딕</option>
                     <option value="Georgia">Georgia</option>
                     <option value="Impact">Impact</option>
                   </select>
-                  <input type="number" id="textSize" value="32" min="8" max="200" style="width: 60px; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                  <input type="number" id="textSize" value="32" min="8" max="200" style="width: 60px; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" onchange="updateTextPreview()">
                 </div>
-                <div style="display: flex; gap: 6px; align-items: center;">
-                  <input type="color" id="textColor" value="#000000" style="width: 40px; height: 32px; border: none; cursor: pointer;">
-                  <button class="tool-btn" onclick="addTextToCanvas()" style="flex: 1;">텍스트 추가</button>
+                <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 8px;">
+                  <input type="color" id="textColor" value="#000000" style="width: 40px; height: 32px; border: none; cursor: pointer;" onchange="updateTextPreview()">
+                  <button class="tool-btn primary-action" onclick="createTextOverlay()" style="flex: 1;">+ 텍스트 생성</button>
                 </div>
+                <button class="tool-btn" id="applyTextBtn" onclick="applyTextToCanvas()" style="width: 100%; display: none;">✓ 텍스트 적용</button>
+                <div class="tool-hint">💡 텍스트 생성 후 드래그하여 이동</div>
               </div>
             </div>
 
@@ -4735,10 +4759,6 @@
     let isDraggingCrop = false;
     let dragStartX = 0, dragStartY = 0;
     let resizingHandle = null;
-
-    // 텍스트 관련 변수
-    let isTextMode = false;
-    let textX = 0, textY = 0;
 
     // 페이지 로드
     window.addEventListener('load', async () => {
@@ -10246,7 +10266,7 @@
       const brushCursor = document.getElementById('brushCursorPreview');
 
       canvas.onmousedown = (e) => {
-        if (isCropping || isTextMode) return;
+        if (isCropping) return;
         const coords = getScaledCoordinates(e);
         startDrawing(coords);
       };
@@ -10262,7 +10282,7 @@
           brushCursor.classList.toggle('eraser-preview', isErasing);
         }
 
-        if (isCropping || isTextMode) return;
+        if (isCropping) return;
         const coords = getScaledCoordinates(e);
         draw(coords);
       };
@@ -10279,14 +10299,14 @@
 
       // 터치 이벤트도 지원
       canvas.ontouchstart = (e) => {
-        if (isCropping || isTextMode) return;
+        if (isCropping) return;
         e.preventDefault();
         const coords = getScaledCoordinates(e);
         startDrawing(coords);
       };
 
       canvas.ontouchmove = (e) => {
-        if (isCropping || isTextMode) return;
+        if (isCropping) return;
         e.preventDefault();
         const coords = getScaledCoordinates(e);
         draw(coords);
@@ -10300,21 +10320,17 @@
       isMagicErasing = !isMagicErasing;
       isErasing = false;
       isCropping = false;
-      isTextMode = false;
 
       const magicBtn = document.getElementById('magicEraserBtn');
       const eraserBtn = document.getElementById('eraserBtn');
       const cropBtn = document.getElementById('cropBtn');
-      const textBtn = document.getElementById('textBtn');
 
       // 다른 모드 해제
       eraserBtn?.classList.remove('active');
       cropBtn?.classList.remove('active');
-      textBtn?.classList.remove('active');
-      canvas.classList.remove('crop-mode', 'text-mode');
+      canvas.classList.remove('crop-mode');
       document.getElementById('cropOverlay')?.classList.remove('active');
       document.getElementById('applyCropBtn').style.display = 'none';
-      document.getElementById('textOptions').style.display = 'none';
 
       if (isMagicErasing) {
         magicBtn.classList.add('active');
@@ -10338,21 +10354,17 @@
       isErasing = !isErasing;
       isMagicErasing = false;
       isCropping = false;
-      isTextMode = false;
 
       const btn = document.getElementById('eraserBtn');
       const magicBtn = document.getElementById('magicEraserBtn');
       const cropBtn = document.getElementById('cropBtn');
-      const textBtn = document.getElementById('textBtn');
 
       // 다른 모드 해제
       magicBtn?.classList.remove('active');
       cropBtn?.classList.remove('active');
-      textBtn?.classList.remove('active');
-      canvas.classList.remove('crop-mode', 'text-mode');
+      canvas.classList.remove('crop-mode');
       document.getElementById('cropOverlay')?.classList.remove('active');
       document.getElementById('applyCropBtn').style.display = 'none';
-      document.getElementById('textOptions').style.display = 'none';
 
       if (isErasing) {
         btn.classList.add('active');
@@ -10445,23 +10457,19 @@
       isCropping = !isCropping;
       isErasing = false;
       isMagicErasing = false;
-      isTextMode = false;
 
       const cropBtn = document.getElementById('cropBtn');
       const applyCropBtn = document.getElementById('applyCropBtn');
       const cropOverlay = document.getElementById('cropOverlay');
       const eraserBtn = document.getElementById('eraserBtn');
       const magicBtn = document.getElementById('magicEraserBtn');
-      const textBtn = document.getElementById('textBtn');
       const brushCursor = document.getElementById('brushCursorPreview');
 
       // 다른 모드 해제
       eraserBtn?.classList.remove('active');
       magicBtn?.classList.remove('active');
-      textBtn?.classList.remove('active');
-      canvas.classList.remove('eraser-mode', 'text-mode');
+      canvas.classList.remove('eraser-mode');
       if (brushCursor) brushCursor.style.display = 'none';
-      document.getElementById('textOptions').style.display = 'none';
 
       if (isCropping) {
         cropBtn.classList.add('active');
@@ -10487,18 +10495,37 @@
       }
     }
 
+    // 캔버스의 컨테이너 내 오프셋 계산
+    function getCanvasOffset() {
+      const container = document.getElementById('canvasContainer');
+      const containerRect = container.getBoundingClientRect();
+      const canvasRect = canvas.getBoundingClientRect();
+
+      return {
+        x: canvasRect.left - containerRect.left,
+        y: canvasRect.top - containerRect.top,
+        scaleX: canvas.width / canvasRect.width,
+        scaleY: canvas.height / canvasRect.height,
+        displayScaleX: canvasRect.width / canvas.width,
+        displayScaleY: canvasRect.height / canvas.height
+      };
+    }
+
     function setupCropEvents() {
       const cropOverlay = document.getElementById('cropOverlay');
       const cropSelection = document.getElementById('cropSelection');
 
       cropOverlay.onmousedown = (e) => {
         e.preventDefault();
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
+        const container = document.getElementById('canvasContainer');
+        const containerRect = container.getBoundingClientRect();
+        const offset = getCanvasOffset();
 
-        const x = (e.clientX - rect.left) * scaleX;
-        const y = (e.clientY - rect.top) * scaleY;
+        // 컨테이너 기준 마우스 위치에서 캔버스 오프셋을 빼고 스케일 적용
+        const mouseX = e.clientX - containerRect.left - offset.x;
+        const mouseY = e.clientY - containerRect.top - offset.y;
+        const x = mouseX * offset.scaleX;
+        const y = mouseY * offset.scaleY;
 
         // 핸들 클릭 확인
         if (e.target.classList.contains('crop-handle')) {
@@ -10516,8 +10543,8 @@
           dragStartY = y - cropStartY;
         } else {
           // 새로운 선택 시작
-          cropStartX = x;
-          cropStartY = y;
+          cropStartX = Math.max(0, x);
+          cropStartY = Math.max(0, y);
           cropWidth = 0;
           cropHeight = 0;
           isDraggingCrop = false;
@@ -10530,12 +10557,14 @@
       cropOverlay.onmousemove = (e) => {
         if (!isDraggingCrop && !resizingHandle) return;
 
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
+        const container = document.getElementById('canvasContainer');
+        const containerRect = container.getBoundingClientRect();
+        const offset = getCanvasOffset();
 
-        const x = (e.clientX - rect.left) * scaleX;
-        const y = (e.clientY - rect.top) * scaleY;
+        const mouseX = e.clientX - containerRect.left - offset.x;
+        const mouseY = e.clientY - containerRect.top - offset.y;
+        const x = mouseX * offset.scaleX;
+        const y = mouseY * offset.scaleY;
 
         if (isDraggingCrop) {
           // 선택 영역 이동
@@ -10544,15 +10573,15 @@
         } else if (resizingHandle) {
           // 리사이징 (1:1 비율 유지)
           let newSize;
-          const deltaX = x - dragStartX;
-          const deltaY = y - dragStartY;
 
           if (resizingHandle === 'se') {
             newSize = Math.max(Math.abs(x - cropStartX), Math.abs(y - cropStartY));
+            newSize = Math.max(20, newSize); // 최소 크기
             cropWidth = Math.min(newSize, canvas.width - cropStartX, canvas.height - cropStartY);
             cropHeight = cropWidth;
           } else if (resizingHandle === 'sw') {
             newSize = Math.max(Math.abs(cropStartX + cropWidth - x), Math.abs(y - cropStartY));
+            newSize = Math.max(20, newSize);
             const newX = cropStartX + cropWidth - newSize;
             if (newX >= 0) {
               cropStartX = newX;
@@ -10561,6 +10590,7 @@
             }
           } else if (resizingHandle === 'ne') {
             newSize = Math.max(Math.abs(x - cropStartX), Math.abs(cropStartY + cropHeight - y));
+            newSize = Math.max(20, newSize);
             const newY = cropStartY + cropHeight - newSize;
             if (newY >= 0) {
               cropStartY = newY;
@@ -10569,6 +10599,7 @@
             }
           } else if (resizingHandle === 'nw') {
             newSize = Math.max(Math.abs(cropStartX + cropWidth - x), Math.abs(cropStartY + cropHeight - y));
+            newSize = Math.max(20, newSize);
             const newX = cropStartX + cropWidth - newSize;
             const newY = cropStartY + cropHeight - newSize;
             if (newX >= 0 && newY >= 0) {
@@ -10597,14 +10628,13 @@
     function updateCropSelection() {
       const selection = document.getElementById('cropSelection');
       const sizeInfo = document.getElementById('cropSizeInfo');
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = rect.width / canvas.width;
-      const scaleY = rect.height / canvas.height;
+      const offset = getCanvasOffset();
 
-      selection.style.left = (cropStartX * scaleX) + 'px';
-      selection.style.top = (cropStartY * scaleY) + 'px';
-      selection.style.width = (cropWidth * scaleX) + 'px';
-      selection.style.height = (cropHeight * scaleY) + 'px';
+      // 캔버스 오프셋 + 스케일된 자르기 영역 위치
+      selection.style.left = (offset.x + cropStartX * offset.displayScaleX) + 'px';
+      selection.style.top = (offset.y + cropStartY * offset.displayScaleY) + 'px';
+      selection.style.width = (cropWidth * offset.displayScaleX) + 'px';
+      selection.style.height = (cropHeight * offset.displayScaleY) + 'px';
 
       sizeInfo.textContent = `${Math.round(cropWidth)} x ${Math.round(cropHeight)}`;
     }
@@ -10658,57 +10688,15 @@
     }
 
     // =====================================================
-    // 텍스트 추가 기능
+    // 텍스트 추가 기능 (드래그 가능)
     // =====================================================
-    function toggleTextMode() {
-      isTextMode = !isTextMode;
-      isErasing = false;
-      isMagicErasing = false;
-      isCropping = false;
+    let textOverlays = []; // 텍스트 오버레이 목록
+    let selectedTextOverlay = null;
+    let isDraggingText = false;
+    let textDragOffsetX = 0, textDragOffsetY = 0;
 
-      const textBtn = document.getElementById('textBtn');
-      const textOptions = document.getElementById('textOptions');
-      const eraserBtn = document.getElementById('eraserBtn');
-      const magicBtn = document.getElementById('magicEraserBtn');
-      const cropBtn = document.getElementById('cropBtn');
-      const brushCursor = document.getElementById('brushCursorPreview');
-
-      // 다른 모드 해제
-      eraserBtn?.classList.remove('active');
-      magicBtn?.classList.remove('active');
-      cropBtn?.classList.remove('active');
-      canvas.classList.remove('eraser-mode', 'crop-mode');
-      if (brushCursor) brushCursor.style.display = 'none';
-      document.getElementById('cropOverlay').classList.remove('active');
-      document.getElementById('applyCropBtn').style.display = 'none';
-
-      if (isTextMode) {
-        textBtn.classList.add('active');
-        textOptions.style.display = 'block';
-        canvas.classList.add('text-mode');
-
-        // 캔버스 클릭 이벤트 추가
-        canvas.onclick = handleTextClick;
-      } else {
-        textBtn.classList.remove('active');
-        textOptions.style.display = 'none';
-        canvas.classList.remove('text-mode');
-        canvas.onclick = null;
-      }
-    }
-
-    function handleTextClick(e) {
-      if (!isTextMode) return;
-
-      const coords = getScaledCoordinates(e);
-      textX = coords.offsetX;
-      textY = coords.offsetY;
-
-      // 텍스트 입력 필드에 포커스
-      document.getElementById('textInput').focus();
-    }
-
-    function addTextToCanvas() {
+    // 텍스트 오버레이 생성
+    function createTextOverlay() {
       const text = document.getElementById('textInput').value.trim();
       if (!text) {
         showAlert('텍스트를 입력해주세요.', 'warning');
@@ -10718,25 +10706,183 @@
       const font = document.getElementById('textFont').value;
       const size = parseInt(document.getElementById('textSize').value) || 32;
       const color = document.getElementById('textColor').value;
+      const offset = getCanvasOffset();
 
-      // 텍스트 위치가 설정되지 않았으면 중앙에
-      if (textX === 0 && textY === 0) {
-        textX = canvas.width / 2;
-        textY = canvas.height / 2;
-      }
+      // 텍스트 오버레이 요소 생성
+      const textEl = document.createElement('div');
+      textEl.className = 'draggable-text';
+      textEl.innerHTML = `
+        <span class="text-content">${text}</span>
+        <button class="delete-text-btn" onclick="deleteTextOverlay(this.parentElement)">×</button>
+      `;
+      textEl.style.fontFamily = `"${font}"`;
+      textEl.style.fontSize = (size * offset.displayScaleX) + 'px';
+      textEl.style.color = color;
 
-      ctx.save();
-      ctx.font = `${size}px "${font}"`;
-      ctx.fillStyle = color;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(text, textX, textY);
-      ctx.restore();
+      // 캔버스 중앙에 배치
+      textEl.style.left = (offset.x + (canvas.width * offset.displayScaleX) / 2) + 'px';
+      textEl.style.top = (offset.y + (canvas.height * offset.displayScaleY) / 2) + 'px';
+      textEl.style.transform = 'translate(-50%, -50%)';
+
+      // 데이터 저장
+      textEl.dataset.font = font;
+      textEl.dataset.size = size;
+      textEl.dataset.color = color;
+      textEl.dataset.text = text;
+
+      // 드래그 이벤트 설정
+      setupTextDrag(textEl);
+
+      // 컨테이너에 추가
+      document.getElementById('textOverlayContainer').appendChild(textEl);
+      textOverlays.push(textEl);
+
+      // 적용 버튼 표시
+      document.getElementById('applyTextBtn').style.display = 'block';
+
+      // 선택
+      selectTextOverlay(textEl);
 
       // 입력 필드 초기화
       document.getElementById('textInput').value = '';
 
-      showAlert('텍스트가 추가되었습니다.', 'success');
+      showAlert('텍스트가 생성되었습니다. 드래그하여 이동하세요.', 'success');
+    }
+
+    // 텍스트 드래그 설정
+    function setupTextDrag(textEl) {
+      textEl.onmousedown = (e) => {
+        if (e.target.classList.contains('delete-text-btn')) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        selectTextOverlay(textEl);
+        isDraggingText = true;
+
+        const rect = textEl.getBoundingClientRect();
+        textDragOffsetX = e.clientX - rect.left;
+        textDragOffsetY = e.clientY - rect.top;
+
+        // transform 초기화 (드래그 시작 시)
+        textEl.style.transform = 'none';
+        textEl.style.left = rect.left - textEl.parentElement.getBoundingClientRect().left + 'px';
+        textEl.style.top = rect.top - textEl.parentElement.getBoundingClientRect().top + 'px';
+      };
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDraggingText || !selectedTextOverlay) return;
+
+        const container = document.getElementById('textOverlayContainer');
+        const containerRect = container.getBoundingClientRect();
+
+        let newX = e.clientX - containerRect.left - textDragOffsetX;
+        let newY = e.clientY - containerRect.top - textDragOffsetY;
+
+        // 컨테이너 경계 제한
+        newX = Math.max(0, Math.min(containerRect.width - selectedTextOverlay.offsetWidth, newX));
+        newY = Math.max(0, Math.min(containerRect.height - selectedTextOverlay.offsetHeight, newY));
+
+        selectedTextOverlay.style.left = newX + 'px';
+        selectedTextOverlay.style.top = newY + 'px';
+      });
+
+      document.addEventListener('mouseup', () => {
+        isDraggingText = false;
+      });
+    }
+
+    // 텍스트 오버레이 선택
+    function selectTextOverlay(textEl) {
+      textOverlays.forEach(t => t.classList.remove('selected'));
+      textEl.classList.add('selected');
+      selectedTextOverlay = textEl;
+    }
+
+    // 텍스트 오버레이 삭제
+    function deleteTextOverlay(textEl) {
+      textEl.remove();
+      textOverlays = textOverlays.filter(t => t !== textEl);
+      if (selectedTextOverlay === textEl) {
+        selectedTextOverlay = null;
+      }
+      if (textOverlays.length === 0) {
+        document.getElementById('applyTextBtn').style.display = 'none';
+      }
+    }
+
+    // 모든 텍스트를 캔버스에 적용
+    function applyTextToCanvas() {
+      if (textOverlays.length === 0) {
+        showAlert('적용할 텍스트가 없습니다.', 'warning');
+        return;
+      }
+
+      const offset = getCanvasOffset();
+
+      textOverlays.forEach(textEl => {
+        const text = textEl.dataset.text;
+        const font = textEl.dataset.font;
+        const size = parseInt(textEl.dataset.size);
+        const color = textEl.dataset.color;
+
+        // 화면 위치를 캔버스 좌표로 변환
+        const elRect = textEl.getBoundingClientRect();
+        const containerRect = document.getElementById('textOverlayContainer').getBoundingClientRect();
+
+        // 텍스트 중심점 계산
+        const screenX = elRect.left - containerRect.left + elRect.width / 2;
+        const screenY = elRect.top - containerRect.top + elRect.height / 2;
+
+        // 캔버스 좌표로 변환
+        const canvasX = (screenX - offset.x) * offset.scaleX;
+        const canvasY = (screenY - offset.y) * offset.scaleY;
+
+        // 캔버스에 텍스트 그리기
+        ctx.save();
+        ctx.font = `${size}px "${font}"`;
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, canvasX, canvasY);
+        ctx.restore();
+      });
+
+      // 텍스트 오버레이 모두 제거
+      clearTextOverlays();
+
+      showAlert('텍스트가 이미지에 적용되었습니다.', 'success');
+    }
+
+    // 텍스트 오버레이 모두 제거
+    function clearTextOverlays() {
+      const container = document.getElementById('textOverlayContainer');
+      container.innerHTML = '';
+      textOverlays = [];
+      selectedTextOverlay = null;
+      document.getElementById('applyTextBtn').style.display = 'none';
+    }
+
+    // 텍스트 프리뷰 업데이트 (선택된 텍스트의 스타일 변경)
+    function updateTextPreview() {
+      if (!selectedTextOverlay) return;
+
+      const font = document.getElementById('textFont').value;
+      const size = parseInt(document.getElementById('textSize').value) || 32;
+      const color = document.getElementById('textColor').value;
+      const text = document.getElementById('textInput').value.trim();
+      const offset = getCanvasOffset();
+
+      if (text) {
+        selectedTextOverlay.querySelector('.text-content').textContent = text;
+        selectedTextOverlay.dataset.text = text;
+      }
+
+      selectedTextOverlay.style.fontFamily = `"${font}"`;
+      selectedTextOverlay.style.fontSize = (size * offset.displayScaleX) + 'px';
+      selectedTextOverlay.style.color = color;
+      selectedTextOverlay.dataset.font = font;
+      selectedTextOverlay.dataset.size = size;
+      selectedTextOverlay.dataset.color = color;
     }
 
     // =====================================================
@@ -10992,7 +11138,6 @@
       isErasing = false;
       isMagicErasing = false;
       isCropping = false;
-      isTextMode = false;
       isDrawing = false;
       currentEditingImage = null;
       currentEditingImageUrl = null;
@@ -11002,9 +11147,12 @@
       // UI 요소 초기화
       document.getElementById('cropOverlay')?.classList.remove('active');
       document.getElementById('brushCursorPreview').style.display = 'none';
-      document.getElementById('textOptions').style.display = 'none';
-      canvas.classList.remove('eraser-mode', 'crop-mode', 'text-mode');
+      document.getElementById('applyTextBtn').style.display = 'none';
+      canvas.classList.remove('eraser-mode', 'crop-mode');
       canvas.onclick = null;
+
+      // 텍스트 오버레이 정리
+      clearTextOverlays();
 
       // 마스크 캔버스 초기화
       if (maskCanvas) {
