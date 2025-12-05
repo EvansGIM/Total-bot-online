@@ -1283,9 +1283,18 @@ router.post('/generate-images', authMiddleware, async (req, res) => {
 // AI 자동 제품 수정 API
 // ============================================
 
-// 이미지 URL을 Base64로 변환하는 헬퍼 함수
+// 이미지 URL을 Base64로 변환하는 헬퍼 함수 (이미 base64인 경우도 처리)
 async function imageUrlToBase64(imageUrl) {
   try {
+    // 이미 base64 데이터인 경우 그대로 반환
+    if (imageUrl && imageUrl.startsWith('data:')) {
+      const matches = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (matches) {
+        return { base64: matches[2], mimeType: matches[1] };
+      }
+    }
+
+    // URL인 경우 다운로드
     const response = await axios.get(imageUrl, {
       responseType: 'arraybuffer',
       timeout: 30000
@@ -1364,7 +1373,14 @@ router.post('/:id/ai-auto-edit', authMiddleware, async (req, res) => {
     const brandName = userSettings.brandName || '';
 
     const textModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-    let changesLog = [];
+
+    // 변경 내역 추적 (프론트엔드 표시용)
+    const changes = {
+      title: null,
+      optionsConverted: 0,
+      styledImageCreated: false,
+      optionImagesProcessed: 0
+    };
 
     // 2. AI 상품명 생성
     const originalTitle = product.title || product.titleCn || '';
@@ -1396,7 +1412,7 @@ ${product.titleCn ? `중국어 원본: ${product.titleCn}` : ''}
         }
 
         product.title = newTitle;
-        changesLog.push('상품명 AI 생성 완료');
+        changes.title = newTitle;
         console.log(`[AI Auto Edit] 상품명 변경: ${newTitle}`);
       } catch (titleError) {
         console.error('[AI Auto Edit] 상품명 생성 실패:', titleError.message);
@@ -1448,7 +1464,7 @@ ${uniqueOption1.map((v, i) => `${i + 1}. "${v}"`).join('\n')}
           });
 
           if (changedCount > 0) {
-            changesLog.push(`옵션명 ${changedCount}개 변환 완료`);
+            changes.optionsConverted = changedCount;
             console.log(`[AI Auto Edit] 옵션명 ${changedCount}개 변환`);
           }
         }
@@ -1478,7 +1494,7 @@ Return the generated image.`;
             styledImageUrl = styledImage;
             // 첫 번째 추가이미지를 연출 이미지로 교체
             product.images[0] = styledImage;
-            changesLog.push('연출 이미지 생성 완료');
+            changes.styledImageCreated = true;
             console.log('[AI Auto Edit] 연출 이미지 생성 성공');
           }
         }
@@ -1539,7 +1555,7 @@ Return the generated image with white background.`;
             }
           }
         });
-        changesLog.push(`옵션 이미지 ${processedCount}개 흰배경 변환 완료`);
+        changes.optionImagesProcessed = processedCount;
       }
     }
 
@@ -1569,7 +1585,7 @@ Return the generated image with white background.`;
         src: imageToAdd,
         alt: '연출 이미지'
       });
-      changesLog.push('연출 이미지 상세페이지에 추가');
+      changes.detailPageUpdated = true;
       console.log('[AI Auto Edit] 상세페이지에 연출 이미지 추가됨');
     }
 
@@ -1582,11 +1598,12 @@ Return the generated image with white background.`;
     await saveProduct(userId, product);
 
     console.log(`[AI Auto Edit] 완료 (User: ${userId}, Product: ${productId})`);
+    console.log(`[AI Auto Edit] 변경 내역:`, JSON.stringify(changes));
 
     res.json({
       success: true,
       message: 'AI 자동 수정이 완료되었습니다.',
-      changes: changesLog,
+      changes: changes,
       product: {
         id: product.id,
         title: product.title,
