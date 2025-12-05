@@ -3402,6 +3402,9 @@
                 <button class="btn btn-secondary" onclick="openBackgroundRemovalModal('option')" style="font-size: 13px; padding: 6px 12px;">
                   ✂️ 배경제거
                 </button>
+                <button class="btn btn-secondary" onclick="flipAllOptionImages()" style="font-size: 13px; padding: 6px 12px;">
+                  ↔️ 일괄 좌우반전
+                </button>
                 <button class="btn btn-primary" onclick="openAIImageEditor('option')" style="font-size: 13px; padding: 6px 12px;">
                   🎨 AI 편집
                 </button>
@@ -10941,6 +10944,86 @@
       ctx.drawImage(tempCanvas, 0, 0);
 
       showAlert(`이미지가 ${direction === 'horizontal' ? '좌우' : '상하'} 뒤집혔습니다.`, 'success');
+    }
+
+    // 옵션 이미지 일괄 좌우 반전
+    async function flipAllOptionImages() {
+      // 유니크한 옵션 이미지 URL 수집
+      const uniqueOptionImages = new Set();
+      productData.results.forEach(option => {
+        const imgSrc = option.imageLink || option.titleImage?.[0] || '';
+        if (imgSrc) uniqueOptionImages.add(imgSrc);
+      });
+
+      const imageList = Array.from(uniqueOptionImages);
+
+      if (imageList.length === 0) {
+        showAlert('반전할 옵션 이미지가 없습니다.', 'warning');
+        return;
+      }
+
+      if (!confirm(`${imageList.length}개의 옵션 이미지를 모두 좌우 반전하시겠습니까?`)) {
+        return;
+      }
+
+      showAlert('이미지 좌우 반전 중...', 'info');
+
+      let successCount = 0;
+      const imageMap = new Map(); // 원본 URL -> 반전된 이미지 URL
+
+      for (const imgSrc of imageList) {
+        try {
+          // 이미지 로드
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = imgSrc;
+          });
+
+          // 캔버스에서 좌우 반전
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = img.width;
+          tempCanvas.height = img.height;
+          const tempCtx = tempCanvas.getContext('2d');
+
+          // 좌우 반전
+          tempCtx.translate(img.width, 0);
+          tempCtx.scale(-1, 1);
+          tempCtx.drawImage(img, 0, 0);
+
+          // Data URL로 변환
+          const flippedDataUrl = tempCanvas.toDataURL('image/png');
+          imageMap.set(imgSrc, flippedDataUrl);
+          successCount++;
+        } catch (error) {
+          console.error('이미지 반전 실패:', imgSrc, error);
+        }
+      }
+
+      // productData 업데이트
+      productData.results.forEach(option => {
+        const imgSrc = option.imageLink || option.titleImage?.[0] || '';
+        if (imgSrc && imageMap.has(imgSrc)) {
+          const flippedUrl = imageMap.get(imgSrc);
+          if (option.imageLink === imgSrc) {
+            option.imageLink = flippedUrl;
+          }
+          if (option.titleImage && option.titleImage[0] === imgSrc) {
+            option.titleImage[0] = flippedUrl;
+          }
+        }
+      });
+
+      // UI 새로고침
+      renderUniqueOptionImages();
+      renderOptions();
+      renderDetailSources();
+      scheduleAutoSave();
+
+      showAlert(`${successCount}개의 옵션 이미지가 좌우 반전되었습니다.`, 'success');
     }
 
     // 매직 이레이저 적용 (OpenCV Inpainting API 사용)
