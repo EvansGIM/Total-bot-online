@@ -1462,7 +1462,7 @@ ${uniqueOption1.map((v, i) => `${i + 1}. "${v}"`).join('\n')}
 
           const optionMapping = JSON.parse(optionText).mapping || {};
 
-          // 옵션명 적용
+          // 옵션명1 적용
           let changedCount = 0;
           product.results.forEach(result => {
             const oldName = result.optionName1 || result.optionName1Cn || '';
@@ -1474,7 +1474,61 @@ ${uniqueOption1.map((v, i) => `${i + 1}. "${v}"`).join('\n')}
 
           if (changedCount > 0) {
             changes.optionsConverted = changedCount;
-            console.log(`[AI Auto Edit] 옵션명 ${changedCount}개 변환`);
+            console.log(`[AI Auto Edit] 옵션명1 ${changedCount}개 변환`);
+          }
+        }
+
+        // 옵션2도 처리
+        const uniqueOption2 = [...new Set(product.results.map(r => r.optionName2 || r.optionName2Cn || '').filter(Boolean))];
+
+        if (uniqueOption2.length > 0) {
+          const option2Prompt = `당신은 중국어를 한국어로 변환하는 이커머스 옵션명 전문가입니다.
+
+다음 옵션 값들을 자연스러운 한국어 쇼핑몰 옵션명으로 변환해주세요:
+${uniqueOption2.map((v, i) => `${i + 1}. "${v}"`).join('\n')}
+
+변환 규칙:
+1. 색상명: 중국어 색상을 간단한 한국어로 (예: 黑色 → 블랙, 白色 → 화이트, 灰色 → 그레이)
+2. 의류 사이즈: 사이즈만 남기고 불필요한 정보 제거
+   - "2XL 권장 155kg-180kg" → "2XL"
+   - "XL 권장 130-155 캐티" → "XL"
+   - "M은 80-105파운드를 권장합니다" → "M"
+   - 사이즈 뒤의 권장 체중/키/파운드/캐티 정보는 모두 삭제
+3. 신발 사이즈: 중국 사이즈를 한국 사이즈(mm)로 변환, 5단위
+   - 35 → 225, 36 → 230, 37 → 235, 38 → 240, 39 → 245
+   - 40 → 250, 41 → 255, 42 → 260, 43 → 265, 44 → 270
+4. 숫자/영문만 있는 경우: 그대로 유지
+5. 이미 한국어인 경우: 그대로 유지하되 불필요한 설명은 제거
+
+중요:
+- 옵션명은 최대한 간결하게 (색상명 또는 사이즈만, 예: "XL", "블랙", "250")
+- 반드시 JSON 형식으로만 응답하세요
+- 응답 형식: {"mapping": {"원본값1": "변환값1", "원본값2": "변환값2", ...}}`;
+
+          const option2Result = await textModel.generateContent(option2Prompt);
+          let option2Text = option2Result.response.text().trim();
+
+          if (option2Text.includes('```json')) {
+            option2Text = option2Text.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+          } else if (option2Text.includes('```')) {
+            option2Text = option2Text.replace(/```\n?/g, '');
+          }
+
+          const option2Mapping = JSON.parse(option2Text).mapping || {};
+
+          // 옵션명2 적용
+          let changed2Count = 0;
+          product.results.forEach(result => {
+            const oldName = result.optionName2 || result.optionName2Cn || '';
+            if (option2Mapping[oldName]) {
+              result.optionName2 = option2Mapping[oldName];
+              changed2Count++;
+            }
+          });
+
+          if (changed2Count > 0) {
+            changes.optionsConverted = (changes.optionsConverted || 0) + changed2Count;
+            console.log(`[AI Auto Edit] 옵션명2 ${changed2Count}개 변환`);
           }
         }
       } catch (optionError) {
