@@ -3832,6 +3832,19 @@
         <div id="additionalInfoStep" style="display: none;">
           <p style="margin-bottom: 20px; color: #666;">상품 정보를 입력해주세요.</p>
 
+          <!-- AI 일괄 추가 버튼 -->
+          <div style="margin-bottom: 25px;">
+            <button
+              type="button"
+              id="aiBatchBtn"
+              onclick="generateAllProductInfo()"
+              style="width: 100%; padding: 14px 20px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);"
+            >
+              <span id="aiBatchSpinner" style="display: none; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
+              <span id="aiBatchText">🤖 AI 일괄 추가 (태그, 사이즈, 무게, 취급주의, 계절)</span>
+            </button>
+          </div>
+
           <!-- 검색태그 -->
           <div style="margin-bottom: 25px;">
             <label style="display: block; font-weight: bold; margin-bottom: 8px;">
@@ -4318,6 +4331,96 @@
         btn.disabled = false;
         spinner.style.display = 'none';
         text.textContent = 'AI 추천 태그';
+      }
+    }
+
+    // AI 일괄 추가 (태그, 사이즈, 무게, 취급주의, 계절)
+    window.generateAllProductInfo = async function() {
+      const btn = document.getElementById('aiBatchBtn');
+      const spinner = document.getElementById('aiBatchSpinner');
+      const text = document.getElementById('aiBatchText');
+
+      // 카테고리 정보 수집
+      let categoryNames = [];
+      let detailCategories = [];
+
+      if (detailCategoryState.excelData && detailCategoryState.excelData.length > 0) {
+        detailCategoryState.excelData.forEach((item, index) => {
+          if (item.category && item.category.name) {
+            categoryNames.push(item.category.name);
+          }
+          if (detailCategoryState.selections[index]) {
+            detailCategories.push(detailCategoryState.selections[index].optionValue);
+          }
+        });
+      }
+
+      if (categoryNames.length === 0) {
+        alert('카테고리 정보를 찾을 수 없습니다.');
+        return;
+      }
+
+      const categoryName = categoryNames.join(', ');
+      const detailCategory = detailCategories.join(', ');
+
+      // 버튼 상태 변경
+      btn.disabled = true;
+      spinner.style.display = 'inline-block';
+      text.textContent = 'AI 분석중...';
+
+      try {
+        const response = await fetch('/api/gemini/generate-product-info', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            categoryName,
+            detailCategory
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          // 태그 추가
+          if (result.tags && result.tags.length > 0) {
+            const newTags = result.tags.filter(tag => !detailCategoryState.tags.includes(tag));
+            detailCategoryState.tags.push(...newTags);
+            renderTags();
+          }
+
+          // 사이즈 입력
+          if (result.size) {
+            document.getElementById('sizeWidth').value = result.size.width || '';
+            document.getElementById('sizeHeight').value = result.size.height || '';
+            document.getElementById('sizeDepth').value = result.size.depth || '';
+          }
+
+          // 무게 입력
+          if (result.weight) {
+            document.getElementById('weightInput').value = result.weight;
+          }
+
+          // 취급주의 사유 선택
+          if (result.handlingCare) {
+            document.getElementById('handlingCareInput').value = result.handlingCare;
+          }
+
+          // 계절 선택
+          if (result.season) {
+            document.getElementById('seasonInput').value = result.season;
+          }
+
+          alert('✅ AI가 모든 정보를 자동으로 입력했습니다!');
+        } else {
+          alert(result.message || 'AI 정보 추천 실패');
+        }
+      } catch (error) {
+        console.error('AI 일괄 추가 오류:', error);
+        alert('AI 일괄 추가 중 오류가 발생했습니다.');
+      } finally {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        text.textContent = '🤖 AI 일괄 추가 (태그, 사이즈, 무게, 취급주의, 계절)';
       }
     }
 

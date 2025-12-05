@@ -663,4 +663,128 @@ ${categoryName ? `카테고리: ${categoryName}` : ''}
   }
 });
 
+/**
+ * POST /api/gemini/generate-product-info
+ * AI를 사용하여 상품 정보 일괄 추천 (태그, 사이즈, 무게, 취급주의, 계절)
+ *
+ * Body:
+ * - categoryName: 카테고리명 (필수)
+ * - detailCategory: 상세 카테고리명 (선택)
+ */
+router.post('/generate-product-info', async (req, res) => {
+  try {
+    const { categoryName, detailCategory } = req.body;
+
+    if (!categoryName) {
+      return res.status(400).json({
+        success: false,
+        message: '카테고리명이 필요합니다.'
+      });
+    }
+
+    console.log('[Gemini API] 상품 정보 일괄 추천 요청:', {
+      categoryName,
+      detailCategory
+    });
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+
+    const prompt = `당신은 한국 쿠팡/네이버 쇼핑몰 상품 등록 전문가입니다.
+
+다음 카테고리의 상품에 대한 정보를 추천해주세요:
+
+카테고리: ${categoryName}
+${detailCategory ? `상세 카테고리: ${detailCategory}` : ''}
+
+다음 정보들을 추천해주세요:
+
+1. 검색 태그 (tags): 8~12개, 구매자가 검색할 만한 키워드
+2. 포장 사이즈 (size): 일반적인 해당 카테고리 상품의 포장 크기
+   - width: 가로 (mm 단위, 숫자만)
+   - height: 세로 (mm 단위, 숫자만)
+   - depth: 높이 (mm 단위, 숫자만)
+3. 무게 (weight): 일반적인 해당 카테고리 상품의 무게 (g 단위, 숫자만)
+4. 취급주의 사유 (handlingCare): "해당사항없음" 또는 "유리" 중 선택
+   - 유리, 도자기, 깨지기 쉬운 상품이면 "유리"
+   - 그 외에는 "해당사항없음"
+5. 계절 (season): "사계절", "봄", "여름", "가을", "겨울" 중 선택
+   - 특별히 계절성이 강한 상품이 아니면 "사계절"로 선택
+
+중요:
+- 반드시 JSON 형식으로만 응답하세요
+- 응답 형식:
+{
+  "tags": ["태그1", "태그2", ...],
+  "size": {"width": 300, "height": 200, "depth": 50},
+  "weight": 500,
+  "handlingCare": "해당사항없음",
+  "season": "사계절"
+}
+- JSON 외의 다른 텍스트는 포함하지 마세요
+- 사이즈와 무게는 숫자만 (단위 없이)`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let responseText = response.text().trim();
+
+    console.log('[Gemini API] 상품 정보 응답:', responseText.substring(0, 300) + '...');
+
+    // JSON 파싱
+    let productInfo = {};
+
+    try {
+      if (responseText.includes('```json')) {
+        responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      } else if (responseText.includes('```')) {
+        responseText = responseText.replace(/```\n?/g, '');
+      }
+
+      productInfo = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('[Gemini API] JSON 파싱 실패:', parseError.message);
+      return res.status(500).json({
+        success: false,
+        message: '상품 정보 생성 결과를 파싱하는데 실패했습니다.'
+      });
+    }
+
+    // 기본값 설정
+    const result_data = {
+      tags: productInfo.tags || [],
+      size: {
+        width: productInfo.size?.width || 300,
+        height: productInfo.size?.height || 200,
+        depth: productInfo.size?.depth || 50
+      },
+      weight: productInfo.weight || 500,
+      handlingCare: productInfo.handlingCare || '해당사항없음',
+      season: productInfo.season || '사계절'
+    };
+
+    console.log('[Gemini API] 상품 정보 추천 완료:', result_data);
+
+    res.json({
+      success: true,
+      ...result_data,
+      message: '상품 정보가 추천되었습니다.'
+    });
+
+  } catch (error) {
+    console.error('[Gemini API] 상품 정보 추천 오류:', error);
+
+    let userMessage = '상품 정보 추천 중 오류가 발생했습니다.';
+    const errorMessage = error.message || String(error);
+
+    if (errorMessage.includes('429') || errorMessage.includes('RESOURCE_EXHAUSTED')) {
+      userMessage = 'API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요.';
+    }
+
+    res.status(500).json({
+      success: false,
+      message: userMessage,
+      error: errorMessage
+    });
+  }
+});
+
 module.exports = router;
