@@ -1393,6 +1393,11 @@
       color: #b45309;
       border: 1px dashed #f59e0b;
     }
+    .status-badge.ai_completed {
+      background: linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%);
+      color: #6d28d9;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -1489,6 +1494,7 @@
   <div class="floating-actions" id="floatingActions">
     <div class="floating-pill">
       <span class="selected-badge" id="selectedCountText">0개</span>
+      <button class="action-btn" onclick="processAIAutoEdit()" style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);">🤖 AI 자동 수정</button>
       <button class="action-btn btn-delete" onclick="deleteSelected()">🗑️ 삭제</button>
       <button class="action-btn btn-quote" onclick="generateQuote()">🚀 제품 등록</button>
       <button class="action-btn" onclick="showDirectQuoteIdInput()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">📝 ID 입력</button>
@@ -1935,7 +1941,8 @@
         'collected': '수집됨',
         'uploaded': '심사중',
         'approved': '승인완료',
-        'manual_pending': 'ID 등록 대기'
+        'manual_pending': 'ID 등록 대기',
+        'ai_completed': 'AI 수정완료'
       };
       return labels[status] || '수집됨';
     }
@@ -2218,10 +2225,10 @@
         const data = await response.json();
         allProducts = data.products || [];
 
-        // 수집 상품 필터링 (collected + manual_pending, 업로드/승인된 상품은 uploaded.html에서 표시)
+        // 수집 상품 필터링 (collected + manual_pending + ai_completed, 업로드/승인된 상품은 uploaded.html에서 표시)
         const collectedProducts = allProducts.filter(p => {
           const status = p.status || 'collected';
-          return status === 'collected' || status === 'manual_pending';
+          return status === 'collected' || status === 'manual_pending' || status === 'ai_completed';
         });
 
         // 상품 수 표시
@@ -2451,6 +2458,66 @@
         console.error('삭제 오류:', error);
         alert('상품 삭제에 실패했습니다.');
       }
+    }
+
+    // AI 자동 제품 수정
+    async function processAIAutoEdit() {
+      if (selectedProducts.size === 0) {
+        showToast('AI 수정할 상품을 선택해주세요.', 'warning');
+        return;
+      }
+
+      if (!confirm(`선택한 ${selectedProducts.size}개 상품을 AI로 자동 수정하시겠습니까?\n\n수정 내용:\n- 상품명 AI 자동 생성\n- 옵션명 AI 변환\n- 상세페이지 자동 구성\n- 상태를 'AI 수정완료'로 변경`)) {
+        return;
+      }
+
+      const productIds = Array.from(selectedProducts);
+      let successCount = 0;
+      let failCount = 0;
+
+      // 진행 상황 표시
+      showToast(`AI 자동 수정 시작... (0/${productIds.length})`, 'info');
+
+      for (let i = 0; i < productIds.length; i++) {
+        const productId = productIds[i];
+
+        try {
+          const response = await authFetch(`/api/products/${productId}/ai-auto-edit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            successCount++;
+            console.log(`[AI Auto Edit] 성공 (${i + 1}/${productIds.length}):`, result.changes);
+          } else {
+            failCount++;
+            console.error(`[AI Auto Edit] 실패 (${productId}):`, result.message);
+          }
+        } catch (error) {
+          failCount++;
+          console.error(`[AI Auto Edit] 오류 (${productId}):`, error);
+        }
+
+        // 진행 상황 업데이트
+        if ((i + 1) % 1 === 0 || i === productIds.length - 1) {
+          showToast(`AI 자동 수정 중... (${i + 1}/${productIds.length})`, 'info');
+        }
+      }
+
+      // 완료 메시지
+      if (failCount === 0) {
+        showToast(`✅ ${successCount}개 상품 AI 자동 수정 완료!`, 'success');
+      } else {
+        showToast(`AI 수정 완료: 성공 ${successCount}개, 실패 ${failCount}개`, 'warning');
+      }
+
+      // 선택 초기화 및 목록 새로고침
+      selectedProducts.clear();
+      updateActionBar();
+      loadProducts();
     }
 
     // 선택 상품 삭제

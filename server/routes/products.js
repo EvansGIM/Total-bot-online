@@ -905,12 +905,12 @@ router.put('/:id/status', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
     const { status } = req.body;
-    const validStatuses = ['collected', 'edited', 'uploaded', 'manual_pending', 'approved'];
+    const validStatuses = ['collected', 'edited', 'uploaded', 'manual_pending', 'approved', 'ai_completed'];
 
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: '유효하지 않은 상태입니다. (collected, edited, uploaded, manual_pending, approved 중 하나)'
+        message: '유효하지 않은 상태입니다. (collected, edited, uploaded, manual_pending, approved, ai_completed 중 하나)'
       });
     }
 
@@ -940,7 +940,7 @@ router.post('/batch-status', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
     const { ids, status } = req.body;
-    const validStatuses = ['collected', 'edited', 'uploaded', 'manual_pending', 'approved'];
+    const validStatuses = ['collected', 'edited', 'uploaded', 'manual_pending', 'approved', 'ai_completed'];
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ success: false, message: '상품 ID가 필요합니다.' });
@@ -949,7 +949,7 @@ router.post('/batch-status', authMiddleware, async (req, res) => {
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: '유효하지 않은 상태입니다. (collected, edited, uploaded, manual_pending, approved 중 하나)'
+        message: '유효하지 않은 상태입니다. (collected, edited, uploaded, manual_pending, approved, ai_completed 중 하나)'
       });
     }
 
@@ -1276,6 +1276,191 @@ router.post('/generate-images', authMiddleware, async (req, res) => {
       await browser.close();
     }
     res.status(500).json({ success: false, message: '이미지 생성 실패', error: error.message });
+  }
+});
+
+// ============================================
+// AI 자동 제품 수정 API
+// ============================================
+
+// AI 자동 제품 수정 (인증 필요)
+router.post('/:id/ai-auto-edit', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const productId = req.params.id;
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyAgVUOctLOaPiA87MdXrjLEbXDQCmWwvj0';
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+
+    console.log(`[AI Auto Edit] 시작 (User: ${userId}, Product: ${productId})`);
+
+    // 1. 상품 로드
+    const product = await loadProduct(userId, productId);
+    if (!product) {
+      return res.status(404).json({ success: false, message: '상품을 찾을 수 없습니다.' });
+    }
+
+    // 사용자 설정 로드 (브랜드명 등)
+    const userSettings = await loadUserSettings(userId);
+    const brandName = userSettings.brandName || '';
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    let changesLog = [];
+
+    // 2. AI 상품명 생성
+    const originalTitle = product.title || product.titleCn || '';
+    if (originalTitle) {
+      try {
+        const titlePrompt = `당신은 한국 쿠팡/네이버 쇼핑몰 상품명 전문가입니다.
+
+다음 상품명을 한국 온라인 쇼핑몰에 최적화된 상품명으로 변환해주세요:
+
+원본 상품명: ${originalTitle}
+${product.titleCn ? `중국어 원본: ${product.titleCn}` : ''}
+
+변환 규칙:
+1. 한국어로 자연스럽게 변환
+2. 검색에 잘 노출되도록 핵심 키워드 포함
+3. 불필요한 중복 단어 제거
+4. 50자 이내로 간결하게 작성
+5. **중요: 상품명 맨 앞의 첫 번째 단어는 절대 수정하지 마세요 (브랜드명)**
+6. 특수문자 최소화
+
+중요: 상품명만 반환하세요. 따옴표나 설명 없이 상품명 텍스트만 출력하세요.`;
+
+        const titleResult = await model.generateContent(titlePrompt);
+        let newTitle = titleResult.response.text().trim().replace(/^["']|["']$/g, '');
+
+        // 브랜드명 확인
+        if (brandName && !newTitle.startsWith(brandName)) {
+          newTitle = `${brandName} ${newTitle}`;
+        }
+
+        product.title = newTitle;
+        changesLog.push('상품명 AI 생성 완료');
+        console.log(`[AI Auto Edit] 상품명 변경: ${newTitle}`);
+      } catch (titleError) {
+        console.error('[AI Auto Edit] 상품명 생성 실패:', titleError.message);
+      }
+    }
+
+    // 3. 옵션명 AI 변환
+    if (product.results && product.results.length > 0) {
+      try {
+        // 유니크한 옵션1 값 추출
+        const uniqueOption1 = [...new Set(product.results.map(r => r.optionName1 || r.optionName1Cn || '').filter(Boolean))];
+
+        if (uniqueOption1.length > 0) {
+          const optionPrompt = `당신은 중국어를 한국어로 변환하는 이커머스 옵션명 전문가입니다.
+
+다음 옵션 값들을 자연스러운 한국어 쇼핑몰 옵션명으로 변환해주세요:
+${uniqueOption1.map((v, i) => `${i + 1}. "${v}"`).join('\n')}
+
+변환 규칙:
+1. 색상명: 중국어 색상을 간단한 한국어로 (예: 黑色 → 블랙, 白色 → 화이트)
+2. 사이즈: 표준 사이즈로 통일 (예: 大码 → XL)
+3. 숫자/영문: 그대로 유지
+4. 이미 한국어인 경우 그대로 유지
+
+중요:
+- 반드시 JSON 형식으로만 응답하세요
+- 응답 형식: {"mapping": {"원본값1": "변환값1", "원본값2": "변환값2", ...}}`;
+
+          const optionResult = await model.generateContent(optionPrompt);
+          let optionText = optionResult.response.text().trim();
+
+          // JSON 파싱
+          if (optionText.includes('```json')) {
+            optionText = optionText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+          } else if (optionText.includes('```')) {
+            optionText = optionText.replace(/```\n?/g, '');
+          }
+
+          const optionMapping = JSON.parse(optionText).mapping || {};
+
+          // 옵션명 적용
+          let changedCount = 0;
+          product.results.forEach(result => {
+            const oldName = result.optionName1 || result.optionName1Cn || '';
+            if (optionMapping[oldName]) {
+              result.optionName1 = optionMapping[oldName];
+              changedCount++;
+            }
+          });
+
+          if (changedCount > 0) {
+            changesLog.push(`옵션명 ${changedCount}개 변환 완료`);
+            console.log(`[AI Auto Edit] 옵션명 ${changedCount}개 변환`);
+          }
+        }
+      } catch (optionError) {
+        console.error('[AI Auto Edit] 옵션명 변환 실패:', optionError.message);
+      }
+    }
+
+    // 4. 상세페이지 구성 (첫 번째 추가이미지를 브랜드 하단에 추가)
+    if (!product.detailPageItems) {
+      product.detailPageItems = [];
+    }
+
+    // 기존 상세페이지 아이템 확인 및 추가 이미지 삽입
+    const firstAdditionalImage = product.images && product.images.length > 0 ? product.images[0] : null;
+
+    if (firstAdditionalImage) {
+      // 브랜드 이미지 다음 위치 찾기 또는 맨 앞에 추가
+      let insertIndex = 0;
+      for (let i = 0; i < product.detailPageItems.length; i++) {
+        if (product.detailPageItems[i].type === 'brand-image') {
+          insertIndex = i + 1;
+          break;
+        }
+      }
+
+      // 이미 추가되어 있지 않은 경우에만 추가
+      const alreadyExists = product.detailPageItems.some(item =>
+        item.type === 'styled-image' && item.src === firstAdditionalImage
+      );
+
+      if (!alreadyExists) {
+        product.detailPageItems.splice(insertIndex, 0, {
+          id: `styled_${Date.now()}`,
+          type: 'styled-image',
+          src: firstAdditionalImage,
+          alt: '연출 이미지'
+        });
+        changesLog.push('연출 이미지 상세페이지에 추가');
+        console.log('[AI Auto Edit] 연출 이미지 추가됨');
+      }
+    }
+
+    // 5. 상태 변경 및 저장
+    product.status = 'ai_completed';
+    product.aiProcessedAt = new Date().toISOString();
+    product.isEdited = true;
+    product.updatedAt = new Date().toISOString();
+
+    await saveProduct(userId, product);
+
+    console.log(`[AI Auto Edit] 완료 (User: ${userId}, Product: ${productId})`);
+
+    res.json({
+      success: true,
+      message: 'AI 자동 수정이 완료되었습니다.',
+      changes: changesLog,
+      product: {
+        id: product.id,
+        title: product.title,
+        status: product.status
+      }
+    });
+
+  } catch (error) {
+    console.error('[AI Auto Edit] 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: 'AI 자동 수정 중 오류가 발생했습니다.',
+      error: error.message
+    });
   }
 });
 
