@@ -1283,6 +1283,65 @@ router.post('/generate-images', authMiddleware, async (req, res) => {
 // AI 자동 제품 수정 API
 // ============================================
 
+// 이미지 URL을 Base64로 변환하는 헬퍼 함수
+async function imageUrlToBase64(imageUrl) {
+  try {
+    const response = await axios.get(imageUrl, {
+      responseType: 'arraybuffer',
+      timeout: 30000
+    });
+    const base64 = Buffer.from(response.data, 'binary').toString('base64');
+    const mimeType = response.headers['content-type'] || 'image/png';
+    return { base64, mimeType };
+  } catch (error) {
+    console.error('[Image] URL to Base64 변환 실패:', error.message);
+    return null;
+  }
+}
+
+// Gemini로 이미지 변환하는 헬퍼 함수
+async function transformImageWithGemini(genAI, imageBase64, mimeType, prompt) {
+  try {
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash-exp',
+      generationConfig: {
+        responseModalities: ['Text', 'Image']
+      }
+    });
+
+    const imagePart = {
+      inlineData: {
+        data: imageBase64,
+        mimeType: mimeType
+      }
+    };
+
+    const result = await model.generateContent([prompt, imagePart]);
+    const response = await result.response;
+    const candidates = response.candidates;
+
+    if (!candidates || candidates.length === 0) {
+      throw new Error('No candidates in response');
+    }
+
+    const parts = candidates[0].content?.parts;
+    if (!parts || !Array.isArray(parts)) {
+      throw new Error('No parts in response');
+    }
+
+    for (const part of parts) {
+      if (part.inlineData && part.inlineData.data) {
+        return `data:image/png;base64,${part.inlineData.data}`;
+      }
+    }
+
+    throw new Error('No image in response');
+  } catch (error) {
+    console.error('[Gemini Image] 변환 실패:', error.message);
+    return null;
+  }
+}
+
 // AI 자동 제품 수정 (인증 필요)
 router.post('/:id/ai-auto-edit', authMiddleware, async (req, res) => {
   try {
@@ -1304,7 +1363,7 @@ router.post('/:id/ai-auto-edit', authMiddleware, async (req, res) => {
     const userSettings = await loadUserSettings(userId);
     const brandName = userSettings.brandName || '';
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const textModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
     let changesLog = [];
 
     // 2. AI 상품명 생성
@@ -1328,7 +1387,7 @@ ${product.titleCn ? `중국어 원본: ${product.titleCn}` : ''}
 
 중요: 상품명만 반환하세요. 따옴표나 설명 없이 상품명 텍스트만 출력하세요.`;
 
-        const titleResult = await model.generateContent(titlePrompt);
+        const titleResult = await textModel.generateContent(titlePrompt);
         let newTitle = titleResult.response.text().trim().replace(/^["']|["']$/g, '');
 
         // 브랜드명 확인
@@ -1366,7 +1425,7 @@ ${uniqueOption1.map((v, i) => `${i + 1}. "${v}"`).join('\n')}
 - 반드시 JSON 형식으로만 응답하세요
 - 응답 형식: {"mapping": {"원본값1": "변환값1", "원본값2": "변환값2", ...}}`;
 
-          const optionResult = await model.generateContent(optionPrompt);
+          const optionResult = await textModel.generateContent(optionPrompt);
           let optionText = optionResult.response.text().trim();
 
           // JSON 파싱
@@ -1398,15 +1457,100 @@ ${uniqueOption1.map((v, i) => `${i + 1}. "${v}"`).join('\n')}
       }
     }
 
-    // 4. 상세페이지 구성 (첫 번째 추가이미지를 브랜드 하단에 추가)
+    // 4. 첫 번째 추가이미지 → 연출 이미지로 변환
+    let styledImageUrl = null;
+    if (product.images && product.images.length > 0) {
+      const firstImage = product.images[0];
+      console.log(`[AI Auto Edit] 연출 이미지 생성 시작: ${firstImage.substring(0, 50)}...`);
+
+      try {
+        const imageData = await imageUrlToBase64(firstImage);
+        if (imageData) {
+          const styledPrompt = `Create a professional e-commerce styled/lifestyle product photo.
+Transform this product image into a beautiful, aesthetically pleasing staged photo suitable for online shopping.
+Add an elegant, simple background with soft lighting.
+Make it look like a professional product photography for a fashion/lifestyle brand.
+Keep the product as the main focus.
+Return the generated image.`;
+
+          const styledImage = await transformImageWithGemini(genAI, imageData.base64, imageData.mimeType, styledPrompt);
+          if (styledImage) {
+            styledImageUrl = styledImage;
+            // 첫 번째 추가이미지를 연출 이미지로 교체
+            product.images[0] = styledImage;
+            changesLog.push('연출 이미지 생성 완료');
+            console.log('[AI Auto Edit] 연출 이미지 생성 성공');
+          }
+        }
+      } catch (styledError) {
+        console.error('[AI Auto Edit] 연출 이미지 생성 실패:', styledError.message);
+      }
+    }
+
+    // 5. 옵션 이미지 → 흰 배경 제품 이미지로 변환
+    if (product.results && product.results.length > 0) {
+      // 유니크한 옵션 이미지 추출
+      const uniqueOptionImages = new Map();
+      product.results.forEach(result => {
+        const imgSrc = result.imageLink || (result.titleImage && result.titleImage[0]) || '';
+        if (imgSrc && !uniqueOptionImages.has(imgSrc)) {
+          uniqueOptionImages.set(imgSrc, null);
+        }
+      });
+
+      console.log(`[AI Auto Edit] 옵션 이미지 ${uniqueOptionImages.size}개 변환 시작`);
+
+      let processedCount = 0;
+      for (const [originalUrl, _] of uniqueOptionImages) {
+        try {
+          const imageData = await imageUrlToBase64(originalUrl);
+          if (imageData) {
+            const whiteBackgroundPrompt = `Create a clean, professional e-commerce product photo with a pure white background.
+Remove any existing background and replace it with a clean white (#FFFFFF) background.
+Keep only the product itself, clearly visible and well-lit.
+This should look like a professional product photo for online shopping.
+Maintain the product's original colors and details.
+Return the generated image with white background.`;
+
+            const transformedImage = await transformImageWithGemini(genAI, imageData.base64, imageData.mimeType, whiteBackgroundPrompt);
+            if (transformedImage) {
+              uniqueOptionImages.set(originalUrl, transformedImage);
+              processedCount++;
+              console.log(`[AI Auto Edit] 옵션 이미지 변환 (${processedCount}/${uniqueOptionImages.size})`);
+            }
+          }
+        } catch (imgError) {
+          console.error(`[AI Auto Edit] 옵션 이미지 변환 실패:`, imgError.message);
+        }
+
+        // API 속도 제한 방지를 위한 딜레이
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      // 변환된 이미지 적용
+      if (processedCount > 0) {
+        product.results.forEach(result => {
+          const originalUrl = result.imageLink || (result.titleImage && result.titleImage[0]) || '';
+          const transformedUrl = uniqueOptionImages.get(originalUrl);
+          if (transformedUrl) {
+            result.imageLink = transformedUrl;
+            if (result.titleImage && result.titleImage[0]) {
+              result.titleImage[0] = transformedUrl;
+            }
+          }
+        });
+        changesLog.push(`옵션 이미지 ${processedCount}개 흰배경 변환 완료`);
+      }
+    }
+
+    // 6. 상세페이지 구성 (연출 이미지를 브랜드 하단에 추가)
     if (!product.detailPageItems) {
       product.detailPageItems = [];
     }
 
-    // 기존 상세페이지 아이템 확인 및 추가 이미지 삽입
-    const firstAdditionalImage = product.images && product.images.length > 0 ? product.images[0] : null;
+    const imageToAdd = styledImageUrl || (product.images && product.images.length > 0 ? product.images[0] : null);
 
-    if (firstAdditionalImage) {
+    if (imageToAdd) {
       // 브랜드 이미지 다음 위치 찾기 또는 맨 앞에 추가
       let insertIndex = 0;
       for (let i = 0; i < product.detailPageItems.length; i++) {
@@ -1416,24 +1560,20 @@ ${uniqueOption1.map((v, i) => `${i + 1}. "${v}"`).join('\n')}
         }
       }
 
-      // 이미 추가되어 있지 않은 경우에만 추가
-      const alreadyExists = product.detailPageItems.some(item =>
-        item.type === 'styled-image' && item.src === firstAdditionalImage
-      );
+      // 기존 styled-image 제거 후 새로 추가
+      product.detailPageItems = product.detailPageItems.filter(item => item.type !== 'styled-image');
 
-      if (!alreadyExists) {
-        product.detailPageItems.splice(insertIndex, 0, {
-          id: `styled_${Date.now()}`,
-          type: 'styled-image',
-          src: firstAdditionalImage,
-          alt: '연출 이미지'
-        });
-        changesLog.push('연출 이미지 상세페이지에 추가');
-        console.log('[AI Auto Edit] 연출 이미지 추가됨');
-      }
+      product.detailPageItems.splice(insertIndex, 0, {
+        id: `styled_${Date.now()}`,
+        type: 'styled-image',
+        src: imageToAdd,
+        alt: '연출 이미지'
+      });
+      changesLog.push('연출 이미지 상세페이지에 추가');
+      console.log('[AI Auto Edit] 상세페이지에 연출 이미지 추가됨');
     }
 
-    // 5. 상태 변경 및 저장
+    // 7. 상태 변경 및 저장
     product.status = 'ai_completed';
     product.aiProcessedAt = new Date().toISOString();
     product.isEdited = true;
