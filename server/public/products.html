@@ -4259,25 +4259,31 @@
       const spinner = document.getElementById('aiTagSpinner');
       const text = document.getElementById('aiTagText');
 
-      // 상품명 가져오기 (선택된 첫 번째 엑셀 데이터에서)
-      let productTitle = '';
-      let categoryName = '';
+      // 카테고리 정보 수집
+      let categoryNames = [];
+      let detailCategories = [];
 
       if (detailCategoryState.excelData && detailCategoryState.excelData.length > 0) {
-        const firstExcel = detailCategoryState.excelData[0];
-        productTitle = firstExcel.title || firstExcel.productName || '';
-
-        // 선택된 카테고리 정보
-        const firstKey = Object.keys(detailCategoryState.selections)[0];
-        if (firstKey && detailCategoryState.selections[firstKey]) {
-          categoryName = detailCategoryState.selections[firstKey].name || '';
-        }
+        // 메인 카테고리명 수집
+        detailCategoryState.excelData.forEach((item, index) => {
+          if (item.category && item.category.name) {
+            categoryNames.push(item.category.name);
+          }
+          // 선택된 상세 카테고리 수집
+          if (detailCategoryState.selections[index]) {
+            detailCategories.push(detailCategoryState.selections[index].optionValue);
+          }
+        });
       }
 
-      if (!productTitle) {
-        alert('상품명을 찾을 수 없습니다.');
+      if (categoryNames.length === 0) {
+        alert('카테고리 정보를 찾을 수 없습니다.');
         return;
       }
+
+      // 카테고리 정보를 상품명처럼 사용
+      const productTitle = categoryNames.join(', ');
+      const categoryName = detailCategories.join(', ');
 
       // 버튼 상태 변경
       btn.disabled = true;
