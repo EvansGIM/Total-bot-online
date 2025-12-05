@@ -215,6 +215,7 @@
       border: 2px solid #e5e8eb;
       cursor: pointer;
       transition: all 0.2s;
+      background: white;
     }
 
     .preview-image-large:hover {
@@ -246,6 +247,7 @@
       display: block;
       position: relative;
       z-index: 2;
+      background: white;
     }
 
     .image-item-container:hover img {
@@ -5190,6 +5192,7 @@
             // UI 업데이트
             renderOptions();
             renderUniqueOptionImages();
+            renderDetailSources();        // 상세페이지 좌측 이미지 소스 새로고침
             scheduleAutoSave();
 
             showAlert(`${optionIndexes.length}개 옵션의 이미지가 교체되었습니다.`, 'success');
@@ -10565,12 +10568,22 @@
       const editedImageDataURL = canvas.toDataURL('image/png');
       const originalUrl = currentEditingImageUrl;
 
-      // 원본 이미지 URL과 같은 imageLink를 가진 모든 옵션 찾아서 업데이트
+      // 원본 이미지 URL과 같은 imageLink 또는 titleImage를 가진 모든 옵션 찾아서 업데이트
       let updateCount = 0;
       productData.results.forEach(option => {
+        // imageLink 업데이트
         if (option.imageLink === originalUrl) {
           option.imageLink = editedImageDataURL;
           updateCount++;
+        }
+        // titleImage 배열도 업데이트 (좌측 이미지 소스 동기화를 위해)
+        if (option.titleImage && option.titleImage[0] === originalUrl) {
+          option.titleImage[0] = editedImageDataURL;
+          if (option.imageLink !== editedImageDataURL) {
+            // imageLink가 아직 업데이트되지 않았다면 같이 업데이트
+            option.imageLink = editedImageDataURL;
+            updateCount++;
+          }
         }
       });
 
@@ -11016,6 +11029,7 @@
                         aspect-ratio: 1;
                         object-fit: cover;
                         display: block;
+                        background: white;
                       ">
                       <div class="bg-check-mark" style="
                         position: absolute;
@@ -11470,6 +11484,7 @@
                         aspect-ratio: 1;
                         object-fit: cover;
                         display: block;
+                        background: white;
                       ">
                     </div>
                   `).join('')}
@@ -11618,10 +11633,16 @@
               productData.results.forEach(option => {
                 const optionImgSrc = option.imageLink || option.titleImage?.[0] || '';
                 if (optionImgSrc === oldUrl) {
-                  if (option.imageLink) {
+                  // imageLink와 titleImage 모두 업데이트 (좌측 이미지 소스 동기화를 위해)
+                  if (option.imageLink === oldUrl) {
                     option.imageLink = imageUrl;
-                  } else if (option.titleImage && option.titleImage.length > 0) {
+                  }
+                  if (option.titleImage && option.titleImage[0] === oldUrl) {
                     option.titleImage[0] = imageUrl;
+                  }
+                  // imageLink가 없었다면 새로 설정
+                  if (!option.imageLink) {
+                    option.imageLink = imageUrl;
                   }
                 }
               });
@@ -11651,6 +11672,7 @@
       if (successCount > 0) {
         // 이미지 탭 다시 렌더링
         refreshImageTabs();
+        renderDetailSources();  // 상세페이지 좌측 이미지 소스 새로고침
 
         // 옵션 이미지 편집 시 옵션 테이블과 상세페이지 동기화
         if (imageType === 'option') {
