@@ -1561,6 +1561,10 @@ Return the generated image with white background.`;
     }
 
     // 6. 상세페이지 구성
+    // 상세 이미지 필드 확인 (detailImages 또는 descriptionImages)
+    const detailImgArray = product.detailImages || product.descriptionImages || [];
+    console.log(`[AI Auto Edit] 상세 이미지 필드 확인 - detailImages: ${product.detailImages?.length || 0}, descriptionImages: ${product.descriptionImages?.length || 0}`);
+
     if (!product.detailPageItems || product.detailPageItems.length === 0) {
       // 상세페이지가 비어있으면 자동으로 구성
       product.detailPageItems = [];
@@ -1587,8 +1591,8 @@ Return the generated image with white background.`;
       }
 
       // 상세 이미지들 추가
-      if (product.detailImages && product.detailImages.length > 0) {
-        product.detailImages.forEach((img, index) => {
+      if (detailImgArray.length > 0) {
+        detailImgArray.forEach((img, index) => {
           product.detailPageItems.push({
             id: `detail_${Date.now()}_${index}`,
             type: 'detail-image',
@@ -1596,8 +1600,8 @@ Return the generated image with white background.`;
             alt: `상세 이미지 ${index + 1}`
           });
         });
-        changes.detailImagesAdded = product.detailImages.length;
-        console.log(`[AI Auto Edit] 상세 이미지 ${product.detailImages.length}개 추가`);
+        changes.detailImagesAdded = detailImgArray.length;
+        console.log(`[AI Auto Edit] 상세 이미지 ${detailImgArray.length}개 추가`);
       }
 
       changes.detailPageUpdated = true;
