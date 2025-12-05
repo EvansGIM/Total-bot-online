@@ -1584,9 +1584,9 @@ Return the generated image with white background.`;
       if (imageToAdd) {
         product.detailPageItems.push({
           id: `styled_${Date.now()}`,
-          type: 'styled-image',
-          src: imageToAdd,
-          alt: '연출 이미지'
+          type: 'image',  // 에디터에서 인식하는 타입
+          imageSrc: imageToAdd,
+          label: '연출 이미지'
         });
       }
 
@@ -1595,9 +1595,9 @@ Return the generated image with white background.`;
         detailImgArray.forEach((img, index) => {
           product.detailPageItems.push({
             id: `detail_${Date.now()}_${index}`,
-            type: 'detail-image',
-            src: img,
-            alt: `상세 이미지 ${index + 1}`
+            type: 'image',  // 에디터에서 인식하는 타입
+            imageSrc: img,
+            label: `상세 이미지 ${index + 1}`
           });
         });
         changes.detailImagesAdded = detailImgArray.length;
@@ -1620,14 +1620,14 @@ Return the generated image with white background.`;
           }
         }
 
-        // 기존 styled-image 제거 후 새로 추가
-        product.detailPageItems = product.detailPageItems.filter(item => item.type !== 'styled-image');
+        // 기존 연출 이미지 (label로 구분) 제거 후 새로 추가
+        product.detailPageItems = product.detailPageItems.filter(item => item.label !== '연출 이미지');
 
         product.detailPageItems.splice(insertIndex, 0, {
           id: `styled_${Date.now()}`,
-          type: 'styled-image',
-          src: imageToAdd,
-          alt: '연출 이미지'
+          type: 'image',  // 에디터에서 인식하는 타입
+          imageSrc: imageToAdd,
+          label: '연출 이미지'
         });
         changes.detailPageUpdated = true;
         console.log('[AI Auto Edit] 상세페이지에 연출 이미지 추가됨');
