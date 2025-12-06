@@ -1629,79 +1629,43 @@ Return the generated image.`;
       }
     }
 
-    // 6. 상세페이지 구성
-    // 상세 이미지 필드 확인 (detailImages 또는 descriptionImages)
-    const detailImgArray = product.detailImages || product.descriptionImages || [];
-    console.log(`[AI Auto Edit] 상세 이미지 필드 확인 - detailImages: ${product.detailImages?.length || 0}, descriptionImages: ${product.descriptionImages?.length || 0}`);
+    // 6. 상세페이지 구성 - 기존 내용 유지하면서 연출 이미지만 추가
+    console.log(`[AI Auto Edit] 기존 상세페이지 아이템 수: ${product.detailPageItems?.length || 0}`);
 
-    if (!product.detailPageItems || product.detailPageItems.length === 0) {
-      // 상세페이지가 비어있으면 자동으로 구성
+    // detailPageItems가 없으면 초기화
+    if (!product.detailPageItems) {
       product.detailPageItems = [];
+    }
 
-      // 브랜드 이미지 추가 (사용자 설정에서)
-      if (userSettings.brandImageUrl) {
-        product.detailPageItems.push({
-          id: `brand_${Date.now()}`,
-          type: 'brand-image',
-          src: userSettings.brandImageUrl,
-          alt: '브랜드 이미지'
-        });
+    const imageToAdd = styledImageUrl || (product.images && product.images.length > 0 ? product.images[0] : null);
+
+    if (imageToAdd) {
+      // 기존 연출 이미지 제거 (있으면)
+      product.detailPageItems = product.detailPageItems.filter(item => item.label !== '연출 이미지');
+
+      // 브랜드 이미지 다음 위치 찾기
+      let insertIndex = 0;
+      for (let i = 0; i < product.detailPageItems.length; i++) {
+        if (product.detailPageItems[i].type === 'brand-image') {
+          insertIndex = i + 1;
+          break;
+        }
       }
 
-      // 연출 이미지 추가 (있는 경우)
-      const imageToAdd = styledImageUrl || (product.images && product.images.length > 0 ? product.images[0] : null);
-      if (imageToAdd) {
-        product.detailPageItems.push({
-          id: `styled_${Date.now()}`,
-          type: 'image',  // 에디터에서 인식하는 타입
-          imageSrc: imageToAdd,
-          label: '연출 이미지'
-        });
-      }
-
-      // 상세 이미지들 추가
-      if (detailImgArray.length > 0) {
-        detailImgArray.forEach((img, index) => {
-          product.detailPageItems.push({
-            id: `detail_${Date.now()}_${index}`,
-            type: 'image',  // 에디터에서 인식하는 타입
-            imageSrc: img,
-            label: `상세 이미지 ${index + 1}`
-          });
-        });
-        changes.detailImagesAdded = detailImgArray.length;
-        console.log(`[AI Auto Edit] 상세 이미지 ${detailImgArray.length}개 추가`);
-      }
+      // 연출 이미지 추가
+      product.detailPageItems.splice(insertIndex, 0, {
+        id: `styled_${Date.now()}`,
+        type: 'image',
+        imageSrc: imageToAdd,
+        label: '연출 이미지'
+      });
 
       changes.detailPageUpdated = true;
-      console.log('[AI Auto Edit] 상세페이지 자동 구성 완료');
-    } else {
-      // 기존 상세페이지가 있으면 연출 이미지만 추가/교체
-      const imageToAdd = styledImageUrl || (product.images && product.images.length > 0 ? product.images[0] : null);
-
-      if (imageToAdd) {
-        // 브랜드 이미지 다음 위치 찾기 또는 맨 앞에 추가
-        let insertIndex = 0;
-        for (let i = 0; i < product.detailPageItems.length; i++) {
-          if (product.detailPageItems[i].type === 'brand-image') {
-            insertIndex = i + 1;
-            break;
-          }
-        }
-
-        // 기존 연출 이미지 (label로 구분) 제거 후 새로 추가
-        product.detailPageItems = product.detailPageItems.filter(item => item.label !== '연출 이미지');
-
-        product.detailPageItems.splice(insertIndex, 0, {
-          id: `styled_${Date.now()}`,
-          type: 'image',  // 에디터에서 인식하는 타입
-          imageSrc: imageToAdd,
-          label: '연출 이미지'
-        });
-        changes.detailPageUpdated = true;
-        console.log('[AI Auto Edit] 상세페이지에 연출 이미지 추가됨');
-      }
+      console.log(`[AI Auto Edit] 연출 이미지 추가됨 (위치: ${insertIndex})`);
     }
+
+    console.log(`[AI Auto Edit] 최종 상세페이지 아이템 수: ${product.detailPageItems.length}`);
+    console.log(`[AI Auto Edit] 상세페이지 아이템 타입들: ${product.detailPageItems.map(i => i.type || i.label).join(', ')}`)
 
     // 7. 상태 변경 및 저장
     product.status = 'ai_completed';
