@@ -4994,8 +4994,13 @@
 
           // 한국어 → 중국어 번역
           console.log(`🔄 번역 중: ${searchKeywordKorean}`);
-          const searchKeywordChinese = await translateToChineseAI(searchKeywordKorean);
+          let searchKeywordChinese = await translateToChineseAI(searchKeywordKorean);
+
+          // 번역 결과 정리 (불필요한 문자 제거)
+          searchKeywordChinese = searchKeywordChinese.replace(/["""'']/g, '').trim();
+
           console.log(`✅ 번역 완료: ${searchKeywordKorean} → ${searchKeywordChinese}`);
+          console.log(`   문자 코드:`, [...searchKeywordChinese].map(c => c.charCodeAt(0).toString(16)));
 
           // 가격 라디오 (단일 선택)
           const priceRadio = item.querySelector(`input[name="price_${itemId}"]:checked`);
@@ -5063,7 +5068,8 @@
     function build1688Url(options) {
       const { keyword, price, sortType, random, randomPages } = options;
 
-      let url = `https://s.1688.com/selloffer/offer_search.htm?keywords=${encodeURIComponent(keyword)}`;
+      // 1688은 UTF-8 인코딩 사용 - 중국어 직접 포함
+      let url = `https://s.1688.com/selloffer/offer_search.htm?keywords=${keyword}`;
 
       // 정렬
       url += `&sortType=${sortType}`;
