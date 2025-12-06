@@ -5999,14 +5999,23 @@ async function fetchFromAuthTab(url, options = {}) {
       apiUrl = url.replace('http://localhost:4000', 'https://totalbot.cafe24.com');
     }
 
-    // 탭에서 fetch 실행
+    // 탭에서 fetch 실행 (localStorage에서 인증 토큰 포함)
     const results = await chrome.scripting.executeScript({
       target: { tabId: targetTab.id },
       func: async (fetchUrl, fetchOptions) => {
         try {
+          // localStorage에서 인증 토큰 가져오기
+          const token = localStorage.getItem('authToken');
+          const headers = {
+            ...(fetchOptions.headers || {})
+          };
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+
           const response = await fetch(fetchUrl, {
             method: fetchOptions.method || 'GET',
-            headers: fetchOptions.headers || {},
+            headers: headers,
             body: fetchOptions.body,
             credentials: 'include'
           });
