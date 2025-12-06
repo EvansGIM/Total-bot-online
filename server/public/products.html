@@ -4840,20 +4840,17 @@
 
       let html = '';
       let index = 0;
-      const itemsToTranslate = [];
 
       batchCategoryState.completedCategories.forEach((data, categoryId) => {
         Object.entries(data.detailSelections).forEach(([detailIdx, detail]) => {
           const itemId = `collection_${categoryId}_${detailIdx}`;
           const categoryName = detail.optionValue || detail;
-          itemsToTranslate.push({ itemId, categoryName });
 
           html += `
             <div class="batch-collection-item" data-item-id="${itemId}" data-category-id="${categoryId}" data-detail-idx="${detailIdx}" data-category-name="${categoryName}">
               <div class="collection-row">
                 <div class="collection-category-name" title="${categoryName}">${categoryName}</div>
-                <input type="text" class="collection-search-input" id="search_${itemId}" placeholder="번역 중..." data-field="searchKeyword" readonly>
-                <button type="button" class="translate-btn" onclick="retranslateKeyword('${itemId}')" title="다시 번역">🔄</button>
+                <input type="text" class="collection-search-input" id="search_${itemId}" placeholder="한국어 검색어" data-field="searchKeyword" value="${categoryName}">
 
                 <div class="collection-price-group">
                   <label class="price-radio"><input type="radio" name="price_${itemId}" value="lowest"><span>최저가</span></label>
@@ -4890,55 +4887,6 @@
 
       listContainer.innerHTML = html;
       modal.style.display = 'flex';
-
-      // AI 번역 시작 (비동기)
-      translateAllKeywords(itemsToTranslate);
-    }
-
-    // AI로 모든 키워드 번역
-    async function translateAllKeywords(items) {
-      for (const item of items) {
-        try {
-          const translated = await translateToChineseAI(item.categoryName);
-          const input = document.getElementById(`search_${item.itemId}`);
-          if (input) {
-            input.value = translated;
-            input.readOnly = false;
-            input.placeholder = '1688 검색어';
-          }
-        } catch (err) {
-          console.error('번역 오류:', err);
-          const input = document.getElementById(`search_${item.itemId}`);
-          if (input) {
-            input.value = item.categoryName;
-            input.readOnly = false;
-            input.placeholder = '1688 검색어';
-          }
-        }
-      }
-    }
-
-    // 개별 키워드 재번역
-    async function retranslateKeyword(itemId) {
-      const item = document.querySelector(`[data-item-id="${itemId}"]`);
-      if (!item) return;
-
-      const categoryName = item.dataset.categoryName;
-      const input = document.getElementById(`search_${itemId}`);
-
-      input.value = '';
-      input.placeholder = '번역 중...';
-      input.readOnly = true;
-
-      try {
-        const translated = await translateToChineseAI(categoryName);
-        input.value = translated;
-      } catch (err) {
-        input.value = categoryName;
-      }
-
-      input.readOnly = false;
-      input.placeholder = '1688 검색어';
     }
 
     // AI 번역 (한국어 → 중국어)
@@ -4974,68 +4922,90 @@
     }
 
     // 수집 시작
-    function startBatchCollection() {
+    async function startBatchCollection() {
       const items = document.querySelectorAll('.batch-collection-item');
       const collectionData = [];
-      let hasError = false;
 
-      items.forEach(item => {
-        const itemId = item.dataset.itemId;
-        const categoryId = item.dataset.categoryId;
-        const detailIdx = item.dataset.detailIdx;
-        const categoryName = item.dataset.categoryName;
+      // 버튼 비활성화 및 로딩 표시
+      const startBtn = document.querySelector('#batchCollectionModal .coupang-download-btn');
+      const originalBtnText = startBtn.innerHTML;
+      startBtn.innerHTML = '<span>🔄 번역 중...</span>';
+      startBtn.disabled = true;
 
-        const searchKeyword = item.querySelector('[data-field="searchKeyword"]').value.trim();
+      try {
+        for (const item of items) {
+          const itemId = item.dataset.itemId;
+          const categoryId = item.dataset.categoryId;
+          const detailIdx = item.dataset.detailIdx;
+          const categoryName = item.dataset.categoryName;
 
-        // 가격 라디오 (단일 선택)
-        const priceRadio = item.querySelector(`input[name="price_${itemId}"]:checked`);
-        const selectedPrice = priceRadio ? priceRadio.value : null;
+          const searchKeywordKorean = item.querySelector('[data-field="searchKeyword"]').value.trim();
 
-        const newProduct = item.querySelector('[data-field="newProduct"]').checked;
-        const fastDelivery = item.querySelector('[data-field="fastDelivery"]').checked;
-        const sortPopular = item.querySelector('[data-field="sortPopular"]').checked;
-        const sortSales = item.querySelector('[data-field="sortSales"]').checked;
-        const random = item.querySelector('[data-field="random"]').checked;
-        const randomPages = item.querySelector('[data-field="randomPages"]').value;
-        const productCount = item.querySelector('[data-field="productCount"]').value;
+          // 한국어 → 중국어 번역
+          console.log(`🔄 번역 중: ${searchKeywordKorean}`);
+          const searchKeywordChinese = await translateToChineseAI(searchKeywordKorean);
+          console.log(`✅ 번역 완료: ${searchKeywordKorean} → ${searchKeywordChinese}`);
 
-        item.style.border = '';
+          // 가격 라디오 (단일 선택)
+          const priceRadio = item.querySelector(`input[name="price_${itemId}"]:checked`);
+          const selectedPrice = priceRadio ? priceRadio.value : null;
 
-        // 1688 URL 생성
-        const url1688 = build1688Url({
-          keyword: searchKeyword,
-          price: selectedPrice,
-          sortType: sortPopular ? 'normal' : 'va_sales360',
-          random: random,
-          randomPages: parseInt(randomPages) || 5
+          const newProduct = item.querySelector('[data-field="newProduct"]').checked;
+          const fastDelivery = item.querySelector('[data-field="fastDelivery"]').checked;
+          const sortPopular = item.querySelector('[data-field="sortPopular"]').checked;
+          const sortSales = item.querySelector('[data-field="sortSales"]').checked;
+          const random = item.querySelector('[data-field="random"]').checked;
+          const randomPages = item.querySelector('[data-field="randomPages"]').value;
+          const productCount = item.querySelector('[data-field="productCount"]').value;
+
+          item.style.border = '';
+
+          // 1688 URL 생성 (중국어로 번역된 키워드 사용)
+          const url1688 = build1688Url({
+            keyword: searchKeywordChinese,
+            price: selectedPrice,
+            sortType: sortPopular ? 'normal' : 'va_sales360',
+            random: random,
+            randomPages: parseInt(randomPages) || 5
+          });
+
+          collectionData.push({
+            itemId,
+            categoryId,
+            detailIdx,
+            categoryName,
+            searchKeywordKorean,
+            searchKeywordChinese,
+            selectedPrice,
+            newProduct,
+            fastDelivery,
+            sortType: sortPopular ? 'normal' : 'va_sales360',
+            random,
+            randomPages: random ? parseInt(randomPages) : 0,
+            productCount: parseInt(productCount) || 20,
+            url1688
+          });
+        }
+
+        console.log('📊 Collection data:', collectionData);
+
+        // URL 출력 (테스트용)
+        collectionData.forEach(data => {
+          console.log(`🔗 ${data.categoryName}: ${data.searchKeywordKorean} → ${data.searchKeywordChinese}`);
+          console.log(`   URL: ${data.url1688}`);
         });
 
-        collectionData.push({
-          itemId,
-          categoryId,
-          detailIdx,
-          categoryName,
-          searchKeyword,
-          selectedPrice,
-          newProduct,
-          fastDelivery,
-          sortType: sortPopular ? 'normal' : 'va_sales360',
-          random,
-          randomPages: random ? parseInt(randomPages) : 0,
-          productCount: parseInt(productCount) || 20,
-          url1688
-        });
-      });
+        alert('번역 완료! 콘솔에서 생성된 URL을 확인하세요.');
+        // TODO: 실제 수집 로직 구현
 
-      console.log('📊 Collection data:', collectionData);
-
-      // URL 출력 (테스트용)
-      collectionData.forEach(data => {
-        console.log(`🔗 ${data.categoryName}: ${data.url1688}`);
-      });
-
-      alert('수집을 시작합니다. 콘솔에서 생성된 URL을 확인하세요.');
-      // TODO: 실제 수집 로직 구현
+      } catch (err) {
+        console.error('수집 시작 오류:', err);
+        alert('오류가 발생했습니다: ' + err.message);
+      } finally {
+        // 버튼 복원
+        startBtn.innerHTML = originalBtnText;
+        startBtn.disabled = false;
+      }
     }
 
     // 1688 URL 생성
