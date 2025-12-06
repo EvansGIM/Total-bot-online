@@ -3309,16 +3309,39 @@ async function apply1688PriceFilter(maxPrice) {
       console.log('[1688 Price Filter] 최고가 입력:', maxPrice.toFixed(2));
 
       // 약간의 딜레이 후 확인 버튼 클릭
-      await sleep(300);
+      await sleep(500);
 
-      // 확인 버튼 찾기
-      const confirmBtn = document.querySelector('.price-filter-define, .sn-common-button-define, button[class*="define"]');
+      // 확인 버튼 찾기 (div.price-filter-define > a 구조)
+      const confirmBtnContainer = document.querySelector('.price-filter-define, .sn-common-button-define.price-filter-define');
 
-      if (confirmBtn) {
-        confirmBtn.click();
-        console.log('[1688 Price Filter] 확인 버튼 클릭');
+      if (confirmBtnContainer) {
+        // 내부 <a> 태그가 있으면 그것을 클릭, 없으면 컨테이너 클릭
+        const innerLink = confirmBtnContainer.querySelector('a');
+        const clickTarget = innerLink || confirmBtnContainer;
+
+        // 여러 방법으로 클릭 시도
+        clickTarget.click();
+        console.log('[1688 Price Filter] 확인 버튼 클릭 (click)');
+
+        // 추가: 마우스 이벤트로도 클릭 시도
+        await sleep(100);
+        clickTarget.dispatchEvent(new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          view: window
+        }));
+        console.log('[1688 Price Filter] 확인 버튼 클릭 (MouseEvent)');
       } else {
         console.warn('[1688 Price Filter] 확인 버튼을 찾을 수 없습니다.');
+        // 대체 방법: 텍스트로 버튼 찾기
+        const allButtons = document.querySelectorAll('.sn-common-button-define a, .price-filter-define a');
+        for (const btn of allButtons) {
+          if (btn.textContent.includes('确定')) {
+            btn.click();
+            console.log('[1688 Price Filter] 확인 버튼 클릭 (텍스트 검색)');
+            break;
+          }
+        }
       }
     } else {
       console.warn('[1688 Price Filter] 가격 필터 입력 필드를 찾을 수 없습니다.');
