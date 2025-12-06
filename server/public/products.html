@@ -5410,6 +5410,117 @@
       document.getElementById('batchProgressModal').style.display = 'none';
     }
 
+    // 일괄 수집 후 쿠팡 등록 시작
+    async function startBatchAIProcessing() {
+      const productIds = window.batchCollectedProductIds || [];
+
+      if (productIds.length === 0) {
+        alert('등록할 상품이 없습니다.');
+        closeBatchProgressModal();
+        loadProducts();
+        return;
+      }
+
+      // 설정 확인
+      if (!settings.coupangId || !settings.coupangPassword) {
+        alert('설정에서 쿠팡 아이디와 비밀번호를 먼저 입력해주세요.');
+        openSettingsModal();
+        return;
+      }
+
+      // 모달 업데이트 - 등록 진행 상태
+      const modal = document.getElementById('batchProgressModal');
+      const footer = modal.querySelector('.progress-footer');
+      if (footer) {
+        footer.innerHTML = `
+          <div style="color: #6d28d9; font-weight: 600;">
+            🚀 쿠팡 등록 준비 중...
+          </div>
+          <div style="font-size: 14px; margin-top: 10px;">
+            ${productIds.length}개 상품을 쿠팡에 등록합니다.
+          </div>
+        `;
+      }
+
+      try {
+        console.log('🚀 쿠팡 일괄 등록 시작:', productIds);
+
+        // 상품 데이터 로드
+        const productData = [];
+        for (const productId of productIds) {
+          try {
+            const response = await fetch('/api/products/' + productId);
+            if (response.ok) {
+              const data = await response.json();
+              productData.push(data);
+            }
+          } catch (e) {
+            console.log('⚠️ 상품 로드 실패:', productId, e.message);
+          }
+        }
+
+        if (productData.length === 0) {
+          alert('등록할 상품 데이터를 불러올 수 없습니다.');
+          closeBatchProgressModal();
+          loadProducts();
+          return;
+        }
+
+        console.log('📦 로드된 상품:', productData.length, '개');
+
+        // 쿠팡 업로드 요청
+        const response = await sendMessageToExtension('uploadToCoupang', {
+          action: 'uploadToCoupang',
+          data: {
+            products: productData,
+            settings: {
+              coupangId: settings.coupangId,
+              coupangPassword: settings.coupangPassword,
+              address: settings.address
+            }
+          }
+        });
+
+        console.log('✅ 쿠팡 업로드 응답:', response);
+
+        if (response && response.success) {
+          if (footer) {
+            footer.innerHTML = `
+              <div style="color: #10b981; font-weight: 600;">
+                ✅ 쿠팡 등록이 시작되었습니다!
+              </div>
+              <div style="font-size: 14px; margin-top: 10px;">
+                새 탭에서 진행 상황을 확인하세요.
+              </div>
+              <button class="coupang-download-btn" onclick="closeBatchProgressModal(); loadProducts();" style="margin-top: 15px;">
+                닫기
+              </button>
+            `;
+          }
+        } else {
+          throw new Error(response?.error || '업로드 시작 실패');
+        }
+
+      } catch (error) {
+        console.error('❌ 쿠팡 등록 오류:', error);
+        if (footer) {
+          footer.innerHTML = `
+            <div style="color: #ef4444; font-weight: 600;">
+              ❌ 등록 오류: ${error.message}
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 15px; justify-content: center;">
+              <button class="coupang-download-btn" onclick="startBatchAIProcessing()" style="background: #6d28d9;">
+                다시 시도
+              </button>
+              <button class="coupang-download-btn" onclick="closeBatchProgressModal(); loadProducts();" style="background: #6b7280;">
+                닫기
+              </button>
+            </div>
+          `;
+        }
+      }
+    }
+
     // 프로그레스 업데이트
     function updateBatchProgress(status, data) {
       if (status === 'item') {
@@ -7140,6 +7251,12 @@
           const footer = modal.querySelector('.progress-footer');
           if (footer) {
             const results = progress.results;
+            const hasProducts = results.completedProducts > 0;
+
+            // 수집된 상품 ID 저장 (쿠팡 등록용)
+            window.batchCollectedProductIds = results.collectedProductIds || [];
+            console.log('📦 수집된 상품 ID:', window.batchCollectedProductIds);
+
             footer.innerHTML = `
               <div style="color: #10b981; font-weight: 600; margin-bottom: 10px;">
                 ✅ 수집 완료!
@@ -7149,7 +7266,18 @@
                 상품: ${results.completedProducts}개 수집 완료
                 ${results.errors.length > 0 ? `<br><span style="color: #f59e0b;">오류 ${results.errors.length}건</span>` : ''}
               </div>
-              <button class="coupang-download-btn" onclick="closeBatchProgressModal(); loadProducts();" style="margin-top: 10px;">닫기</button>
+              ${hasProducts ? `
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+                  <button class="coupang-download-btn" onclick="startBatchAIProcessing()" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                    🚀 쿠팡 등록하기
+                  </button>
+                  <button class="coupang-download-btn" onclick="closeBatchProgressModal(); loadProducts();" style="background: #6b7280;">
+                    나중에
+                  </button>
+                </div>
+              ` : `
+                <button class="coupang-download-btn" onclick="closeBatchProgressModal(); loadProducts();" style="margin-top: 10px;">닫기</button>
+              `}
             `;
           }
           break;

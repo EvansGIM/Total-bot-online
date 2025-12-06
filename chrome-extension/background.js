@@ -5669,14 +5669,21 @@ async function handleBatch1688Collect(categories, sender) {
     completedCategories: 0,
     totalProducts: 0,
     completedProducts: 0,
-    errors: []
+    errors: [],
+    collectedProductIds: []  // 수집된 상품 ID 목록
   };
 
   // 프로그레스 업데이트 함수 (웹페이지로 전송)
   async function updateProgress(progress) {
     try {
       // localhost 탭 찾기
-      const tabs = await chrome.tabs.query({ url: '*://localhost:*/*' });
+      let tabs = await chrome.tabs.query({ url: '*://localhost:*/*' });
+
+      // localhost가 없으면 cafe24 탭 찾기
+      if (tabs.length === 0) {
+        tabs = await chrome.tabs.query({ url: '*://totalbot.cafe24.com/*' });
+      }
+
       if (tabs.length > 0) {
         for (const tab of tabs) {
           try {
@@ -5868,6 +5875,9 @@ async function handleBatch1688Collect(categories, sender) {
 
             const savedProductId = saveResponse.id;
             console.log('  ✅ 상품 저장 완료, ID:', savedProductId);
+
+            // 수집된 상품 ID 추가
+            results.collectedProductIds.push(savedProductId);
 
             // 5. AI 자동 편집
             console.log('  🤖 AI 자동 편집 중...');
