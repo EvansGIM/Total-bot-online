@@ -4526,42 +4526,15 @@
       btnText.textContent = '🔍 전체 검색';
     }
 
-    // 검색 결과 렌더링 (완료된 카테고리 + 세부 선택 대기 + 검색 결과)
+    // 검색 결과 렌더링 (세부 선택 대기 + 검색 결과만 - 완료된 것은 별도 영역에 표시)
     function renderBatchCategoryResults() {
       const resultsDiv = document.getElementById('batchCategoryResults');
       let html = '';
 
-      // 1. 완료된 카테고리 표시
-      if (batchCategoryState.completedCategories.size > 0) {
-        html += `
-          <div class="batch-section-header" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 12px 16px; border-radius: 8px; margin-bottom: 12px;">
-            <h4 style="margin: 0; font-size: 14px;">✅ 선택 완료된 카테고리 (${batchCategoryState.completedCategories.size}개)</h4>
-          </div>
-        `;
+      // 완료된 카테고리는 별도 영역에 표시
+      renderCompletedSummary();
 
-        batchCategoryState.completedCategories.forEach((data, categoryId) => {
-          const detailNames = Object.values(data.detailSelections).map(s => s.optionValue).join(', ');
-          html += `
-            <div class="batch-category-item completed" style="background: #f0fdf4; border-color: #10b981;">
-              <div class="batch-category-content">
-                <div class="batch-category-name" style="color: #059669;">✓ ${data.category.name}</div>
-                <div class="batch-category-path" style="color: #059669;">세부: ${detailNames || '선택됨'}</div>
-              </div>
-              <button
-                class="batch-category-download-btn"
-                style="background: #fee2e2; color: #dc2626;"
-                onclick="removeCompletedCategory('${categoryId}')"
-              >
-                × 제거
-              </button>
-            </div>
-          `;
-        });
-
-        html += `<div style="margin-bottom: 20px;"></div>`;
-      }
-
-      // 2. 세부 선택 대기 중인 카테고리 표시
+      // 1. 세부 선택 대기 중인 카테고리 표시
       if (batchCategoryState.detailPending.size > 0) {
         html += `
           <div class="batch-section-header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 12px 16px; border-radius: 8px; margin-bottom: 12px;">
@@ -4617,7 +4590,7 @@
         html += `<div style="margin-bottom: 20px;"></div>`;
       }
 
-      // 3. 검색 결과 표시
+      // 2. 검색 결과 표시
       let hasResults = false;
       batchCategoryState.keywords.forEach((item, keywordIndex) => {
         if (item.results && item.results.length > 0) {
@@ -4672,6 +4645,37 @@
       }
 
       resultsDiv.innerHTML = html;
+    }
+
+    // 완료된 카테고리 요약 렌더링 (별도 영역)
+    function renderCompletedSummary() {
+      const summaryDiv = document.getElementById('batchCompletedSummary');
+      const countSpan = document.getElementById('completedCount');
+      const chipsDiv = document.getElementById('completedChipsList');
+
+      if (!summaryDiv) return;
+
+      const count = batchCategoryState.completedCategories.size;
+
+      if (count === 0) {
+        summaryDiv.style.display = 'none';
+        return;
+      }
+
+      summaryDiv.style.display = 'block';
+      countSpan.textContent = count;
+
+      let chipsHtml = '';
+      batchCategoryState.completedCategories.forEach((data, categoryId) => {
+        chipsHtml += `
+          <span style="display: inline-flex; align-items: center; gap: 4px; background: white; border: 1px solid #10b981; color: #059669; padding: 4px 10px; border-radius: 16px; font-size: 12px;">
+            ${data.category.name}
+            <span style="cursor: pointer; margin-left: 2px; color: #dc2626; font-weight: bold;" onclick="removeCompletedCategory('${categoryId}')">×</span>
+          </span>
+        `;
+      });
+
+      chipsDiv.innerHTML = chipsHtml;
     }
 
     // 개별 카테고리 다운로드
@@ -4866,8 +4870,16 @@
           + 키워드 추가
         </button>
 
-        <!-- 카테고리 검색 결과 -->
-        <div id="batchCategoryResults" style="margin-top: 20px; max-height: 400px; overflow-y: auto;"></div>
+        <!-- 선택 완료된 카테고리 (별도 영역) -->
+        <div id="batchCompletedSummary" style="display: none; margin-top: 16px; padding: 12px; background: #f0fdf4; border: 1px solid #10b981; border-radius: 8px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <span style="font-weight: 600; color: #059669; font-size: 13px;">✅ 선택 완료 (<span id="completedCount">0</span>개)</span>
+          </div>
+          <div id="completedChipsList" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+        </div>
+
+        <!-- 카테고리 검색 결과 (세부 선택 대기 + 새 검색 결과만) -->
+        <div id="batchCategoryResults" style="margin-top: 20px; max-height: 350px; overflow-y: auto;"></div>
       </div>
 
       <div class="coupang-modal-footer" style="display: flex; gap: 10px;">
