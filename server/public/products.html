@@ -1314,6 +1314,106 @@
       color: #374151;
     }
 
+    /* 수집 설정 모달 스타일 */
+    .batch-collection-item {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+    }
+
+    .collection-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .collection-category-name {
+      font-weight: 600;
+      font-size: 13px;
+      color: #374151;
+      min-width: 120px;
+      max-width: 150px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .collection-search-input {
+      flex: 0 0 140px;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .collection-search-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    }
+
+    .collection-price-btns {
+      display: flex;
+      gap: 4px;
+    }
+
+    .price-btn {
+      padding: 6px 10px;
+      font-size: 11px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      background: #fff;
+      color: #6b7280;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .price-btn:hover {
+      background: #f3f4f6;
+    }
+
+    .price-btn.active {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+
+    .collection-checkboxes,
+    .collection-sort-group,
+    .collection-random-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .collection-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: #4b5563;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .collection-checkbox input[type="checkbox"],
+    .collection-checkbox input[type="radio"] {
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+
+    .random-pages-select {
+      padding: 4px 8px;
+      font-size: 11px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      background: #fff;
+    }
+
     /* Main Tabs (2 tabs only) */
     .main-tabs {
       display: flex;
@@ -4685,23 +4785,149 @@
         return;
       }
 
-      // 완료된 카테고리들의 excelData를 합쳐서 상세 정보 모달로 전달
-      const allExcelData = [];
+      console.log('📦 Proceeding with categories:', batchCategoryState.completedCategories);
+
+      closeBatchCategoryModal();
+      showBatchCollectionModal();
+    }
+
+    // 수집 설정 모달 표시
+    function showBatchCollectionModal() {
+      const modal = document.getElementById('batchCollectionModal');
+      const listContainer = document.getElementById('batchCollectionList');
+
+      let html = '';
+      let index = 0;
+
       batchCategoryState.completedCategories.forEach((data, categoryId) => {
-        data.excelData.forEach((excel, idx) => {
-          allExcelData.push({
-            ...excel,
-            categoryId: categoryId,
-            categoryName: data.category.name,
-            detailSelection: data.detailSelections[idx]
-          });
+        data.detailSelections.forEach((detail, detailIdx) => {
+          const itemId = `collection_${categoryId}_${detailIdx}`;
+          html += `
+            <div class="batch-collection-item" data-item-id="${itemId}" data-category-id="${categoryId}" data-detail-idx="${detailIdx}">
+              <div class="collection-row">
+                <div class="collection-category-name">${detail}</div>
+                <input type="text" class="collection-search-input" placeholder="1688 검색어" data-field="searchKeyword">
+
+                <div class="collection-price-btns">
+                  <button type="button" class="price-btn" data-price="lowest" onclick="togglePriceBtn(this)">최저가</button>
+                  <button type="button" class="price-btn" data-price="middle" onclick="togglePriceBtn(this)">중간가</button>
+                  <button type="button" class="price-btn" data-price="average" onclick="togglePriceBtn(this)">평균가</button>
+                  <button type="button" class="price-btn" data-price="highest" onclick="togglePriceBtn(this)">최고가</button>
+                </div>
+
+                <div class="collection-checkboxes">
+                  <label class="collection-checkbox">
+                    <input type="checkbox" data-field="newProduct">
+                    <span>신제품</span>
+                  </label>
+                  <label class="collection-checkbox">
+                    <input type="checkbox" data-field="fastDelivery">
+                    <span>48시간배송</span>
+                  </label>
+                </div>
+
+                <div class="collection-sort-group">
+                  <label class="collection-checkbox">
+                    <input type="radio" name="sort_${itemId}" data-field="sortPopular" value="popular">
+                    <span>인기순</span>
+                  </label>
+                  <label class="collection-checkbox">
+                    <input type="radio" name="sort_${itemId}" data-field="sortSales" value="sales">
+                    <span>판매량순</span>
+                  </label>
+                </div>
+
+                <div class="collection-random-group">
+                  <label class="collection-checkbox">
+                    <input type="checkbox" data-field="random" onchange="toggleRandomPages(this, '${itemId}')">
+                    <span>랜덤</span>
+                  </label>
+                  <select class="random-pages-select" id="randomPages_${itemId}" data-field="randomPages" style="display: none;">
+                    <option value="1">1페이지</option>
+                    <option value="2">2페이지</option>
+                    <option value="3">3페이지</option>
+                    <option value="5">5페이지</option>
+                    <option value="10">10페이지</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          `;
+          index++;
         });
       });
 
-      console.log('📦 Proceeding with categories:', allExcelData);
+      listContainer.innerHTML = html;
+      modal.style.display = 'flex';
+    }
 
-      closeBatchCategoryModal();
-      showDetailCategoryModal(allExcelData);
+    // 수집 설정 모달 닫기
+    function closeBatchCollectionModal() {
+      document.getElementById('batchCollectionModal').style.display = 'none';
+    }
+
+    // 가격 버튼 토글
+    function togglePriceBtn(btn) {
+      btn.classList.toggle('active');
+    }
+
+    // 랜덤 페이지 선택 토글
+    function toggleRandomPages(checkbox, itemId) {
+      const select = document.getElementById(`randomPages_${itemId}`);
+      select.style.display = checkbox.checked ? 'inline-block' : 'none';
+    }
+
+    // 수집 시작
+    function startBatchCollection() {
+      const items = document.querySelectorAll('.batch-collection-item');
+      const collectionData = [];
+      let hasError = false;
+
+      items.forEach(item => {
+        const itemId = item.dataset.itemId;
+        const categoryId = item.dataset.categoryId;
+        const detailIdx = item.dataset.detailIdx;
+
+        const searchKeyword = item.querySelector('[data-field="searchKeyword"]').value.trim();
+        const selectedPrices = Array.from(item.querySelectorAll('.price-btn.active')).map(btn => btn.dataset.price);
+        const newProduct = item.querySelector('[data-field="newProduct"]').checked;
+        const fastDelivery = item.querySelector('[data-field="fastDelivery"]').checked;
+        const sortPopular = item.querySelector('[data-field="sortPopular"]').checked;
+        const sortSales = item.querySelector('[data-field="sortSales"]').checked;
+        const random = item.querySelector('[data-field="random"]').checked;
+        const randomPages = item.querySelector('[data-field="randomPages"]').value;
+
+        // 정렬 옵션 검증 (인기순 또는 판매량순 중 하나 필수)
+        if (!sortPopular && !sortSales) {
+          hasError = true;
+          item.style.border = '2px solid #ef4444';
+          return;
+        } else {
+          item.style.border = '';
+        }
+
+        collectionData.push({
+          itemId,
+          categoryId,
+          detailIdx,
+          searchKeyword,
+          selectedPrices,
+          newProduct,
+          fastDelivery,
+          sortType: sortPopular ? 'popular' : 'sales',
+          random,
+          randomPages: random ? parseInt(randomPages) : 0
+        });
+      });
+
+      if (hasError) {
+        alert('모든 항목에서 인기순 또는 판매량순 중 하나를 선택해주세요.');
+        return;
+      }
+
+      console.log('📊 Collection data:', collectionData);
+      alert('수집을 시작합니다. (기능 구현 예정)');
+      // TODO: 실제 수집 로직 구현
     }
 
   </script>
@@ -4760,6 +4986,28 @@
       <div style="padding: 16px 20px; border-top: 1px solid #e5e7eb;">
         <button id="batchDetailConfirmBtn" onclick="confirmBatchDetail()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" disabled>
           세부 카테고리를 선택하세요
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 수집 설정 모달 (다음 단계) -->
+  <div id="batchCollectionModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div class="coupang-modal-content" style="max-width: 1000px; max-height: 90vh; overflow: hidden;">
+      <div class="coupang-modal-header">
+        <h2>📊 수집 설정</h2>
+        <button class="coupang-modal-close" onclick="closeBatchCollectionModal()">×</button>
+      </div>
+
+      <div class="coupang-modal-body" style="max-height: calc(90vh - 140px); overflow-y: auto;">
+        <div id="batchCollectionList">
+          <!-- 동적으로 생성 -->
+        </div>
+      </div>
+
+      <div class="coupang-modal-footer">
+        <button class="coupang-download-btn" onclick="startBatchCollection()" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); width: 100%;">
+          <span>🚀 수집 시작</span>
         </button>
       </div>
     </div>
