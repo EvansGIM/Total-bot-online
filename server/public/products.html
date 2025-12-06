@@ -4672,12 +4672,107 @@
 
       } catch (error) {
         console.error('카테고리 검색 오류:', error);
+
+        // 세션 만료 에러 감지 시 자동 로그인 시도
+        const errorMsg = error.message || '';
+        if (errorMsg.includes('세션') || errorMsg.includes('로그인') || errorMsg.includes('session') || errorMsg.includes('login')) {
+          console.log('🔄 세션 만료 감지 - 자동 로그인 시도...');
+          resultsDiv.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #f59e0b;">
+              <div class="spinner" style="margin: 0 auto 12px;"></div>
+              <p>세션이 만료되었습니다</p>
+              <p style="font-size: 14px; color: #888;">쿠팡 자동 로그인 시도 중...</p>
+            </div>
+          `;
+
+          // 자동 로그인 시도 후 재검색
+          try {
+            await performAutoLoginAndRetry(keyword);
+          } catch (loginError) {
+            console.error('자동 로그인 실패:', loginError);
+            resultsDiv.innerHTML = `
+              <div style="text-align: center; padding: 40px; color: #dc2626;">
+                <p style="font-size: 36px;">❌</p>
+                <p>자동 로그인에 실패했습니다</p>
+                <button onclick="checkCoupangLogin()" style="margin-top: 12px; padding: 8px 16px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                  🔐 수동 로그인
+                </button>
+              </div>
+            `;
+          }
+          return;
+        }
+
         resultsDiv.innerHTML = `
           <div style="text-align: center; padding: 40px; color: #dc2626;">
             <p style="font-size: 36px;">❌</p>
             <p>검색 중 오류가 발생했습니다</p>
           </div>
         `;
+      }
+    }
+
+    // 자동 로그인 후 재검색 수행
+    async function performAutoLoginAndRetry(keyword) {
+      // 설정 확인
+      if (!settings.coupangId || !settings.coupangPassword) {
+        throw new Error('쿠팡 로그인 정보가 설정되지 않았습니다.');
+      }
+
+      // 로그인 아이콘 업데이트
+      const loginIcon = document.getElementById('coupangLoginIcon');
+      const loginBtn = document.getElementById('coupangLoginStatus');
+      loginIcon.textContent = '⏳';
+      loginBtn.disabled = true;
+
+      try {
+        // 로그인 시도
+        const loginResponse = await sendMessageToExtension('checkCoupangLogin', {
+          action: 'checkCoupangLogin',
+          credentials: {
+            coupangId: settings.coupangId,
+            coupangPassword: settings.coupangPassword
+          }
+        });
+
+        loginBtn.disabled = false;
+
+        if (!loginResponse || !loginResponse.success) {
+          loginIcon.textContent = '❌';
+          throw new Error(loginResponse?.error || '로그인 실패');
+        }
+
+        loginIcon.textContent = '✅';
+        console.log('✅ 자동 로그인 성공, 재검색 시도...');
+
+        // 잠시 대기 후 재검색
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 재검색
+        const resultsDiv = document.getElementById('batchCategoryResults');
+        resultsDiv.innerHTML = `
+          <div style="text-align: center; padding: 40px; color: #666;">
+            <div class="spinner" style="margin: 0 auto 12px;"></div>
+            <p>"${keyword}" 재검색 중...</p>
+          </div>
+        `;
+
+        const response = await sendMessageToExtension('searchCategories', {
+          action: 'searchCategories',
+          keyword: keyword
+        });
+
+        if (!response.success) {
+          throw new Error(response.error || '재검색 실패');
+        }
+
+        batchCategoryState.searchResults = response.categories || [];
+        renderBatchCategoryResults();
+
+      } catch (error) {
+        loginBtn.disabled = false;
+        loginIcon.textContent = '❌';
+        throw error;
       }
     }
 
