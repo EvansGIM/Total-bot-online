@@ -1456,6 +1456,111 @@
       white-space: nowrap;
     }
 
+    /* 프로그레스 모달 스타일 */
+    .progress-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .progress-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+    }
+
+    .progress-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .progress-num {
+      width: 24px;
+      height: 24px;
+      background: #e5e7eb;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+    }
+
+    .progress-name {
+      font-size: 13px;
+      color: #374151;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
+    }
+
+    .progress-keyword {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
+    .progress-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-badge {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .status-badge.pending {
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+
+    .status-badge.searching {
+      background: #dbeafe;
+      color: #2563eb;
+    }
+
+    .status-badge.collecting {
+      background: #fef3c7;
+      color: #d97706;
+    }
+
+    .status-badge.processing {
+      background: #e0e7ff;
+      color: #4f46e5;
+    }
+
+    .status-badge.uploading {
+      background: #d1fae5;
+      color: #059669;
+    }
+
+    .status-badge.completed {
+      background: #10b981;
+      color: white;
+    }
+
+    .status-badge.error {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .progress-detail {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
     /* Main Tabs (2 tabs only) */
     .main-tabs {
       display: flex;
@@ -5068,14 +5173,36 @@
 
         console.log('📊 Collection data:', collectionData);
 
-        // URL 출력 (테스트용)
+        // URL 출력
         collectionData.forEach(data => {
           console.log(`🔗 ${data.categoryName}: ${data.searchKeywordKorean} → ${data.searchKeywordChinese}`);
           console.log(`   URL: ${data.url1688}`);
         });
 
-        alert('번역 완료! 콘솔에서 생성된 URL을 확인하세요.');
-        // TODO: 실제 수집 로직 구현
+        // 수집 설정 모달 닫기
+        closeBatchCollectionModal();
+
+        // 프로그레스 모달 열기
+        openBatchProgressModal(collectionData);
+
+        // 익스텐션에 일괄 수집 요청
+        try {
+          const response = await sendMessageToExtension('batch1688Collect', {
+            action: 'batch1688Collect',
+            categories: collectionData
+          });
+
+          if (response && response.success) {
+            console.log('✅ 일괄 수집 완료:', response);
+            updateBatchProgress('completed', response);
+          } else {
+            console.error('❌ 일괄 수집 실패:', response);
+            updateBatchProgress('error', response);
+          }
+        } catch (extErr) {
+          console.error('❌ 익스텐션 통신 오류:', extErr);
+          updateBatchProgress('error', { message: extErr.message });
+        }
 
       } catch (err) {
         console.error('수집 시작 오류:', err);
@@ -5085,6 +5212,87 @@
         startBtn.innerHTML = originalBtnText;
         startBtn.disabled = false;
       }
+    }
+
+    // 일괄 수집 프로그레스 모달 열기
+    function openBatchProgressModal(categories) {
+      const modal = document.getElementById('batchProgressModal');
+      const listContainer = document.getElementById('batchProgressList');
+
+      let html = '';
+      categories.forEach((cat, idx) => {
+        html += `
+          <div class="progress-item" id="progress_${cat.itemId}" data-cat-idx="${idx}">
+            <div class="progress-info">
+              <span class="progress-num">${idx + 1}</span>
+              <span class="progress-name">${cat.categoryName}</span>
+              <span class="progress-keyword">${cat.searchKeywordKorean}</span>
+            </div>
+            <div class="progress-status">
+              <span class="status-badge pending">대기</span>
+              <span class="progress-detail"></span>
+            </div>
+          </div>
+        `;
+      });
+
+      listContainer.innerHTML = html;
+      modal.style.display = 'flex';
+    }
+
+    // 프로그레스 모달 닫기
+    function closeBatchProgressModal() {
+      document.getElementById('batchProgressModal').style.display = 'none';
+    }
+
+    // 프로그레스 업데이트
+    function updateBatchProgress(status, data) {
+      if (status === 'item') {
+        // 개별 항목 업데이트
+        const item = document.getElementById(`progress_${data.itemId}`);
+        if (item) {
+          const badge = item.querySelector('.status-badge');
+          const detail = item.querySelector('.progress-detail');
+
+          badge.className = `status-badge ${data.status}`;
+          badge.textContent = getStatusText(data.status);
+          detail.textContent = data.detail || '';
+        }
+      } else if (status === 'completed') {
+        // 전체 완료
+        const modal = document.getElementById('batchProgressModal');
+        const footer = modal.querySelector('.progress-footer');
+        if (footer) {
+          footer.innerHTML = `
+            <div style="color: #10b981; font-weight: 600;">✅ 수집 완료!</div>
+            <button class="coupang-download-btn" onclick="closeBatchProgressModal()" style="margin-top: 10px;">닫기</button>
+          `;
+        }
+      } else if (status === 'error') {
+        // 오류
+        const modal = document.getElementById('batchProgressModal');
+        const footer = modal.querySelector('.progress-footer');
+        if (footer) {
+          footer.innerHTML = `
+            <div style="color: #ef4444; font-weight: 600;">❌ 오류 발생: ${data.message || '알 수 없는 오류'}</div>
+            <button class="coupang-download-btn" onclick="closeBatchProgressModal()" style="margin-top: 10px; background: #ef4444;">닫기</button>
+          `;
+        }
+      }
+    }
+
+    // 상태 텍스트 변환
+    function getStatusText(status) {
+      const statusMap = {
+        'pending': '대기',
+        'searching': '검색 중',
+        'collecting': '수집 중',
+        'processing': 'AI 처리 중',
+        'uploading': '업로드 중',
+        'completed': '완료',
+        'error': '오류'
+      };
+      return statusMap[status] || status;
     }
 
     // 1688 URL 생성
@@ -5190,6 +5398,25 @@
         <button class="coupang-download-btn" onclick="startBatchCollection()" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); width: 100%;">
           <span>🚀 수집 시작</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 일괄 수집 프로그레스 모달 -->
+  <div id="batchProgressModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10001; align-items: center; justify-content: center;">
+    <div class="coupang-modal-content" style="max-width: 800px; max-height: 90vh; overflow: hidden;">
+      <div class="coupang-modal-header">
+        <h2>📦 일괄 수집 진행</h2>
+      </div>
+
+      <div class="coupang-modal-body" style="max-height: calc(90vh - 140px); overflow-y: auto;">
+        <div id="batchProgressList" class="progress-list">
+          <!-- 동적으로 생성 -->
+        </div>
+      </div>
+
+      <div class="coupang-modal-footer progress-footer">
+        <div style="color: #3b82f6; font-weight: 600;">🔄 수집 진행 중...</div>
       </div>
     </div>
   </div>
@@ -6656,9 +6883,125 @@
         } else if (message.action === 'showPendingModal') {
           // 검증 진행 중 모달 표시
           showPendingModal(message);
+        } else if (message.action === 'batchCollectProgress') {
+          // 일괄 수집 프로그레스 업데이트
+          handleBatchCollectProgressUpdate(message.progress);
         }
       }
     });
+
+    // 일괄 수집 프로그레스 업데이트 처리
+    function handleBatchCollectProgressUpdate(progress) {
+      console.log('📊 일괄 수집 프로그레스:', progress);
+
+      const listContainer = document.getElementById('batchProgressList');
+      if (!listContainer) return;
+
+      // 프로그레스 아이템 찾기 또는 생성
+      let itemEl = document.querySelector(`.progress-item[data-cat-idx="${progress.categoryIndex}"]`);
+
+      switch (progress.type) {
+        case 'category_start':
+          // 카테고리 시작 - 상태를 '검색 중'으로 변경
+          if (itemEl) {
+            const badge = itemEl.querySelector('.status-badge');
+            const detail = itemEl.querySelector('.progress-detail');
+            badge.className = 'status-badge searching';
+            badge.textContent = '검색 중';
+            detail.textContent = '1688 검색 페이지 로딩...';
+          }
+          break;
+
+        case 'products_found':
+          // 상품 발견됨
+          if (itemEl) {
+            const detail = itemEl.querySelector('.progress-detail');
+            detail.textContent = `${progress.foundCount}개 발견, ${progress.collectCount}개 수집 예정`;
+          }
+          break;
+
+        case 'product_start':
+          // 개별 상품 수집 시작
+          if (itemEl) {
+            const badge = itemEl.querySelector('.status-badge');
+            const detail = itemEl.querySelector('.progress-detail');
+            badge.className = 'status-badge collecting';
+            badge.textContent = '수집 중';
+            detail.textContent = `상품 ${progress.productIndex + 1}/${progress.totalProducts} 수집 중...`;
+          }
+          break;
+
+        case 'ai_processing':
+          // AI 처리 중
+          if (itemEl) {
+            const badge = itemEl.querySelector('.status-badge');
+            const detail = itemEl.querySelector('.progress-detail');
+            badge.className = 'status-badge processing';
+            badge.textContent = 'AI 처리';
+            detail.textContent = `상품 ${progress.productIndex + 1} AI 자동 편집 중...`;
+          }
+          break;
+
+        case 'product_complete':
+          // 상품 수집 완료
+          if (itemEl) {
+            const detail = itemEl.querySelector('.progress-detail');
+            detail.textContent = `상품 ${progress.productIndex + 1} 완료 ${progress.aiSuccess ? '(AI ✓)' : ''}`;
+          }
+          break;
+
+        case 'product_error':
+          // 상품 수집 오류
+          if (itemEl) {
+            const detail = itemEl.querySelector('.progress-detail');
+            detail.textContent = `상품 ${progress.productIndex + 1} 오류: ${progress.error}`;
+          }
+          break;
+
+        case 'category_complete':
+          // 카테고리 완료
+          if (itemEl) {
+            const badge = itemEl.querySelector('.status-badge');
+            const detail = itemEl.querySelector('.progress-detail');
+            badge.className = 'status-badge completed';
+            badge.textContent = '완료';
+            detail.textContent = `${progress.productsCollected}개 상품 수집 완료`;
+          }
+          break;
+
+        case 'complete':
+          // 전체 완료
+          const modal = document.getElementById('batchProgressModal');
+          const footer = modal.querySelector('.progress-footer');
+          if (footer) {
+            const results = progress.results;
+            footer.innerHTML = `
+              <div style="color: #10b981; font-weight: 600; margin-bottom: 10px;">
+                ✅ 수집 완료!
+              </div>
+              <div style="font-size: 14px; margin-bottom: 15px;">
+                카테고리: ${results.completedCategories}/${results.totalCategories}개<br>
+                상품: ${results.completedProducts}개 수집 완료
+                ${results.errors.length > 0 ? `<br><span style="color: #f59e0b;">오류 ${results.errors.length}건</span>` : ''}
+              </div>
+              <button class="coupang-download-btn" onclick="closeBatchProgressModal(); loadProducts();" style="margin-top: 10px;">닫기</button>
+            `;
+          }
+          break;
+
+        case 'error':
+          // 오류 발생
+          const errorModal = document.getElementById('batchProgressModal');
+          const errorFooter = errorModal.querySelector('.progress-footer');
+          if (errorFooter) {
+            errorFooter.innerHTML = `
+              <div style="color: #ef4444; font-weight: 600;">❌ 오류 발생: ${progress.error}</div>
+              <button class="coupang-download-btn" onclick="closeBatchProgressModal()" style="margin-top: 10px; background: #ef4444;">닫기</button>
+            `;
+          }
+          break;
+      }
+    }
 
     // 견적서 반려 모달 표시
     function showRejectedModal(data) {

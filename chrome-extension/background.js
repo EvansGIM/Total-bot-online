@@ -1855,6 +1855,15 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
     return true;
   }
 
+  // 1688 일괄 수집
+  if (message.action === 'batch1688Collect') {
+    console.log('📦 batch1688Collect 요청 받음:', message.categories?.length, '개 카테고리');
+    handleBatch1688Collect(message.categories, sender)
+      .then(result => sendResponse(result))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+
   // 견적서 자동 작성 (확장 프로그램에서 직접 처리)
   if (message.action === 'fillQuotations') {
     handleFillQuotations(message)
@@ -5645,4 +5654,344 @@ function extractCoupangPrices() {
     rawCount: products.length,
     adCount: products.filter(p => p.isAd).length
   };
+}
+
+/**
+ * 1688 일괄 수집 핸들러
+ * 카테고리별로 1688 검색 → 상품 링크 추출 → 개별 상품 수집 → AI 편집 → 저장
+ */
+async function handleBatch1688Collect(categories, sender) {
+  console.log('📦 1688 일괄 수집 시작:', categories?.length, '개 카테고리');
+
+  const results = {
+    success: true,
+    totalCategories: categories?.length || 0,
+    completedCategories: 0,
+    totalProducts: 0,
+    completedProducts: 0,
+    errors: []
+  };
+
+  // 프로그레스 업데이트 함수 (웹페이지로 전송)
+  async function updateProgress(progress) {
+    try {
+      // localhost 탭 찾기
+      const tabs = await chrome.tabs.query({ url: '*://localhost:*/*' });
+      if (tabs.length > 0) {
+        for (const tab of tabs) {
+          try {
+            await chrome.tabs.sendMessage(tab.id, {
+              action: 'batchCollectProgress',
+              progress: progress
+            });
+          } catch (e) {
+            // 메시지 전송 실패 무시
+          }
+        }
+      }
+    } catch (e) {
+      console.log('⚠️ 프로그레스 업데이트 실패:', e.message);
+    }
+  }
+
+  try {
+    if (!categories || categories.length === 0) {
+      throw new Error('수집할 카테고리가 없습니다.');
+    }
+
+    // 각 카테고리 처리
+    for (let catIdx = 0; catIdx < categories.length; catIdx++) {
+      const category = categories[catIdx];
+      console.log(`\n📂 [${catIdx + 1}/${categories.length}] 카테고리 처리 시작:`, category.categoryName);
+
+      await updateProgress({
+        type: 'category_start',
+        categoryIndex: catIdx,
+        categoryName: category.categoryName,
+        totalCategories: categories.length
+      });
+
+      try {
+        // 1. 1688 검색 페이지 열기
+        const searchUrl = category.url;
+        console.log('🔗 1688 검색 URL:', searchUrl);
+
+        const searchTab = await chrome.tabs.create({
+          url: searchUrl,
+          active: false  // 백그라운드에서 열기
+        });
+
+        // 페이지 로드 대기
+        await waitForTabLoad(searchTab.id);
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 추가 대기
+
+        // 2. Content script 주입 및 상품 링크 추출
+        console.log('📋 상품 목록 추출 중...');
+
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: searchTab.id },
+            files: ['content/content-full.js']
+          });
+        } catch (e) {
+          console.log('⚠️ Content script 주입 경고:', e.message);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 상품 목록 추출
+        const listResponse = await sendMessageWithTimeout(searchTab.id, {
+          action: 'extractProductData'
+        }, 30000);
+
+        // 검색 탭 닫기
+        try {
+          await chrome.tabs.remove(searchTab.id);
+        } catch (e) {
+          console.log('⚠️ 검색 탭 닫기 실패:', e.message);
+        }
+
+        if (!listResponse || !listResponse.success || !listResponse.data?.results) {
+          console.log('⚠️ 상품 목록 추출 실패:', listResponse?.error);
+          results.errors.push({
+            category: category.categoryName,
+            error: listResponse?.error || '상품 목록을 추출할 수 없습니다.'
+          });
+          results.completedCategories++;
+          continue;
+        }
+
+        const productLinks = listResponse.data.results;
+        const collectCount = Math.min(category.productCount || 10, productLinks.length);
+
+        console.log(`✅ 상품 ${productLinks.length}개 발견, ${collectCount}개 수집 예정`);
+
+        await updateProgress({
+          type: 'products_found',
+          categoryIndex: catIdx,
+          categoryName: category.categoryName,
+          foundCount: productLinks.length,
+          collectCount: collectCount
+        });
+
+        // 3. 각 상품 수집
+        for (let prodIdx = 0; prodIdx < collectCount; prodIdx++) {
+          const productInfo = productLinks[prodIdx];
+          const productUrl = productInfo.link;
+
+          console.log(`\n  🛍️ [${prodIdx + 1}/${collectCount}] 상품 수집:`, productUrl?.substring(0, 50) + '...');
+
+          await updateProgress({
+            type: 'product_start',
+            categoryIndex: catIdx,
+            categoryName: category.categoryName,
+            productIndex: prodIdx,
+            totalProducts: collectCount,
+            productUrl: productUrl
+          });
+
+          try {
+            // 상품 페이지 열기
+            const productTab = await chrome.tabs.create({
+              url: productUrl,
+              active: false
+            });
+
+            await waitForTabLoad(productTab.id);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Content script 주입
+            try {
+              await chrome.scripting.executeScript({
+                target: { tabId: productTab.id },
+                files: ['content/content-full.js']
+              });
+            } catch (e) {
+              console.log('⚠️ Content script 주입 경고:', e.message);
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // 상품 데이터 추출
+            const productResponse = await sendMessageWithTimeout(productTab.id, {
+              action: 'extractProductData'
+            }, 30000);
+
+            // 상품 탭 닫기
+            try {
+              await chrome.tabs.remove(productTab.id);
+            } catch (e) {
+              console.log('⚠️ 상품 탭 닫기 실패:', e.message);
+            }
+
+            if (!productResponse || !productResponse.success || !productResponse.data) {
+              console.log('⚠️ 상품 추출 실패:', productResponse?.error);
+              await updateProgress({
+                type: 'product_error',
+                categoryIndex: catIdx,
+                productIndex: prodIdx,
+                error: productResponse?.error || '상품 데이터 추출 실패'
+              });
+              continue;
+            }
+
+            // 4. 서버에 상품 저장
+            console.log('  💾 상품 저장 중...');
+            const productData = productResponse.data;
+            productData.categoryPath = category.categoryPath;
+            productData.categoryName = category.categoryName;
+            productData.priceType = category.priceType;
+
+            const saveResponse = await fetchFromAuthTab(
+              'http://localhost:4000/api/products/save',
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(productData)
+              }
+            );
+
+            if (!saveResponse || !saveResponse.success) {
+              console.log('⚠️ 상품 저장 실패:', saveResponse?.error);
+              await updateProgress({
+                type: 'product_error',
+                categoryIndex: catIdx,
+                productIndex: prodIdx,
+                error: saveResponse?.error || '상품 저장 실패'
+              });
+              continue;
+            }
+
+            const savedProductId = saveResponse.id;
+            console.log('  ✅ 상품 저장 완료, ID:', savedProductId);
+
+            // 5. AI 자동 편집
+            console.log('  🤖 AI 자동 편집 중...');
+            await updateProgress({
+              type: 'ai_processing',
+              categoryIndex: catIdx,
+              productIndex: prodIdx,
+              productId: savedProductId
+            });
+
+            const aiResponse = await fetchFromAuthTab(
+              `http://localhost:4000/api/products/${savedProductId}/ai-auto-edit`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+              }
+            );
+
+            if (!aiResponse || !aiResponse.success) {
+              console.log('⚠️ AI 편집 실패 (계속 진행):', aiResponse?.error);
+            } else {
+              console.log('  ✅ AI 편집 완료');
+            }
+
+            results.completedProducts++;
+
+            await updateProgress({
+              type: 'product_complete',
+              categoryIndex: catIdx,
+              productIndex: prodIdx,
+              productId: savedProductId,
+              aiSuccess: aiResponse?.success || false
+            });
+
+          } catch (productError) {
+            console.error('  ❌ 상품 처리 오류:', productError.message);
+            await updateProgress({
+              type: 'product_error',
+              categoryIndex: catIdx,
+              productIndex: prodIdx,
+              error: productError.message
+            });
+          }
+
+          // 요청 간 딜레이 (서버 부하 방지)
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        results.totalProducts += collectCount;
+        results.completedCategories++;
+
+        await updateProgress({
+          type: 'category_complete',
+          categoryIndex: catIdx,
+          categoryName: category.categoryName,
+          productsCollected: collectCount
+        });
+
+      } catch (categoryError) {
+        console.error(`❌ 카테고리 처리 오류 [${category.categoryName}]:`, categoryError.message);
+        results.errors.push({
+          category: category.categoryName,
+          error: categoryError.message
+        });
+        results.completedCategories++;
+      }
+    }
+
+    // 완료 알림
+    await updateProgress({
+      type: 'complete',
+      results: results
+    });
+
+    console.log('\n✅ 1688 일괄 수집 완료:', results);
+    return results;
+
+  } catch (error) {
+    console.error('❌ 1688 일괄 수집 오류:', error);
+    results.success = false;
+    results.errors.push({ error: error.message });
+
+    await updateProgress({
+      type: 'error',
+      error: error.message
+    });
+
+    return results;
+  }
+}
+
+/**
+ * 인증된 탭에서 fetch 실행 (localhost 서버 API 호출용)
+ */
+async function fetchFromAuthTab(url, options = {}) {
+  try {
+    // localhost 탭 찾기
+    const tabs = await chrome.tabs.query({ url: '*://localhost:*/*' });
+
+    if (tabs.length === 0) {
+      console.log('⚠️ localhost 탭이 없습니다.');
+      return null;
+    }
+
+    const targetTab = tabs[0];
+
+    // 탭에서 fetch 실행
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: targetTab.id },
+      func: async (fetchUrl, fetchOptions) => {
+        try {
+          const response = await fetch(fetchUrl, {
+            method: fetchOptions.method || 'GET',
+            headers: fetchOptions.headers || {},
+            body: fetchOptions.body,
+            credentials: 'include'
+          });
+          return await response.json();
+        } catch (error) {
+          return { success: false, error: error.message };
+        }
+      },
+      args: [url, options]
+    });
+
+    return results?.[0]?.result;
+  } catch (error) {
+    console.error('❌ fetchFromAuthTab 오류:', error);
+    return { success: false, error: error.message };
+  }
 }
