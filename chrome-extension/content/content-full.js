@@ -3196,12 +3196,14 @@ async function executePriceMatch() {
     progressText.textContent = '1688 필터 적용 중...';
 
     // 6. 결과 표시
+    const minCnyPrice = cnyPrice * 0.5;
     resultDiv.style.display = 'block';
     resultContent.innerHTML = `
       <p style="margin: 0 0 8px 0;"><strong>키워드:</strong> ${keyword}</p>
       <p style="margin: 0 0 8px 0;"><strong>수집 상품 수:</strong> ${stats.count || 0}개</p>
       <p style="margin: 0 0 8px 0;"><strong>${priceTypeLabels[priceType]}:</strong> ${targetSellPrice.toLocaleString()}원</p>
-      <p style="margin: 0; color: #ff6b35; font-weight: bold;"><strong>계산된 1688 최고가:</strong> ¥${cnyPrice.toFixed(2)}</p>
+      <p style="margin: 0 0 8px 0; color: #2196F3;"><strong>1688 최저가:</strong> ¥${minCnyPrice.toFixed(2)}</p>
+      <p style="margin: 0; color: #ff6b35; font-weight: bold;"><strong>1688 최고가:</strong> ¥${cnyPrice.toFixed(2)}</p>
     `;
 
     // 7. 1688 가격 필터에 입력 및 적용
@@ -3282,31 +3284,64 @@ function calculateCNYFromSellPrice(sellPrice, settings) {
 // 1688 가격 필터 적용
 async function apply1688PriceFilter(maxPrice) {
   try {
-    // 최고가 입력 필드 찾기
-    let priceInput = document.querySelector('input.price-filter-end, input[placeholder*="最高价格"], input[placeholder*="最高"]');
+    // 가격 필터 입력 필드들 찾기 (최저가, 최고가)
+    const priceFilterContainer = document.querySelector('.price-filter, .sm-widget-price-filter, [class*="price-filter"]');
+    const allPriceInputs = document.querySelectorAll('input.form-input, input[placeholder*="¥"], input[class*="price"]');
 
-    if (!priceInput) {
-      console.warn('[1688 Price Filter] 가격 입력 필드를 찾을 수 없습니다. 대체 방법 시도...');
-      // 대체 방법: 모든 input 검색
-      const allInputs = document.querySelectorAll('input');
-      for (const input of allInputs) {
-        const placeholder = input.placeholder || '';
-        if (placeholder.includes('最高') || placeholder.includes('高价')) {
-          priceInput = input;
-          break;
-        }
+    let minPriceInput = null;
+    let maxPriceInput = null;
+
+    // placeholder나 위치로 최저가/최고가 구분
+    for (const input of allPriceInputs) {
+      const placeholder = (input.placeholder || '').toLowerCase();
+      const className = (input.className || '').toLowerCase();
+
+      if (placeholder.includes('最低') || placeholder.includes('최저') || placeholder.includes('min') ||
+          className.includes('start') || className.includes('min')) {
+        minPriceInput = input;
+      } else if (placeholder.includes('最高') || placeholder.includes('최고') || placeholder.includes('max') ||
+                 className.includes('end') || className.includes('max')) {
+        maxPriceInput = input;
       }
     }
 
-    if (priceInput) {
-      // 값 입력
-      priceInput.value = maxPrice.toFixed(2);
+    // 폴백: 두 개의 연속된 input이 있으면 첫번째=최저, 두번째=최고
+    if ((!minPriceInput || !maxPriceInput) && allPriceInputs.length >= 2) {
+      // 가격 필터 영역 내의 input들만 선택
+      const filterInputs = Array.from(allPriceInputs).filter(input => {
+        const placeholder = input.placeholder || '';
+        return placeholder.includes('¥') || placeholder.includes('价');
+      });
 
-      // 이벤트 발생 (React/Vue 등 프레임워크 호환)
-      priceInput.dispatchEvent(new Event('input', { bubbles: true }));
-      priceInput.dispatchEvent(new Event('change', { bubbles: true }));
+      if (filterInputs.length >= 2) {
+        minPriceInput = minPriceInput || filterInputs[0];
+        maxPriceInput = maxPriceInput || filterInputs[1];
+      }
+    }
 
+    // 최저가 입력 (maxPrice * 0.5)
+    const minPrice = maxPrice * 0.5;
+
+    if (minPriceInput) {
+      minPriceInput.value = minPrice.toFixed(2);
+      minPriceInput.dispatchEvent(new Event('input', { bubbles: true }));
+      minPriceInput.dispatchEvent(new Event('change', { bubbles: true }));
+      console.log('[1688 Price Filter] 최저가 입력:', minPrice.toFixed(2));
+    } else {
+      console.warn('[1688 Price Filter] 최저가 입력 필드를 찾을 수 없습니다.');
+    }
+
+    // 최고가 입력
+    if (maxPriceInput) {
+      maxPriceInput.value = maxPrice.toFixed(2);
+      maxPriceInput.dispatchEvent(new Event('input', { bubbles: true }));
+      maxPriceInput.dispatchEvent(new Event('change', { bubbles: true }));
       console.log('[1688 Price Filter] 최고가 입력:', maxPrice.toFixed(2));
+    } else {
+      console.warn('[1688 Price Filter] 최고가 입력 필드를 찾을 수 없습니다.');
+    }
+
+    if (minPriceInput || maxPriceInput) {
 
       // 약간의 딜레이 후 확인 버튼 클릭
       await sleep(500);
