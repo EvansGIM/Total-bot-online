@@ -2904,4 +2904,425 @@ function showCrawlIndicator() {
   document.body.appendChild(indicator);
 }
 
+// ===== 1688 검색 페이지 가격 매칭 기능 =====
+
+// 가격 매칭 버튼 표시 (1688 검색 페이지용)
+function show1688PriceMatchButton() {
+  // 이미 버튼이 있으면 리턴
+  if (document.querySelector('#totalbot-price-match-btn')) return;
+
+  const btn = document.createElement('div');
+  btn.id = 'totalbot-price-match-btn';
+  btn.innerHTML = '🔍 쿠팡 가격 수집 매칭';
+  btn.style.cssText = `
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 999999;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Nanum Gothic', sans-serif;
+  `;
+
+  btn.addEventListener('mouseenter', () => {
+    btn.style.transform = 'scale(1.05)';
+    btn.style.boxShadow = '0 6px 16px rgba(0,0,0,0.25)';
+  });
+
+  btn.addEventListener('mouseleave', () => {
+    btn.style.transform = 'scale(1)';
+    btn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+  });
+
+  btn.addEventListener('click', () => {
+    showPriceMatchModal();
+  });
+
+  document.body.appendChild(btn);
+  console.log('[1688 Price Match] 버튼 추가됨');
+}
+
+// 가격 매칭 모달 표시
+function showPriceMatchModal() {
+  // 이미 모달이 있으면 제거
+  const existingModal = document.querySelector('#totalbot-price-match-modal');
+  if (existingModal) existingModal.remove();
+
+  const modalOverlay = document.createElement('div');
+  modalOverlay.id = 'totalbot-price-match-modal';
+  modalOverlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 9999999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  `;
+
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    width: 400px;
+    max-width: 90%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    font-family: 'Nanum Gothic', sans-serif;
+  `;
+
+  modal.innerHTML = `
+    <h2 style="margin: 0 0 20px 0; font-size: 18px; color: #333;">🔍 쿠팡 가격 수집 매칭</h2>
+
+    <div style="margin-bottom: 16px;">
+      <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">한국어 검색 키워드</label>
+      <input type="text" id="pm-keyword" placeholder="예: 여성 맨투맨" style="
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        box-sizing: border-box;
+      " />
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">가격 유형 선택</label>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <label style="display: flex; align-items: center; padding: 10px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer;">
+          <input type="radio" name="priceType" value="minPrice" style="margin-right: 8px;" checked /> 최저가
+        </label>
+        <label style="display: flex; align-items: center; padding: 10px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer;">
+          <input type="radio" name="priceType" value="avgPrice" style="margin-right: 8px;" /> 평균가
+        </label>
+        <label style="display: flex; align-items: center; padding: 10px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer;">
+          <input type="radio" name="priceType" value="midPrice" style="margin-right: 8px;" /> 중간가
+        </label>
+        <label style="display: flex; align-items: center; padding: 10px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer;">
+          <input type="radio" name="priceType" value="maxPrice" style="margin-right: 8px;" /> 최고가
+        </label>
+      </div>
+    </div>
+
+    <div id="pm-result" style="display: none; margin-bottom: 16px; padding: 12px; background: #f5f5f5; border-radius: 8px;">
+      <div id="pm-result-content"></div>
+    </div>
+
+    <div id="pm-progress" style="display: none; margin-bottom: 16px;">
+      <div style="background: #e0e0e0; border-radius: 4px; height: 8px; overflow: hidden;">
+        <div id="pm-progress-bar" style="background: linear-gradient(90deg, #ff6b35, #f7931e); height: 100%; width: 0%; transition: width 0.3s;"></div>
+      </div>
+      <p id="pm-progress-text" style="margin: 8px 0 0 0; font-size: 12px; color: #666;"></p>
+    </div>
+
+    <div style="display: flex; gap: 12px;">
+      <button id="pm-cancel" style="
+        flex: 1;
+        padding: 12px;
+        background: #ddd;
+        color: #333;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+      ">취소</button>
+      <button id="pm-submit" style="
+        flex: 1;
+        padding: 12px;
+        background: linear-gradient(135deg, #ff6b35, #f7931e);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+      ">가격 수집</button>
+    </div>
+  `;
+
+  modalOverlay.appendChild(modal);
+  document.body.appendChild(modalOverlay);
+
+  // 이벤트 리스너
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) {
+      modalOverlay.remove();
+    }
+  });
+
+  document.getElementById('pm-cancel').addEventListener('click', () => {
+    modalOverlay.remove();
+  });
+
+  document.getElementById('pm-submit').addEventListener('click', async () => {
+    await executePriceMatch();
+  });
+
+  // 엔터키로 실행
+  document.getElementById('pm-keyword').addEventListener('keypress', async (e) => {
+    if (e.key === 'Enter') {
+      await executePriceMatch();
+    }
+  });
+
+  // 라디오 버튼 스타일 업데이트
+  const radioLabels = modal.querySelectorAll('label:has(input[type="radio"])');
+  radioLabels.forEach(label => {
+    const radio = label.querySelector('input[type="radio"]');
+    if (radio.checked) {
+      label.style.borderColor = '#ff6b35';
+      label.style.background = '#fff5f0';
+    }
+    radio.addEventListener('change', () => {
+      radioLabels.forEach(l => {
+        l.style.borderColor = '#ddd';
+        l.style.background = 'white';
+      });
+      if (radio.checked) {
+        label.style.borderColor = '#ff6b35';
+        label.style.background = '#fff5f0';
+      }
+    });
+  });
+
+  // 포커스
+  document.getElementById('pm-keyword').focus();
+}
+
+// 가격 매칭 실행
+async function executePriceMatch() {
+  const keyword = document.getElementById('pm-keyword').value.trim();
+  const priceType = document.querySelector('input[name="priceType"]:checked').value;
+
+  if (!keyword) {
+    alert('검색 키워드를 입력해주세요.');
+    return;
+  }
+
+  const submitBtn = document.getElementById('pm-submit');
+  const progressDiv = document.getElementById('pm-progress');
+  const progressBar = document.getElementById('pm-progress-bar');
+  const progressText = document.getElementById('pm-progress-text');
+  const resultDiv = document.getElementById('pm-result');
+  const resultContent = document.getElementById('pm-result-content');
+
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '수집 중...';
+  progressDiv.style.display = 'block';
+  resultDiv.style.display = 'none';
+
+  try {
+    // 1. 진행률 업데이트
+    progressBar.style.width = '10%';
+    progressText.textContent = '설정 불러오는 중...';
+
+    // 2. 서버에서 설정 가져오기
+    const settingsResponse = await authFetch(`${SERVER_URL}/api/settings`);
+    if (!settingsResponse.ok) {
+      throw new Error('설정을 불러올 수 없습니다. 로그인이 필요합니다.');
+    }
+    const settingsData = await settingsResponse.json();
+    const priceSettings = settingsData.settings?.priceSettings || {
+      exchangeRate: 190,
+      packagingCost: 500,
+      supplyMargins: [{ amount: Infinity, percent: 30 }],
+      saleMargins: [{ amount: Infinity, percent: 15 }],
+      minMargin: 3000
+    };
+
+    progressBar.style.width = '30%';
+    progressText.textContent = '쿠팡 가격 수집 중...';
+
+    // 3. 쿠팡 가격 수집 (서버 API 호출)
+    const collectResponse = await authFetch(`${SERVER_URL}/api/products/collect-coupang-prices`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keyword })
+    });
+
+    if (!collectResponse.ok) {
+      throw new Error('쿠팡 가격 수집에 실패했습니다.');
+    }
+
+    const collectData = await collectResponse.json();
+
+    if (!collectData.success || !collectData.stats) {
+      throw new Error(collectData.message || '가격 데이터를 찾을 수 없습니다.');
+    }
+
+    const stats = collectData.stats;
+    progressBar.style.width = '70%';
+    progressText.textContent = 'CNY 가격 계산 중...';
+
+    // 4. 선택한 가격 유형에 따라 목표 판매가 결정
+    const priceTypeLabels = {
+      minPrice: '최저가',
+      avgPrice: '평균가',
+      midPrice: '중간가',
+      maxPrice: '최고가'
+    };
+    const targetSellPrice = stats[priceType];
+
+    if (!targetSellPrice || targetSellPrice <= 0) {
+      throw new Error(`${priceTypeLabels[priceType]}를 찾을 수 없습니다.`);
+    }
+
+    // 5. CNY 역계산 (판매가 → 위안)
+    const cnyPrice = calculateCNYFromSellPrice(targetSellPrice, priceSettings);
+
+    progressBar.style.width = '90%';
+    progressText.textContent = '1688 필터 적용 중...';
+
+    // 6. 결과 표시
+    resultDiv.style.display = 'block';
+    resultContent.innerHTML = `
+      <p style="margin: 0 0 8px 0;"><strong>키워드:</strong> ${keyword}</p>
+      <p style="margin: 0 0 8px 0;"><strong>수집 상품 수:</strong> ${stats.count || 0}개</p>
+      <p style="margin: 0 0 8px 0;"><strong>${priceTypeLabels[priceType]}:</strong> ${targetSellPrice.toLocaleString()}원</p>
+      <p style="margin: 0; color: #ff6b35; font-weight: bold;"><strong>계산된 1688 최고가:</strong> ¥${cnyPrice.toFixed(2)}</p>
+    `;
+
+    // 7. 1688 가격 필터에 입력 및 적용
+    await apply1688PriceFilter(cnyPrice);
+
+    progressBar.style.width = '100%';
+    progressText.textContent = '완료!';
+
+    submitBtn.innerHTML = '✅ 완료';
+    submitBtn.style.background = '#4CAF50';
+
+    // 3초 후 모달 닫기
+    setTimeout(() => {
+      const modal = document.getElementById('totalbot-price-match-modal');
+      if (modal) modal.remove();
+    }, 3000);
+
+  } catch (error) {
+    console.error('[Price Match] 오류:', error);
+    progressBar.style.width = '0%';
+    progressText.textContent = '';
+    progressDiv.style.display = 'none';
+
+    resultDiv.style.display = 'block';
+    resultContent.innerHTML = `<p style="margin: 0; color: #f44336;">❌ ${error.message}</p>`;
+
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '가격 수집';
+  }
+}
+
+// CNY 역계산: 판매가 → 위안
+function calculateCNYFromSellPrice(sellPrice, settings) {
+  // 역계산 로직:
+  // sellPrice = supplyPrice / (1 - saleMargin%)
+  // supplyPrice = (costKRW / (1 - supplyMargin%)) + packagingCost
+  // costKRW = priceCNY * exchangeRate
+  //
+  // 역으로:
+  // supplyPrice = sellPrice * (1 - saleMargin%)
+  // costKRW = (supplyPrice - packagingCost) * (1 - supplyMargin%)
+  // priceCNY = costKRW / exchangeRate
+
+  const exchangeRate = settings.exchangeRate || 190;
+  const packagingCost = settings.packagingCost || 500;
+
+  // 판매 마진% 결정 (판매가 기준)
+  let saleMarginPercent = 15;
+  for (const rule of (settings.saleMargins || [])) {
+    if (sellPrice < rule.amount) {
+      saleMarginPercent = rule.percent;
+      break;
+    }
+  }
+
+  // 공급가 역계산
+  const supplyPrice = sellPrice * (1 - saleMarginPercent / 100);
+
+  // 공급 마진% 결정 (공급가 기준)
+  let supplyMarginPercent = 30;
+  for (const rule of (settings.supplyMargins || [])) {
+    if (supplyPrice < rule.amount) {
+      supplyMarginPercent = rule.percent;
+      break;
+    }
+  }
+
+  // 원화 원가 역계산
+  const costKRW = (supplyPrice - packagingCost) * (1 - supplyMarginPercent / 100);
+
+  // CNY 역계산
+  const priceCNY = costKRW / exchangeRate;
+
+  // 최소값 보장 (음수 방지)
+  return Math.max(0, priceCNY);
+}
+
+// 1688 가격 필터 적용
+async function apply1688PriceFilter(maxPrice) {
+  try {
+    // 최고가 입력 필드 찾기
+    let priceInput = document.querySelector('input.price-filter-end, input[placeholder*="最高价格"], input[placeholder*="最高"]');
+
+    if (!priceInput) {
+      console.warn('[1688 Price Filter] 가격 입력 필드를 찾을 수 없습니다. 대체 방법 시도...');
+      // 대체 방법: 모든 input 검색
+      const allInputs = document.querySelectorAll('input');
+      for (const input of allInputs) {
+        const placeholder = input.placeholder || '';
+        if (placeholder.includes('最高') || placeholder.includes('高价')) {
+          priceInput = input;
+          break;
+        }
+      }
+    }
+
+    if (priceInput) {
+      // 값 입력
+      priceInput.value = maxPrice.toFixed(2);
+
+      // 이벤트 발생 (React/Vue 등 프레임워크 호환)
+      priceInput.dispatchEvent(new Event('input', { bubbles: true }));
+      priceInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+      console.log('[1688 Price Filter] 최고가 입력:', maxPrice.toFixed(2));
+
+      // 약간의 딜레이 후 확인 버튼 클릭
+      await sleep(300);
+
+      // 확인 버튼 찾기
+      const confirmBtn = document.querySelector('.price-filter-define, .sn-common-button-define, button[class*="define"]');
+
+      if (confirmBtn) {
+        confirmBtn.click();
+        console.log('[1688 Price Filter] 확인 버튼 클릭');
+      } else {
+        console.warn('[1688 Price Filter] 확인 버튼을 찾을 수 없습니다.');
+      }
+    } else {
+      console.warn('[1688 Price Filter] 가격 필터 입력 필드를 찾을 수 없습니다.');
+    }
+  } catch (error) {
+    console.error('[1688 Price Filter] 오류:', error);
+  }
+}
+
+// 페이지 로드 시 1688 검색 페이지면 버튼 표시
+window.addEventListener('load', () => {
+  const pageType = detectPageType();
+  if (pageType === '1688-list') {
+    show1688PriceMatchButton();
+  }
+});
+
 console.log('[TotalBot] Content Script 준비 완료');

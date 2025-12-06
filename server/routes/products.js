@@ -1785,4 +1785,178 @@ Return the generated image.`;
   }
 });
 
+// ===== 쿠팡 가격 수집 API =====
+
+// 쿠팡 가격 수집
+router.post('/collect-coupang-prices', authMiddleware, async (req, res) => {
+  const { keyword } = req.body;
+
+  if (!keyword) {
+    return res.status(400).json({
+      success: false,
+      message: '검색 키워드가 필요합니다.'
+    });
+  }
+
+  console.log(`[Coupang Price] 가격 수집 시작: "${keyword}"`);
+
+  let browser;
+  try {
+    // Puppeteer 브라우저 실행
+    browser = await puppeteer.launch({
+      headless: 'new',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--window-size=1920,1080'
+      ],
+      timeout: 30000
+    });
+
+    const page = await browser.newPage();
+
+    // User-Agent 설정
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+    // 뷰포트 설정
+    await page.setViewport({ width: 1920, height: 1080 });
+
+    // 쿠팡 검색 페이지로 이동
+    const searchUrl = `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(keyword)}&channel=user`;
+    console.log(`[Coupang Price] 검색 URL: ${searchUrl}`);
+
+    await page.goto(searchUrl, {
+      waitUntil: 'networkidle2',
+      timeout: 30000
+    });
+
+    // 상품 목록 로딩 대기
+    await page.waitForSelector('.search-product, ul.search-product-list, #productList', {
+      timeout: 10000
+    }).catch(() => {
+      console.log('[Coupang Price] 상품 목록 대기 타임아웃 (계속 진행)');
+    });
+
+    // 스크롤하여 더 많은 상품 로딩
+    await page.evaluate(() => {
+      window.scrollBy(0, 1000);
+    });
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // 가격 추출
+    const prices = await page.evaluate(() => {
+      const results = [];
+
+      // 상품 카드 선택자들
+      const productSelectors = [
+        'li.search-product',
+        '.search-product-list li',
+        '#productList li',
+        '[class*="product-item"]'
+      ];
+
+      let productCards = [];
+
+      for (const selector of productSelectors) {
+        productCards = document.querySelectorAll(selector);
+        if (productCards.length > 0) break;
+      }
+
+      console.log(`[Coupang Price] 발견된 상품 수: ${productCards.length}`);
+
+      for (const card of productCards) {
+        try {
+          // 가격 요소 찾기
+          const priceSelectors = [
+            '.price-value',
+            '.price strong',
+            'strong.price-value',
+            'em.sale',
+            '.sale-price strong',
+            '[class*="price"] strong'
+          ];
+
+          let priceText = '';
+
+          for (const selector of priceSelectors) {
+            const priceEl = card.querySelector(selector);
+            if (priceEl) {
+              priceText = priceEl.textContent;
+              break;
+            }
+          }
+
+          if (priceText) {
+            // 숫자만 추출 (쉼표 제거)
+            const price = parseInt(priceText.replace(/[^0-9]/g, ''), 10);
+
+            // 유효한 가격인지 확인 (100원 이상, 10,000,000원 미만)
+            if (price >= 100 && price < 10000000) {
+              results.push(price);
+            }
+          }
+        } catch (err) {
+          console.warn('[Coupang Price] 상품 파싱 오류:', err);
+        }
+      }
+
+      return results;
+    });
+
+    await browser.close();
+    browser = null;
+
+    console.log(`[Coupang Price] 수집된 가격 수: ${prices.length}`);
+
+    if (prices.length === 0) {
+      return res.json({
+        success: false,
+        message: '상품을 찾을 수 없습니다. 다른 키워드로 시도해주세요.'
+      });
+    }
+
+    // 통계 계산
+    const sortedPrices = prices.sort((a, b) => a - b);
+    const minPrice = sortedPrices[0];
+    const maxPrice = sortedPrices[sortedPrices.length - 1];
+    const avgPrice = Math.round(sortedPrices.reduce((a, b) => a + b, 0) / sortedPrices.length);
+    const midIndex = Math.floor(sortedPrices.length / 2);
+    const midPrice = sortedPrices.length % 2 === 0
+      ? Math.round((sortedPrices[midIndex - 1] + sortedPrices[midIndex]) / 2)
+      : sortedPrices[midIndex];
+
+    const stats = {
+      count: prices.length,
+      minPrice,
+      maxPrice,
+      avgPrice,
+      midPrice
+    };
+
+    console.log(`[Coupang Price] 통계:`, stats);
+
+    res.json({
+      success: true,
+      keyword,
+      stats,
+      prices: sortedPrices.slice(0, 20) // 처음 20개만 반환
+    });
+
+  } catch (error) {
+    console.error('[Coupang Price] 오류:', error);
+
+    if (browser) {
+      await browser.close().catch(() => {});
+    }
+
+    res.status(500).json({
+      success: false,
+      message: '쿠팡 가격 수집 중 오류가 발생했습니다.',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
