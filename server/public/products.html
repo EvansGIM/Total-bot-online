@@ -4800,7 +4800,7 @@
       let index = 0;
 
       batchCategoryState.completedCategories.forEach((data, categoryId) => {
-        data.detailSelections.forEach((detail, detailIdx) => {
+        Object.entries(data.detailSelections).forEach(([detailIdx, detail]) => {
           const itemId = `collection_${categoryId}_${detailIdx}`;
           html += `
             <div class="batch-collection-item" data-item-id="${itemId}" data-category-id="${categoryId}" data-detail-idx="${detailIdx}">
