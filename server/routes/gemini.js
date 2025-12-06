@@ -9,6 +9,7 @@ const router = express.Router();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const fs = require('fs').promises;
 const path = require('path');
+const iconv = require('iconv-lite');
 
 // Gemini API 클라이언트 초기화
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyAgVUOctLOaPiA87MdXrjLEbXDQCmWwvj0';
@@ -903,6 +904,61 @@ Suggested Korean keyword:`;
       success: false,
       message: '검색어 추천 중 오류가 발생했습니다.',
       keyword: fallback
+    });
+  }
+});
+
+/**
+ * POST /api/gemini/encode-gbk
+ * 중국어 텍스트를 GBK 인코딩된 URL 문자열로 변환
+ *
+ * Body:
+ * - text: 인코딩할 텍스트
+ */
+router.post('/encode-gbk', async (req, res) => {
+  try {
+    const { text } = req.body;
+
+    if (!text) {
+      return res.status(400).json({
+        success: false,
+        message: 'text는 필수입니다.'
+      });
+    }
+
+    console.log('[GBK Encode] 요청:', text);
+
+    // GBK로 인코딩
+    const gbkBuffer = iconv.encode(text, 'gbk');
+
+    // URL 인코딩 문자열로 변환
+    let encoded = '';
+    for (let i = 0; i < gbkBuffer.length; i++) {
+      const byte = gbkBuffer[i];
+      // ASCII 문자는 그대로, 나머지는 %XX 형식
+      if ((byte >= 0x30 && byte <= 0x39) || // 0-9
+          (byte >= 0x41 && byte <= 0x5A) || // A-Z
+          (byte >= 0x61 && byte <= 0x7A)) { // a-z
+        encoded += String.fromCharCode(byte);
+      } else {
+        encoded += '%' + byte.toString(16).toUpperCase().padStart(2, '0');
+      }
+    }
+
+    console.log('[GBK Encode] 결과:', encoded);
+
+    res.json({
+      success: true,
+      encoded: encoded
+    });
+
+  } catch (error) {
+    console.error('[GBK Encode] 오류:', error);
+
+    res.status(500).json({
+      success: false,
+      message: 'GBK 인코딩 중 오류가 발생했습니다.',
+      encoded: encodeURIComponent(req.body.text) // 실패 시 UTF-8 인코딩
     });
   }
 });

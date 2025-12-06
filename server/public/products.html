@@ -4940,6 +4940,25 @@
       }
     }
 
+    // GBK 인코딩 (서버 API 사용)
+    async function encodeToGBK(chineseText) {
+      try {
+        const response = await fetch('/api/gemini/encode-gbk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: chineseText })
+        });
+
+        if (!response.ok) throw new Error('GBK encoding failed');
+
+        const data = await response.json();
+        return data.encoded || encodeURIComponent(chineseText);
+      } catch (err) {
+        console.error('GBK 인코딩 API 오류:', err);
+        return encodeURIComponent(chineseText);
+      }
+    }
+
     // AI 번역 (한국어 → 중국어)
     async function translateToChineseAI(koreanText) {
       try {
@@ -5000,7 +5019,10 @@
           searchKeywordChinese = searchKeywordChinese.replace(/["""'']/g, '').trim();
 
           console.log(`✅ 번역 완료: ${searchKeywordKorean} → ${searchKeywordChinese}`);
-          console.log(`   문자 코드:`, [...searchKeywordChinese].map(c => c.charCodeAt(0).toString(16)));
+
+          // GBK 인코딩 (1688은 GBK 사용)
+          const searchKeywordGBK = await encodeToGBK(searchKeywordChinese);
+          console.log(`✅ GBK 인코딩: ${searchKeywordChinese} → ${searchKeywordGBK}`);
 
           // 가격 라디오 (단일 선택)
           const priceRadio = item.querySelector(`input[name="price_${itemId}"]:checked`);
@@ -5016,9 +5038,9 @@
 
           item.style.border = '';
 
-          // 1688 URL 생성 (중국어로 번역된 키워드 사용)
+          // 1688 URL 생성 (GBK 인코딩된 키워드 사용)
           const url1688 = build1688Url({
-            keyword: searchKeywordChinese,
+            keyword: searchKeywordGBK,  // GBK 인코딩된 키워드
             price: selectedPrice,
             sortType: sortPopular ? 'normal' : 'va_sales360',
             random: random,
@@ -5032,6 +5054,7 @@
             categoryName,
             searchKeywordKorean,
             searchKeywordChinese,
+            searchKeywordGBK,
             selectedPrice,
             newProduct,
             fastDelivery,
