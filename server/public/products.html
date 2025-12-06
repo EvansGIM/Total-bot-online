@@ -5445,11 +5445,11 @@
       try {
         console.log('🚀 쿠팡 일괄 등록 시작:', productIds);
 
-        // 상품 데이터 로드
+        // 상품 데이터 로드 (인증 포함)
         const productData = [];
         for (const productId of productIds) {
           try {
-            const response = await fetch('/api/products/' + productId);
+            const response = await authenticatedFetch('/api/products/' + productId);
             if (response.ok) {
               const data = await response.json();
               productData.push(data);
