@@ -482,9 +482,13 @@ export async function crawl1688ListPage() {
   try {
     const results = [];
 
-    // 상품 카드 선택자 (여러 패턴 지원)
+    // 상품 카드 선택자 (여러 패턴 지원 - 2024/2025 신 UI 포함)
     const productSelectors = [
-      '.sm-floorhead-offerlist .sm-offer-item',  // 신 UI
+      '.search-offer-item',                       // 2024/2025 신 UI (메인)
+      '.search-offer-wrapper',                    // 2024/2025 신 UI
+      '.major-offer',                             // 2024/2025 신 UI
+      'a[data-tracker="offer"]',                  // data 속성 기반
+      '.sm-floorhead-offerlist .sm-offer-item',  // 구 UI
       '.offer-item',                              // 구 UI
       '.seo-offer-item',                          // SEO 페이지
       '.sm-offer-wrapper .list-item',            // 리스트 뷰
@@ -502,42 +506,113 @@ export async function crawl1688ListPage() {
     }
 
     if (productCards.length === 0) {
+      // 디버깅: 페이지 구조 로그
+      console.log('[1688 List] 페이지 구조 디버깅:');
+      console.log('  - .feeds-wrapper:', document.querySelectorAll('.feeds-wrapper').length);
+      console.log('  - a[href*="detail"]:', document.querySelectorAll('a[href*="detail"]').length);
+      console.log('  - .offer:', document.querySelectorAll('[class*="offer"]').length);
       throw new Error('상품 목록을 찾을 수 없습니다.');
     }
 
     // 각 상품 카드에서 정보 추출
     for (const card of productCards) {
       try {
-        // 상품 링크
-        const linkEl = card.querySelector('a.sm-offer-item-link, a.offer-title-link, a[href*="detail.1688.com"]');
-        if (!linkEl) continue;
+        // 상품 링크 (2024/2025 신 UI: 카드 자체가 a 태그이거나, 내부에 있음)
+        let productUrl = '';
 
-        let productUrl = linkEl.href;
+        // 카드 자체가 a 태그인 경우
+        if (card.tagName === 'A' && card.href) {
+          productUrl = card.href;
+        } else {
+          // 내부에서 링크 찾기
+          const linkEl = card.querySelector('a[href*="detail.1688.com"], a[href*="detail.m.1688.com"], a.sm-offer-item-link, a.offer-title-link');
+          if (linkEl) {
+            productUrl = linkEl.href;
+          }
+        }
+
+        if (!productUrl) continue;
+
+        // URL 정규화
         if (!productUrl.startsWith('http')) {
           productUrl = 'https:' + productUrl;
         }
+        // 모바일 URL을 데스크탑 URL로 변환
+        productUrl = productUrl.replace('detail.m.1688.com/page/index.html?offerId=', 'detail.1688.com/offer/');
 
-        // 상품명
-        const titleEl = card.querySelector('.sm-offer-title, .offer-title, .title');
-        const titleCn = titleEl ? cleanText(titleEl.textContent) : '';
+        // 상품명 (2024/2025 신 UI)
+        const titleSelectors = [
+          '.offer-title-row .title-text',  // 2024/2025 신 UI
+          '.title-text',                   // 2024/2025 신 UI 단축
+          '.sm-offer-title',               // 구 UI
+          '.offer-title',                  // 구 UI
+          '.title'                         // 일반
+        ];
+
+        let titleCn = '';
+        for (const sel of titleSelectors) {
+          const titleEl = card.querySelector(sel);
+          if (titleEl && titleEl.textContent.trim()) {
+            titleCn = cleanText(titleEl.textContent);
+            break;
+          }
+        }
 
         if (!titleCn) continue;
 
-        // 이미지
-        const imgEl = card.querySelector('img.sm-offer-image, img.offer-image, img[src*="cbu01.alicdn.com"]');
-        const imageUrl = imgEl ? cleanImageUrl(imgEl.src) : '';
+        // 이미지 (2024/2025 신 UI)
+        const imgSelectors = [
+          'img.main-img',                  // 2024/2025 신 UI
+          '.offer-img-wrapper img',        // 2024/2025 신 UI
+          'img.sm-offer-image',            // 구 UI
+          'img.offer-image',               // 구 UI
+          'img[src*="cbu01.alicdn.com"]',  // alicdn 이미지
+          'img[src*="cbu02.alicdn.com"]'   // alicdn 이미지
+        ];
 
-        // 가격
-        const priceEl = card.querySelector('.price-text, .price, .sm-offer-price');
-        const price = priceEl ? cleanPrice(priceEl.textContent) : '';
+        let imageUrl = '';
+        for (const sel of imgSelectors) {
+          const imgEl = card.querySelector(sel);
+          if (imgEl && imgEl.src) {
+            imageUrl = cleanImageUrl(imgEl.src);
+            break;
+          }
+        }
+
+        // 가격 (2024/2025 신 UI)
+        const priceSelectors = [
+          '.price-item .text-main',        // 2024/2025 신 UI
+          '.offer-price-row .text-main',   // 2024/2025 신 UI
+          '.price-text',                   // 구 UI
+          '.price',                        // 일반
+          '.sm-offer-price'                // 구 UI
+        ];
+
+        let price = '';
+        for (const sel of priceSelectors) {
+          const priceEl = card.querySelector(sel);
+          if (priceEl && priceEl.textContent.trim()) {
+            price = cleanPrice(priceEl.textContent);
+            break;
+          }
+        }
 
         // 판매자 정보
-        const shopEl = card.querySelector('.sm-offer-shop, .shop-name, .seller-name');
-        const shopName = shopEl ? cleanText(shopEl.textContent) : '';
+        const shopSelectors = [
+          '.offer-desc-item .desc-text',   // 2024/2025 신 UI (첫번째는 보통 판매자)
+          '.sm-offer-shop',
+          '.shop-name',
+          '.seller-name'
+        ];
 
-        // MOQ (최소 주문 수량)
-        const moqEl = card.querySelector('.moq, .sm-offer-moq, .min-order');
-        const moq = moqEl ? cleanText(moqEl.textContent) : '';
+        let shopName = '';
+        for (const sel of shopSelectors) {
+          const shopEl = card.querySelector(sel);
+          if (shopEl && shopEl.textContent.trim()) {
+            shopName = cleanText(shopEl.textContent);
+            break;
+          }
+        }
 
         results.push({
           title: titleCn,
@@ -547,7 +622,6 @@ export async function crawl1688ListPage() {
           link: productUrl,
           price: price,
           shopName: shopName,
-          moq: moq,
           type: '1688-list'
         });
 
