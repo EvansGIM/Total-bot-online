@@ -5713,8 +5713,12 @@ async function handleBatch1688Collect(categories, sender) {
 
       try {
         // 1. 1688 검색 페이지 열기
-        const searchUrl = category.url;
+        const searchUrl = category.url1688 || category.url;
         console.log('🔗 1688 검색 URL:', searchUrl);
+
+        if (!searchUrl) {
+          throw new Error('1688 검색 URL이 없습니다.');
+        }
 
         const searchTab = await chrome.tabs.create({
           url: searchUrl,
