@@ -6006,12 +6006,16 @@ async function fetchFromAuthTab(url, options = {}) {
         try {
           // localStorage에서 인증 토큰 가져오기
           const token = localStorage.getItem('authToken');
+          console.log('🔑 토큰 확인:', token ? `있음 (${token.substring(0, 20)}...)` : '없음');
+
           const headers = {
             ...(fetchOptions.headers || {})
           };
           if (token) {
             headers['Authorization'] = `Bearer ${token}`;
           }
+
+          console.log('📤 요청 헤더:', Object.keys(headers));
 
           const response = await fetch(fetchUrl, {
             method: fetchOptions.method || 'GET',
