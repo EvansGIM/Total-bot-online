@@ -3144,24 +3144,35 @@ async function executePriceMatch() {
     progressBar.style.width = '30%';
     progressText.textContent = '쿠팡 가격 수집 중...';
 
-    // 3. 쿠팡 가격 수집 (서버 API 호출)
-    const collectResponse = await authFetch(`${SERVER_URL}/api/products/collect-coupang-prices`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ keyword })
+    // 3. 쿠팡 가격 수집 (Chrome 익스텐션 background.js로 메시지 전송)
+    const collectData = await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({
+        action: 'collectCoupangPrices',
+        keyword: keyword,
+        options: { incognito: false }
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve(response);
+        }
+      });
     });
 
-    if (!collectResponse.ok) {
-      throw new Error('쿠팡 가격 수집에 실패했습니다.');
+    console.log('[Price Match] 쿠팡 가격 수집 결과:', collectData);
+
+    if (!collectData || !collectData.success) {
+      throw new Error(collectData?.error || '쿠팡 가격 수집에 실패했습니다.');
     }
 
-    const collectData = await collectResponse.json();
-
-    if (!collectData.success || !collectData.stats) {
-      throw new Error(collectData.message || '가격 데이터를 찾을 수 없습니다.');
-    }
-
-    const stats = collectData.stats;
+    // 응답 형식 변환 (all 객체에서 stats로)
+    const stats = {
+      count: collectData.all?.totalItems || collectData.rawCount || 0,
+      minPrice: collectData.all?.min || collectData.minPrice || 0,
+      maxPrice: collectData.all?.max || collectData.maxPrice || 0,
+      avgPrice: collectData.all?.average || collectData.avgPrice || 0,
+      midPrice: collectData.all?.median || collectData.medianPrice || 0
+    };
     progressBar.style.width = '70%';
     progressText.textContent = 'CNY 가격 계산 중...';
 
