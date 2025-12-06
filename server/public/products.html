@@ -4673,30 +4673,39 @@
       } catch (error) {
         console.error('카테고리 검색 오류:', error);
 
-        // 세션 만료 에러 감지 시 자동 로그인 시도
+        // 세션 만료 또는 네트워크 에러 감지 시 자동 복구 시도
         const errorMsg = error.message || '';
-        if (errorMsg.includes('세션') || errorMsg.includes('로그인') || errorMsg.includes('session') || errorMsg.includes('login')) {
-          console.log('🔄 세션 만료 감지 - 자동 로그인 시도...');
+        const isSessionError = errorMsg.includes('세션') || errorMsg.includes('로그인') || errorMsg.includes('session') || errorMsg.includes('login');
+        const isNetworkError = errorMsg.includes('네트워크') || errorMsg.includes('network') || errorMsg.includes('새로고침');
+
+        if (isSessionError || isNetworkError) {
+          console.log('🔄 세션/네트워크 오류 감지 - 자동 복구 시도...');
           resultsDiv.innerHTML = `
             <div style="text-align: center; padding: 40px; color: #f59e0b;">
               <div class="spinner" style="margin: 0 auto 12px;"></div>
-              <p>세션이 만료되었습니다</p>
-              <p style="font-size: 14px; color: #888;">쿠팡 자동 로그인 시도 중...</p>
+              <p>${isNetworkError ? '네트워크 오류 감지' : '세션이 만료되었습니다'}</p>
+              <p style="font-size: 14px; color: #888;">쿠키 정리 및 재로그인 시도 중...</p>
             </div>
           `;
 
-          // 자동 로그인 시도 후 재검색
+          // 자동 복구 시도 (쿠키 삭제 + 로그인 + 재검색)
           try {
-            await performAutoLoginAndRetry(keyword);
-          } catch (loginError) {
-            console.error('자동 로그인 실패:', loginError);
+            await performAutoRecoveryAndRetry(keyword, isNetworkError);
+          } catch (recoveryError) {
+            console.error('자동 복구 실패:', recoveryError);
             resultsDiv.innerHTML = `
               <div style="text-align: center; padding: 40px; color: #dc2626;">
                 <p style="font-size: 36px;">❌</p>
-                <p>자동 로그인에 실패했습니다</p>
-                <button onclick="checkCoupangLogin()" style="margin-top: 12px; padding: 8px 16px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                  🔐 수동 로그인
-                </button>
+                <p>자동 복구에 실패했습니다</p>
+                <p style="font-size: 13px; color: #888; margin: 8px 0;">${recoveryError.message || ''}</p>
+                <div style="display: flex; gap: 8px; justify-content: center; margin-top: 12px;">
+                  <button onclick="performManualRecovery()" style="padding: 8px 16px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    🔄 쿠키 리셋 + 재로그인
+                  </button>
+                  <button onclick="checkCoupangLogin()" style="padding: 8px 16px; background: #6366f1; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    🔐 로그인만
+                  </button>
+                </div>
               </div>
             `;
           }
@@ -4707,13 +4716,14 @@
           <div style="text-align: center; padding: 40px; color: #dc2626;">
             <p style="font-size: 36px;">❌</p>
             <p>검색 중 오류가 발생했습니다</p>
+            <p style="font-size: 13px; color: #888;">${errorMsg}</p>
           </div>
         `;
       }
     }
 
-    // 자동 로그인 후 재검색 수행
-    async function performAutoLoginAndRetry(keyword) {
+    // 자동 복구 후 재검색 수행 (쿠키 삭제 + 로그인 + 재검색)
+    async function performAutoRecoveryAndRetry(keyword, resetCookies = true) {
       // 설정 확인
       if (!settings.coupangId || !settings.coupangPassword) {
         throw new Error('쿠팡 로그인 정보가 설정되지 않았습니다.');
@@ -4725,8 +4735,41 @@
       loginIcon.textContent = '⏳';
       loginBtn.disabled = true;
 
+      const resultsDiv = document.getElementById('batchCategoryResults');
+
       try {
-        // 로그인 시도
+        // 1. 쿠키 리셋 (네트워크 오류 시)
+        if (resetCookies) {
+          console.log('🍪 쿠팡 쿠키 리셋 중...');
+          resultsDiv.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #f59e0b;">
+              <div class="spinner" style="margin: 0 auto 12px;"></div>
+              <p>쿠키 정리 중...</p>
+            </div>
+          `;
+
+          try {
+            const cookieResponse = await sendMessageToExtension('resetQvtCookies', {
+              action: 'resetQvtCookies'
+            });
+            console.log('🍪 쿠키 리셋 결과:', cookieResponse);
+          } catch (e) {
+            console.warn('⚠️ 쿠키 리셋 실패 (계속 진행):', e);
+          }
+
+          // 쿠키 삭제 후 잠시 대기
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+
+        // 2. 로그인 시도
+        console.log('🔐 쿠팡 로그인 시도 중...');
+        resultsDiv.innerHTML = `
+          <div style="text-align: center; padding: 40px; color: #f59e0b;">
+            <div class="spinner" style="margin: 0 auto 12px;"></div>
+            <p>쿠팡 로그인 중...</p>
+          </div>
+        `;
+
         const loginResponse = await sendMessageToExtension('checkCoupangLogin', {
           action: 'checkCoupangLogin',
           credentials: {
@@ -4745,11 +4788,10 @@
         loginIcon.textContent = '✅';
         console.log('✅ 자동 로그인 성공, 재검색 시도...');
 
-        // 잠시 대기 후 재검색
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // 로그인 후 잠시 대기
+        await new Promise(resolve => setTimeout(resolve, 1500));
 
-        // 재검색
-        const resultsDiv = document.getElementById('batchCategoryResults');
+        // 3. 재검색
         resultsDiv.innerHTML = `
           <div style="text-align: center; padding: 40px; color: #666;">
             <div class="spinner" style="margin: 0 auto 12px;"></div>
@@ -4773,6 +4815,34 @@
         loginBtn.disabled = false;
         loginIcon.textContent = '❌';
         throw error;
+      }
+    }
+
+    // 수동 복구 실행 (버튼에서 호출)
+    async function performManualRecovery() {
+      const keyword = document.getElementById('batchSearchInput').value.trim();
+      const resultsDiv = document.getElementById('batchCategoryResults');
+
+      resultsDiv.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: #f59e0b;">
+          <div class="spinner" style="margin: 0 auto 12px;"></div>
+          <p>수동 복구 진행 중...</p>
+        </div>
+      `;
+
+      try {
+        await performAutoRecoveryAndRetry(keyword, true);
+      } catch (error) {
+        console.error('수동 복구 실패:', error);
+        resultsDiv.innerHTML = `
+          <div style="text-align: center; padding: 40px; color: #dc2626;">
+            <p style="font-size: 36px;">❌</p>
+            <p>복구 실패: ${error.message}</p>
+            <button onclick="checkCoupangLogin()" style="margin-top: 12px; padding: 8px 16px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer;">
+              🔐 수동 로그인
+            </button>
+          </div>
+        `;
       }
     }
 
