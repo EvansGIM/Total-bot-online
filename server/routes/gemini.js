@@ -787,4 +787,58 @@ ${detailCategory ? `상세 카테고리: ${detailCategory}` : ''}
   }
 });
 
+/**
+ * POST /api/gemini/translate
+ * 텍스트 번역 (한국어 → 중국어)
+ *
+ * Body:
+ * - text: 번역할 텍스트
+ * - targetLang: 대상 언어 (기본값: 'zh' 중국어)
+ */
+router.post('/translate', async (req, res) => {
+  try {
+    const { text, targetLang = 'zh' } = req.body;
+
+    if (!text) {
+      return res.status(400).json({
+        success: false,
+        message: 'text는 필수입니다.'
+      });
+    }
+
+    console.log('[Gemini API] 번역 요청:', { text, targetLang });
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+
+    const langName = targetLang === 'zh' ? 'Chinese (Simplified)' : targetLang;
+
+    const prompt = `Translate the following Korean product category name to ${langName} for searching on 1688.com.
+Only return the translated text, nothing else. Make it suitable for product search on Chinese e-commerce platforms.
+
+Korean text: ${text}
+
+Translated:`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const translated = response.text().trim();
+
+    console.log('[Gemini API] 번역 완료:', { original: text, translated });
+
+    res.json({
+      success: true,
+      translated: translated
+    });
+
+  } catch (error) {
+    console.error('[Gemini API] 번역 오류:', error);
+
+    res.status(500).json({
+      success: false,
+      message: '번역 중 오류가 발생했습니다.',
+      translated: req.body.text // 실패 시 원본 반환
+    });
+  }
+});
+
 module.exports = router;

@@ -1383,7 +1383,8 @@
 
     .collection-checkboxes,
     .collection-sort-group,
-    .collection-random-group {
+    .collection-random-group,
+    .collection-count-group {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -1406,12 +1407,53 @@
       cursor: pointer;
     }
 
-    .random-pages-select {
+    .collection-price-group {
+      display: flex;
+      gap: 4px;
+    }
+
+    .price-radio {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      font-size: 11px;
+      color: #4b5563;
+      cursor: pointer;
+    }
+
+    .price-radio input[type="radio"] {
+      width: 12px;
+      height: 12px;
+    }
+
+    .translate-btn {
+      padding: 4px 8px;
+      font-size: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .translate-btn:hover {
+      background: #f3f4f6;
+    }
+
+    .random-pages-input,
+    .product-count-input {
+      width: 60px;
       padding: 4px 8px;
       font-size: 11px;
       border: 1px solid #d1d5db;
       border-radius: 4px;
       background: #fff;
+    }
+
+    .collection-label {
+      font-size: 11px;
+      color: #6b7280;
+      white-space: nowrap;
     }
 
     /* Main Tabs (2 tabs only) */
@@ -4792,63 +4834,52 @@
     }
 
     // 수집 설정 모달 표시
-    function showBatchCollectionModal() {
+    async function showBatchCollectionModal() {
       const modal = document.getElementById('batchCollectionModal');
       const listContainer = document.getElementById('batchCollectionList');
 
       let html = '';
       let index = 0;
+      const itemsToTranslate = [];
 
       batchCategoryState.completedCategories.forEach((data, categoryId) => {
         Object.entries(data.detailSelections).forEach(([detailIdx, detail]) => {
           const itemId = `collection_${categoryId}_${detailIdx}`;
-          html += `
-            <div class="batch-collection-item" data-item-id="${itemId}" data-category-id="${categoryId}" data-detail-idx="${detailIdx}">
-              <div class="collection-row">
-                <div class="collection-category-name">${detail}</div>
-                <input type="text" class="collection-search-input" placeholder="1688 검색어" data-field="searchKeyword">
+          const categoryName = detail.optionValue || detail;
+          itemsToTranslate.push({ itemId, categoryName });
 
-                <div class="collection-price-btns">
-                  <button type="button" class="price-btn" data-price="lowest" onclick="togglePriceBtn(this)">최저가</button>
-                  <button type="button" class="price-btn" data-price="middle" onclick="togglePriceBtn(this)">중간가</button>
-                  <button type="button" class="price-btn" data-price="average" onclick="togglePriceBtn(this)">평균가</button>
-                  <button type="button" class="price-btn" data-price="highest" onclick="togglePriceBtn(this)">최고가</button>
+          html += `
+            <div class="batch-collection-item" data-item-id="${itemId}" data-category-id="${categoryId}" data-detail-idx="${detailIdx}" data-category-name="${categoryName}">
+              <div class="collection-row">
+                <div class="collection-category-name" title="${categoryName}">${categoryName}</div>
+                <input type="text" class="collection-search-input" id="search_${itemId}" placeholder="번역 중..." data-field="searchKeyword" readonly>
+                <button type="button" class="translate-btn" onclick="retranslateKeyword('${itemId}')" title="다시 번역">🔄</button>
+
+                <div class="collection-price-group">
+                  <label class="price-radio"><input type="radio" name="price_${itemId}" value="lowest"><span>최저가</span></label>
+                  <label class="price-radio"><input type="radio" name="price_${itemId}" value="middle"><span>중간가</span></label>
+                  <label class="price-radio"><input type="radio" name="price_${itemId}" value="average"><span>평균가</span></label>
+                  <label class="price-radio"><input type="radio" name="price_${itemId}" value="highest"><span>최고가</span></label>
                 </div>
 
                 <div class="collection-checkboxes">
-                  <label class="collection-checkbox">
-                    <input type="checkbox" data-field="newProduct">
-                    <span>신제품</span>
-                  </label>
-                  <label class="collection-checkbox">
-                    <input type="checkbox" data-field="fastDelivery">
-                    <span>48시간배송</span>
-                  </label>
+                  <label class="collection-checkbox"><input type="checkbox" data-field="newProduct"><span>신제품</span></label>
+                  <label class="collection-checkbox"><input type="checkbox" data-field="fastDelivery"><span>48시간배송</span></label>
                 </div>
 
                 <div class="collection-sort-group">
-                  <label class="collection-checkbox">
-                    <input type="radio" name="sort_${itemId}" data-field="sortPopular" value="popular">
-                    <span>인기순</span>
-                  </label>
-                  <label class="collection-checkbox">
-                    <input type="radio" name="sort_${itemId}" data-field="sortSales" value="sales">
-                    <span>판매량순</span>
-                  </label>
+                  <label class="collection-checkbox"><input type="radio" name="sort_${itemId}" data-field="sortPopular" value="popular" checked><span>인기순</span></label>
+                  <label class="collection-checkbox"><input type="radio" name="sort_${itemId}" data-field="sortSales" value="sales"><span>판매량순</span></label>
                 </div>
 
                 <div class="collection-random-group">
-                  <label class="collection-checkbox">
-                    <input type="checkbox" data-field="random" onchange="toggleRandomPages(this, '${itemId}')">
-                    <span>랜덤</span>
-                  </label>
-                  <select class="random-pages-select" id="randomPages_${itemId}" data-field="randomPages" style="display: none;">
-                    <option value="1">1페이지</option>
-                    <option value="2">2페이지</option>
-                    <option value="3">3페이지</option>
-                    <option value="5">5페이지</option>
-                    <option value="10">10페이지</option>
-                  </select>
+                  <label class="collection-checkbox"><input type="checkbox" data-field="random" onchange="toggleRandomPages(this, '${itemId}')"><span>랜덤</span></label>
+                  <input type="number" class="random-pages-input" id="randomPages_${itemId}" data-field="randomPages" min="1" max="100" value="5" placeholder="페이지" style="display: none;">
+                </div>
+
+                <div class="collection-count-group">
+                  <label class="collection-label">수집 수:</label>
+                  <input type="number" class="product-count-input" data-field="productCount" min="1" max="100" value="20">
                 </div>
               </div>
             </div>
@@ -4859,6 +4890,74 @@
 
       listContainer.innerHTML = html;
       modal.style.display = 'flex';
+
+      // AI 번역 시작 (비동기)
+      translateAllKeywords(itemsToTranslate);
+    }
+
+    // AI로 모든 키워드 번역
+    async function translateAllKeywords(items) {
+      for (const item of items) {
+        try {
+          const translated = await translateToChineseAI(item.categoryName);
+          const input = document.getElementById(`search_${item.itemId}`);
+          if (input) {
+            input.value = translated;
+            input.readOnly = false;
+            input.placeholder = '1688 검색어';
+          }
+        } catch (err) {
+          console.error('번역 오류:', err);
+          const input = document.getElementById(`search_${item.itemId}`);
+          if (input) {
+            input.value = item.categoryName;
+            input.readOnly = false;
+            input.placeholder = '1688 검색어';
+          }
+        }
+      }
+    }
+
+    // 개별 키워드 재번역
+    async function retranslateKeyword(itemId) {
+      const item = document.querySelector(`[data-item-id="${itemId}"]`);
+      if (!item) return;
+
+      const categoryName = item.dataset.categoryName;
+      const input = document.getElementById(`search_${itemId}`);
+
+      input.value = '';
+      input.placeholder = '번역 중...';
+      input.readOnly = true;
+
+      try {
+        const translated = await translateToChineseAI(categoryName);
+        input.value = translated;
+      } catch (err) {
+        input.value = categoryName;
+      }
+
+      input.readOnly = false;
+      input.placeholder = '1688 검색어';
+    }
+
+    // AI 번역 (한국어 → 중국어)
+    async function translateToChineseAI(koreanText) {
+      try {
+        const response = await fetch('/api/gemini/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: koreanText, targetLang: 'zh' })
+        });
+
+        if (!response.ok) throw new Error('Translation failed');
+
+        const data = await response.json();
+        return data.translated || koreanText;
+      } catch (err) {
+        console.error('번역 API 오류:', err);
+        return koreanText;
+      }
     }
 
     // 수집 설정 모달 닫기
@@ -4866,10 +4965,7 @@
       document.getElementById('batchCollectionModal').style.display = 'none';
     }
 
-    // 가격 버튼 토글
-    function togglePriceBtn(btn) {
-      btn.classList.toggle('active');
-    }
+    // 가격 라디오 선택 (단일 선택이므로 별도 함수 불필요)
 
     // 랜덤 페이지 선택 토글
     function toggleRandomPages(checkbox, itemId) {
@@ -4887,47 +4983,82 @@
         const itemId = item.dataset.itemId;
         const categoryId = item.dataset.categoryId;
         const detailIdx = item.dataset.detailIdx;
+        const categoryName = item.dataset.categoryName;
 
         const searchKeyword = item.querySelector('[data-field="searchKeyword"]').value.trim();
-        const selectedPrices = Array.from(item.querySelectorAll('.price-btn.active')).map(btn => btn.dataset.price);
+
+        // 가격 라디오 (단일 선택)
+        const priceRadio = item.querySelector(`input[name="price_${itemId}"]:checked`);
+        const selectedPrice = priceRadio ? priceRadio.value : null;
+
         const newProduct = item.querySelector('[data-field="newProduct"]').checked;
         const fastDelivery = item.querySelector('[data-field="fastDelivery"]').checked;
         const sortPopular = item.querySelector('[data-field="sortPopular"]').checked;
         const sortSales = item.querySelector('[data-field="sortSales"]').checked;
         const random = item.querySelector('[data-field="random"]').checked;
         const randomPages = item.querySelector('[data-field="randomPages"]').value;
+        const productCount = item.querySelector('[data-field="productCount"]').value;
 
-        // 정렬 옵션 검증 (인기순 또는 판매량순 중 하나 필수)
-        if (!sortPopular && !sortSales) {
-          hasError = true;
-          item.style.border = '2px solid #ef4444';
-          return;
-        } else {
-          item.style.border = '';
-        }
+        item.style.border = '';
+
+        // 1688 URL 생성
+        const url1688 = build1688Url({
+          keyword: searchKeyword,
+          price: selectedPrice,
+          sortType: sortPopular ? 'normal' : 'va_sales360',
+          random: random,
+          randomPages: parseInt(randomPages) || 5
+        });
 
         collectionData.push({
           itemId,
           categoryId,
           detailIdx,
+          categoryName,
           searchKeyword,
-          selectedPrices,
+          selectedPrice,
           newProduct,
           fastDelivery,
-          sortType: sortPopular ? 'popular' : 'sales',
+          sortType: sortPopular ? 'normal' : 'va_sales360',
           random,
-          randomPages: random ? parseInt(randomPages) : 0
+          randomPages: random ? parseInt(randomPages) : 0,
+          productCount: parseInt(productCount) || 20,
+          url1688
         });
       });
 
-      if (hasError) {
-        alert('모든 항목에서 인기순 또는 판매량순 중 하나를 선택해주세요.');
-        return;
+      console.log('📊 Collection data:', collectionData);
+
+      // URL 출력 (테스트용)
+      collectionData.forEach(data => {
+        console.log(`🔗 ${data.categoryName}: ${data.url1688}`);
+      });
+
+      alert('수집을 시작합니다. 콘솔에서 생성된 URL을 확인하세요.');
+      // TODO: 실제 수집 로직 구현
+    }
+
+    // 1688 URL 생성
+    function build1688Url(options) {
+      const { keyword, price, sortType, random, randomPages } = options;
+
+      let url = `https://s.1688.com/selloffer/offer_search.htm?keywords=${encodeURIComponent(keyword)}`;
+
+      // 정렬
+      url += `&sortType=${sortType}`;
+
+      // 가격 필터 (쿠팡 가격 기준)
+      if (price) {
+        // 쿠팡 가격을 1688 가격으로 변환 필요 (임시로 그대로 사용)
+        // TODO: 실제 가격 변환 로직 필요
+        // priceEnd = 선택가, priceStart = 선택가 * 0.5
       }
 
-      console.log('📊 Collection data:', collectionData);
-      alert('수집을 시작합니다. (기능 구현 예정)');
-      // TODO: 실제 수집 로직 구현
+      // 페이지 (랜덤이면 랜덤 페이지, 아니면 1페이지)
+      const page = random ? Math.floor(Math.random() * randomPages) + 1 : 1;
+      url += `&beginPage=${page}`;
+
+      return url;
     }
 
   </script>
