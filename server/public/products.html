@@ -4850,7 +4850,7 @@
             <div class="batch-collection-item" data-item-id="${itemId}" data-category-id="${categoryId}" data-detail-idx="${detailIdx}" data-category-name="${categoryName}">
               <div class="collection-row">
                 <div class="collection-category-name" title="${categoryName}">${categoryName}</div>
-                <input type="text" class="collection-search-input" id="search_${itemId}" placeholder="한국어 검색어" data-field="searchKeyword" value="${categoryName}">
+                <input type="text" class="collection-search-input" id="search_${itemId}" placeholder="AI 추천 중..." data-field="searchKeyword" readonly>
 
                 <div class="collection-price-group">
                   <label class="price-radio"><input type="radio" name="price_${itemId}" value="lowest"><span>최저가</span></label>
@@ -4887,6 +4887,57 @@
 
       listContainer.innerHTML = html;
       modal.style.display = 'flex';
+
+      // AI 추천 검색어 가져오기
+      suggestAllKeywords();
+    }
+
+    // AI로 모든 카테고리에 대해 검색어 추천
+    async function suggestAllKeywords() {
+      const items = document.querySelectorAll('.batch-collection-item');
+
+      for (const item of items) {
+        const itemId = item.dataset.itemId;
+        const categoryName = item.dataset.categoryName;
+        const input = document.getElementById(`search_${itemId}`);
+
+        try {
+          const suggested = await suggestSearchKeywordAI(categoryName);
+          if (input) {
+            input.value = suggested;
+            input.readOnly = false;
+            input.placeholder = '한국어 검색어';
+          }
+        } catch (err) {
+          console.error('추천 오류:', err);
+          // 실패 시 마지막 카테고리명 추출
+          const fallback = categoryName.split('>').pop().replace(/\s*\(\d+\)\s*$/, '').trim();
+          if (input) {
+            input.value = fallback;
+            input.readOnly = false;
+            input.placeholder = '한국어 검색어';
+          }
+        }
+      }
+    }
+
+    // AI 검색어 추천 (카테고리 경로 → 한국어 검색어)
+    async function suggestSearchKeywordAI(categoryPath) {
+      try {
+        const response = await fetch('/api/gemini/suggest-keyword', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ categoryPath })
+        });
+
+        if (!response.ok) throw new Error('Suggestion failed');
+
+        const data = await response.json();
+        return data.keyword || categoryPath.split('>').pop().replace(/\s*\(\d+\)\s*$/, '').trim();
+      } catch (err) {
+        console.error('추천 API 오류:', err);
+        return categoryPath.split('>').pop().replace(/\s*\(\d+\)\s*$/, '').trim();
+      }
     }
 
     // AI 번역 (한국어 → 중국어)

@@ -841,4 +841,70 @@ Translated:`;
   }
 });
 
+/**
+ * POST /api/gemini/suggest-keyword
+ * 카테고리 경로를 보고 1688 검색에 적합한 한국어 검색어 추천
+ *
+ * Body:
+ * - categoryPath: 카테고리 경로 (예: "패션의류잡화>키즈 의류(3~8세)>여아의류>티셔츠>여아 카라티셔츠 (85549)")
+ */
+router.post('/suggest-keyword', async (req, res) => {
+  try {
+    const { categoryPath } = req.body;
+
+    if (!categoryPath) {
+      return res.status(400).json({
+        success: false,
+        message: 'categoryPath는 필수입니다.'
+      });
+    }
+
+    console.log('[Gemini API] 검색어 추천 요청:', categoryPath);
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+
+    const prompt = `You are a product search keyword expert. Given a Korean e-commerce category path, suggest the best Korean search keyword for finding similar products on 1688.com (Chinese wholesale site).
+
+Category path: ${categoryPath}
+
+Rules:
+1. Extract the most specific and relevant product keyword in Korean
+2. Remove category numbers like (85549)
+3. Keep it short and specific (2-4 words max)
+4. Focus on the actual product type, not the broad category
+5. Only return the keyword, nothing else
+
+Example:
+- Input: "패션의류잡화>키즈 의류(3~8세)>여아의류>티셔츠>여아 카라티셔츠 (85549)"
+- Output: 여아 카라티셔츠
+
+Suggested Korean keyword:`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const keyword = response.text().trim();
+
+    console.log('[Gemini API] 검색어 추천 완료:', { categoryPath, keyword });
+
+    res.json({
+      success: true,
+      keyword: keyword
+    });
+
+  } catch (error) {
+    console.error('[Gemini API] 검색어 추천 오류:', error);
+
+    // 실패 시 마지막 카테고리에서 추출
+    const fallback = req.body.categoryPath
+      ? req.body.categoryPath.split('>').pop().replace(/\s*\(\d+\)\s*$/, '').trim()
+      : '';
+
+    res.status(500).json({
+      success: false,
+      message: '검색어 추천 중 오류가 발생했습니다.',
+      keyword: fallback
+    });
+  }
+});
+
 module.exports = router;
