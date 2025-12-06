@@ -5960,19 +5960,32 @@ async function handleBatch1688Collect(categories, sender) {
 }
 
 /**
- * 인증된 탭에서 fetch 실행 (localhost 서버 API 호출용)
+ * 인증된 탭에서 fetch 실행 (서버 API 호출용)
  */
 async function fetchFromAuthTab(url, options = {}) {
   try {
-    // localhost 탭 찾기
-    const tabs = await chrome.tabs.query({ url: '*://localhost:*/*' });
+    // 웹 앱 탭 찾기 (localhost 또는 production)
+    let tabs = await chrome.tabs.query({ url: '*://localhost:*/*' });
+
+    // localhost 없으면 production 서버 찾기
+    if (tabs.length === 0) {
+      tabs = await chrome.tabs.query({ url: '*://totalbot.cafe24.com/*' });
+    }
 
     if (tabs.length === 0) {
-      console.log('⚠️ localhost 탭이 없습니다.');
+      console.log('⚠️ 웹 앱 탭이 없습니다. (localhost 또는 totalbot.cafe24.com)');
       return null;
     }
 
     const targetTab = tabs[0];
+    console.log('🌐 API 호출 탭:', targetTab.url);
+
+    // URL을 탭의 origin에 맞게 조정
+    let apiUrl = url;
+    if (targetTab.url.includes('totalbot.cafe24.com')) {
+      // production 서버인 경우 localhost URL을 production URL로 변경
+      apiUrl = url.replace('http://localhost:4000', 'https://totalbot.cafe24.com');
+    }
 
     // 탭에서 fetch 실행
     const results = await chrome.scripting.executeScript({
@@ -5990,7 +6003,7 @@ async function fetchFromAuthTab(url, options = {}) {
           return { success: false, error: error.message };
         }
       },
-      args: [url, options]
+      args: [apiUrl, options]
     });
 
     return results?.[0]?.result;

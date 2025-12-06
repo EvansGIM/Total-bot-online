@@ -533,12 +533,32 @@ export async function crawl1688ListPage() {
 
         if (!productUrl) continue;
 
+        // 광고/리다이렉트 URL 필터링
+        if (productUrl.includes('dj.1688.com') || productUrl.includes('click.1688.com')) {
+          console.log('[1688 List] 광고 URL 스킵:', productUrl.substring(0, 50));
+          continue;
+        }
+
         // URL 정규화
         if (!productUrl.startsWith('http')) {
           productUrl = 'https:' + productUrl;
         }
-        // 모바일 URL을 데스크탑 URL로 변환
-        productUrl = productUrl.replace('detail.m.1688.com/page/index.html?offerId=', 'detail.1688.com/offer/');
+
+        // 모바일 URL에서 offerId 추출하여 데스크탑 URL로 변환
+        if (productUrl.includes('detail.m.1688.com')) {
+          const offerIdMatch = productUrl.match(/offerId=(\d+)/);
+          if (offerIdMatch) {
+            productUrl = `https://detail.1688.com/offer/${offerIdMatch[1]}.html`;
+          }
+        }
+
+        // offerId가 URL에 직접 있는 경우 정리 (쿼리스트링 제거)
+        if (productUrl.includes('detail.1688.com/offer/')) {
+          const offerMatch = productUrl.match(/detail\.1688\.com\/offer\/(\d+)/);
+          if (offerMatch) {
+            productUrl = `https://detail.1688.com/offer/${offerMatch[1]}.html`;
+          }
+        }
 
         // 상품명 (2024/2025 신 UI)
         const titleSelectors = [
