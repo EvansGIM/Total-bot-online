@@ -5862,8 +5862,10 @@ async function handleBatch1688Collect(categories, sender) {
               }
             );
 
+            console.log('  📥 저장 응답:', JSON.stringify(saveResponse)?.substring(0, 200));
+
             if (!saveResponse || !saveResponse.success) {
-              console.log('⚠️ 상품 저장 실패:', saveResponse?.error);
+              console.log('⚠️ 상품 저장 실패:', saveResponse?.error, saveResponse);
               await updateProgress({
                 type: 'product_error',
                 categoryIndex: catIdx,
