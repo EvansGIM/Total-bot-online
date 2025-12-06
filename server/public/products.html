@@ -1225,6 +1225,95 @@
       color: #dc2626;
     }
 
+    /* 배치 카테고리 리스트 아이템 스타일 */
+    .batch-category-item {
+      padding: 14px 16px;
+      border: 2px solid #f0f0f0;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: white;
+    }
+
+    .batch-category-item:hover {
+      background: #f8f9fa;
+      border-color: #f59e0b;
+    }
+
+    .batch-category-item.downloaded {
+      background: #f0fdf4;
+      border-color: #10b981;
+    }
+
+    .batch-category-item.downloading {
+      background: #eff6ff;
+      border-color: #3b82f6;
+    }
+
+    .batch-category-item .batch-category-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .batch-category-item .batch-category-name {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+
+    .batch-category-item .batch-category-path {
+      font-size: 12px;
+      opacity: 0.7;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .batch-category-item.downloaded .batch-category-download-btn {
+      background: #10b981;
+      cursor: default;
+    }
+
+    .batch-category-item .batch-category-download-btn {
+      padding: 6px 12px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .batch-category-item .batch-category-download-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+    }
+
+    .batch-category-item .batch-category-download-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .batch-keyword-group-header {
+      margin: 16px 0 10px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .batch-keyword-group-header h4 {
+      margin: 0;
+      font-size: 14px;
+      color: #374151;
+    }
+
     /* Main Tabs (2 tabs only) */
     .main-tabs {
       display: flex;
@@ -4280,7 +4369,8 @@
     // 일괄 수집 상태 관리
     let batchCategoryState = {
       keywords: [{ keyword: '', status: 'idle', results: [] }],
-      selectedCategories: new Map(), // categoryId -> category object
+      downloadingIds: new Set(),  // 다운로드 중인 카테고리 ID
+      downloadedIds: new Set(),   // 다운로드 완료된 카테고리 ID
       loading: false
     };
 
@@ -4290,11 +4380,11 @@
       // 상태 초기화
       batchCategoryState = {
         keywords: [{ keyword: '', status: 'idle', results: [] }],
-        selectedCategories: new Map(),
+        downloadingIds: new Set(),
+        downloadedIds: new Set(),
         loading: false
       };
       renderBatchKeywordList();
-      updateBatchResultsSummary();
       document.getElementById('batchCategoryResults').innerHTML = '';
     }
 
@@ -4433,7 +4523,7 @@
       btnText.textContent = '🔍 전체 검색';
     }
 
-    // 검색 결과 렌더링
+    // 검색 결과 렌더링 (리스트 형태 - 개별 다운로드)
     function renderBatchCategoryResults() {
       const resultsDiv = document.getElementById('batchCategoryResults');
 
@@ -4443,29 +4533,33 @@
       batchCategoryState.keywords.forEach((item, keywordIndex) => {
         if (item.results && item.results.length > 0) {
           html += `
+            <div class="batch-keyword-group-header">
+              <h4>🔍 "${item.keyword}" 검색 결과 (${item.results.length}개)</h4>
+            </div>
             <div style="margin-bottom: 20px;">
-              <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #666;">
-                🔍 "${item.keyword}" 검색 결과 (${item.results.length}개)
-              </h4>
-              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
           `;
 
           item.results.forEach(cat => {
-            const isSelected = batchCategoryState.selectedCategories.has(cat.id);
+            const isDownloading = batchCategoryState.downloadingIds && batchCategoryState.downloadingIds.has(cat.id);
+            const isDownloaded = batchCategoryState.downloadedIds && batchCategoryState.downloadedIds.has(cat.id);
             html += `
-              <div class="batch-category-chip ${isSelected ? 'selected' : ''}"
-                   style="cursor: pointer; ${isSelected ? 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;' : ''}"
-                   onclick="toggleBatchCategory('${cat.id}', ${keywordIndex})">
-                <span>${cat.name}</span>
-                ${isSelected ? '<span class="remove" onclick="event.stopPropagation(); toggleBatchCategory(\'' + cat.id + '\', ' + keywordIndex + ')">✓</span>' : ''}
+              <div class="batch-category-item ${isDownloaded ? 'downloaded' : ''}">
+                <div class="batch-category-content">
+                  <div class="batch-category-name">${cat.name}</div>
+                  <div class="batch-category-path">${cat.path || ''}</div>
+                </div>
+                <button
+                  class="batch-category-download-btn"
+                  onclick="downloadSingleCategory('${cat.id}', ${keywordIndex}, this)"
+                  ${isDownloading ? 'disabled' : ''}
+                >
+                  ${isDownloaded ? '✅ 완료' : (isDownloading ? '⏳' : '📥 다운로드')}
+                </button>
               </div>
             `;
           });
 
-          html += `
-              </div>
-            </div>
-          `;
+          html += `</div>`;
         }
       });
 
@@ -4473,7 +4567,7 @@
         html = `
           <div style="text-align: center; padding: 30px; color: #888;">
             <p style="font-size: 36px;">🔍</p>
-            <p>키워드를 입력하고 엔터를 누르거나<br>"전체 검색" 버튼을 클릭하세요</p>
+            <p>키워드를 입력하고 엔터를 누르세요</p>
           </div>
         `;
       }
@@ -4481,125 +4575,64 @@
       resultsDiv.innerHTML = html;
     }
 
-    // 카테고리 선택/해제
-    function toggleBatchCategory(categoryId, keywordIndex) {
-      if (batchCategoryState.selectedCategories.has(categoryId)) {
-        batchCategoryState.selectedCategories.delete(categoryId);
-      } else {
-        // 해당 카테고리 객체 찾기
-        const category = batchCategoryState.keywords[keywordIndex].results.find(c => c.id === categoryId);
-        if (category) {
-          batchCategoryState.selectedCategories.set(categoryId, category);
-        }
-      }
+    // 개별 카테고리 다운로드
+    async function downloadSingleCategory(categoryId, keywordIndex, buttonElement) {
+      const category = batchCategoryState.keywords[keywordIndex].results.find(c => c.id === categoryId);
+      if (!category) return;
 
-      renderBatchCategoryResults();
-      updateBatchResultsSummary();
-      updateBatchDownloadButton();
-    }
+      // 다운로드 중 상태로 설정
+      batchCategoryState.downloadingIds.add(categoryId);
 
-    // 선택된 카테고리 요약 업데이트
-    function updateBatchResultsSummary() {
-      const summaryDiv = document.getElementById('batchResultsSummary');
-      const countSpan = document.getElementById('batchSelectedCount');
-      const categoriesDiv = document.getElementById('batchSelectedCategories');
+      buttonElement.disabled = true;
+      buttonElement.textContent = '⏳ 다운로드 중...';
 
-      const count = batchCategoryState.selectedCategories.size;
-      countSpan.textContent = count;
-
-      if (count === 0) {
-        summaryDiv.style.display = 'none';
-        return;
-      }
-
-      summaryDiv.style.display = 'block';
-
-      let chipsHtml = '';
-      batchCategoryState.selectedCategories.forEach((cat, id) => {
-        chipsHtml += `
-          <span class="batch-category-chip">
-            ${cat.name}
-            <span class="remove" onclick="removeBatchSelectedCategory('${id}')">×</span>
-          </span>
-        `;
-      });
-
-      categoriesDiv.innerHTML = chipsHtml;
-    }
-
-    // 선택된 카테고리 제거
-    function removeBatchSelectedCategory(categoryId) {
-      batchCategoryState.selectedCategories.delete(categoryId);
-      renderBatchCategoryResults();
-      updateBatchResultsSummary();
-      updateBatchDownloadButton();
-    }
-
-    // 다운로드 버튼 상태 업데이트
-    function updateBatchDownloadButton() {
-      const count = batchCategoryState.selectedCategories.size;
-      const downloadBtn = document.getElementById('batchDownloadBtn');
-      const btnText = document.getElementById('batchDownloadBtnText');
-
-      downloadBtn.disabled = count === 0;
-      btnText.textContent = count > 0
-        ? `📥 ${count}개 카테고리 다운로드`
-        : '카테고리를 선택하세요';
-    }
-
-    // 일괄 다운로드
-    async function batchDownloadCategories() {
-      if (batchCategoryState.selectedCategories.size === 0) return;
-
-      const downloadBtn = document.getElementById('batchDownloadBtn');
-      const btnText = document.getElementById('batchDownloadBtnText');
-
-      downloadBtn.disabled = true;
-      btnText.innerHTML = '<span class="spinner"></span> 다운로드 중...';
+      // 부모 요소에 downloading 클래스 추가
+      const itemElement = buttonElement.closest('.batch-category-item');
+      if (itemElement) itemElement.classList.add('downloading');
 
       try {
-        const categoryIds = Array.from(batchCategoryState.selectedCategories.keys());
-        const categories = Array.from(batchCategoryState.selectedCategories.values());
-
-        // Extension을 통해 쿠팡 API 호출
+        // Extension을 통해 쿠팡 API 호출 (단일 카테고리)
         const response = await sendMessageToExtension('downloadQuotation', {
           action: 'downloadQuotation',
-          categoryIds: categoryIds,
-          categories: categories
+          categoryIds: [categoryId],
+          categories: [category]
         });
 
         if (!response.success) {
           throw new Error(response.error || '다운로드 실패');
         }
 
-        console.log('✅ Batch download response:', response);
+        console.log('✅ Single category download response:', response);
 
+        // 완료 상태로 표시
+        batchCategoryState.downloadedIds.add(categoryId);
+        buttonElement.textContent = '✅ 완료';
+        if (itemElement) {
+          itemElement.classList.remove('downloading');
+          itemElement.classList.add('downloaded');
+        }
+
+        // 엑셀 데이터가 있으면 상세 카테고리 설정 모달로 이동
         if (response.excelData && response.excelData.length > 0) {
-          btnText.textContent = '✅ 다운로드 완료!';
-
-          // 상세 카테고리 설정 모달로 이동 (상품 등록 시나리오)
           setTimeout(() => {
             closeBatchCategoryModal();
             showDetailCategoryModal(response.excelData);
-          }, 1000);
-        } else {
-          const message = response.message || '견적서 ZIP 파일이 다운로드되었습니다.';
-          btnText.textContent = '✅ ' + message;
-
-          setTimeout(() => {
-            closeBatchCategoryModal();
-          }, 2000);
+          }, 500);
         }
 
       } catch (error) {
-        console.error('일괄 다운로드 오류:', error);
+        console.error('개별 다운로드 오류:', error);
         alert('다운로드 중 오류가 발생했습니다: ' + error.message);
-        btnText.textContent = '❌ 다운로드 실패';
-      } finally {
+        buttonElement.textContent = '❌ 실패';
+        if (itemElement) itemElement.classList.remove('downloading');
+
+        // 실패 시 다시 다운로드 가능하도록
         setTimeout(() => {
-          downloadBtn.disabled = false;
-          updateBatchDownloadButton();
+          buttonElement.disabled = false;
+          buttonElement.textContent = '📥 다운로드';
         }, 2000);
+      } finally {
+        batchCategoryState.downloadingIds.delete(categoryId);
       }
     }
 
@@ -4615,8 +4648,8 @@
 
       <div class="coupang-modal-body">
         <p style="margin-bottom: 20px; color: #666;">
-          여러 키워드를 입력하고 엔터를 누르면 각각의 카테고리를 검색합니다.<br>
-          검색된 카테고리 중 원하는 것을 선택한 후 일괄 다운로드하세요.
+          키워드를 입력하고 엔터를 누르면 카테고리를 검색합니다.<br>
+          원하는 카테고리의 다운로드 버튼을 클릭하세요.
         </p>
 
         <!-- 키워드 입력 영역 -->
@@ -4632,22 +4665,13 @@
           + 키워드 추가
         </button>
 
-        <!-- 검색 결과 요약 -->
-        <div id="batchResultsSummary" class="batch-results-summary" style="display: none;">
-          <h4>📦 선택된 카테고리 (<span id="batchSelectedCount">0</span>개)</h4>
-          <div id="batchSelectedCategories"></div>
-        </div>
-
-        <!-- 카테고리 선택 영역 -->
-        <div id="batchCategoryResults" style="margin-top: 20px; max-height: 300px; overflow-y: auto;"></div>
+        <!-- 카테고리 검색 결과 -->
+        <div id="batchCategoryResults" style="margin-top: 20px; max-height: 400px; overflow-y: auto;"></div>
       </div>
 
       <div class="coupang-modal-footer">
-        <button id="batchSearchAllBtn" class="coupang-download-btn" onclick="batchSearchAll()" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); margin-right: 10px;">
+        <button id="batchSearchAllBtn" class="coupang-download-btn" onclick="batchSearchAll()" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
           <span id="batchSearchBtnText">🔍 전체 검색</span>
-        </button>
-        <button id="batchDownloadBtn" class="coupang-download-btn" onclick="batchDownloadCategories()" disabled>
-          <span id="batchDownloadBtnText">카테고리를 선택하세요</span>
         </button>
       </div>
     </div>
