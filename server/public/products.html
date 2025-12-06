@@ -4363,16 +4363,15 @@
     }
 
     // ============================================
-    // 카테고리 일괄 수집 모달 관련 코드
+    // 카테고리 일괄 수집 모달 관련 코드 (간소화 버전)
     // ============================================
 
     // 일괄 수집 상태 관리
     let batchCategoryState = {
-      keywords: [{ keyword: '', status: 'idle', results: [] }],
+      searchResults: [],                // 현재 검색 결과
       downloadingIds: new Set(),        // 다운로드 중인 카테고리 ID
-      detailPending: new Map(),         // 세부 선택 대기 중: categoryId -> { category, excelData }
       completedCategories: new Map(),   // 완료된 카테고리: categoryId -> { category, excelData, detailSelections }
-      loading: false
+      currentDetailData: null           // 현재 세부 선택 중인 데이터
     };
 
     // 모달 열기
@@ -4380,14 +4379,14 @@
       document.getElementById('batchCategoryModal').style.display = 'flex';
       // 상태 초기화
       batchCategoryState = {
-        keywords: [{ keyword: '', status: 'idle', results: [] }],
+        searchResults: [],
         downloadingIds: new Set(),
-        detailPending: new Map(),
         completedCategories: new Map(),
-        loading: false
+        currentDetailData: null
       };
-      renderBatchKeywordList();
+      document.getElementById('batchSearchInput').value = '';
       renderBatchCategoryResults();
+      renderCompletedSummary();
       updateBatchProceedButton();
     }
 
@@ -4396,86 +4395,20 @@
       document.getElementById('batchCategoryModal').style.display = 'none';
     }
 
-    // 키워드 입력 리스트 렌더링
-    function renderBatchKeywordList() {
-      const container = document.getElementById('batchKeywordList');
-      container.innerHTML = batchCategoryState.keywords.map((item, index) => {
-        let statusClass = '';
-        let statusText = '대기';
-
-        if (item.status === 'searching') {
-          statusClass = 'searching';
-          statusText = '검색중...';
-        } else if (item.status === 'success') {
-          statusClass = 'success';
-          statusText = `${item.results.length}개 발견`;
-        } else if (item.status === 'error') {
-          statusClass = 'error';
-          statusText = '오류';
-        }
-
-        let inputClass = 'batch-keyword-input';
-        if (item.status === 'success') inputClass += ' has-results';
-        if (item.status === 'searching') inputClass += ' searching';
-
-        return `
-          <div class="batch-keyword-input-row" data-index="${index}">
-            <input type="text" class="${inputClass}"
-                   placeholder="카테고리 검색 (예: 티셔츠)"
-                   value="${item.keyword}"
-                   onkeypress="handleBatchKeywordEnter(event, ${index})"
-                   oninput="updateBatchKeyword(${index}, this.value)"
-                   ${item.status === 'searching' ? 'disabled' : ''}>
-            <span class="batch-keyword-status ${statusClass}">${statusText}</span>
-            <button class="batch-remove-btn" onclick="removeBatchKeyword(${index})"
-                    style="${batchCategoryState.keywords.length <= 1 ? 'visibility: hidden;' : ''}">×</button>
-          </div>
-        `;
-      }).join('');
-    }
-
-    // 키워드 값 업데이트
-    function updateBatchKeyword(index, value) {
-      batchCategoryState.keywords[index].keyword = value;
-    }
-
-    // 키워드 추가
-    function addBatchKeyword() {
-      batchCategoryState.keywords.push({ keyword: '', status: 'idle', results: [] });
-      renderBatchKeywordList();
-      // 새로 추가된 input에 포커스
-      setTimeout(() => {
-        const inputs = document.querySelectorAll('.batch-keyword-input');
-        if (inputs.length > 0) {
-          inputs[inputs.length - 1].focus();
-        }
-      }, 50);
-    }
-
-    // 키워드 삭제
-    function removeBatchKeyword(index) {
-      if (batchCategoryState.keywords.length <= 1) return;
-      batchCategoryState.keywords.splice(index, 1);
-      renderBatchKeywordList();
-    }
-
-    // 엔터 키 핸들러
-    function handleBatchKeywordEnter(event, index) {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        const keyword = batchCategoryState.keywords[index].keyword.trim();
-        if (keyword) {
-          searchBatchCategory(index, keyword);
-        }
-      }
-    }
-
-    // 단일 카테고리 검색
-    async function searchBatchCategory(index, keyword) {
+    // 키워드 검색
+    async function searchBatchKeyword() {
+      const input = document.getElementById('batchSearchInput');
+      const keyword = input.value.trim();
       if (!keyword) return;
 
-      batchCategoryState.keywords[index].status = 'searching';
-      renderBatchKeywordList();
+      // 검색 중 상태 표시
+      const resultsDiv = document.getElementById('batchCategoryResults');
+      resultsDiv.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: #666;">
+          <div class="spinner" style="margin: 0 auto 12px;"></div>
+          <p>"${keyword}" 검색 중...</p>
+        </div>
+      `;
 
       try {
         const response = await sendMessageToExtension('searchCategories', {
@@ -4487,167 +4420,74 @@
           throw new Error(response.error || '검색 실패');
         }
 
-        const categories = response.categories || [];
-        batchCategoryState.keywords[index].status = 'success';
-        batchCategoryState.keywords[index].results = categories;
-
-        // 검색 결과를 표시
+        batchCategoryState.searchResults = response.categories || [];
         renderBatchCategoryResults();
 
       } catch (error) {
         console.error('카테고리 검색 오류:', error);
-        batchCategoryState.keywords[index].status = 'error';
-        batchCategoryState.keywords[index].results = [];
+        resultsDiv.innerHTML = `
+          <div style="text-align: center; padding: 40px; color: #dc2626;">
+            <p style="font-size: 36px;">❌</p>
+            <p>검색 중 오류가 발생했습니다</p>
+          </div>
+        `;
       }
-
-      renderBatchKeywordList();
     }
 
-    // 전체 검색
-    async function batchSearchAll() {
-      const btn = document.getElementById('batchSearchAllBtn');
-      const btnText = document.getElementById('batchSearchBtnText');
-
-      btn.disabled = true;
-      btnText.innerHTML = '<span class="spinner"></span> 검색 중...';
-
-      const keywordsToSearch = batchCategoryState.keywords.filter(k => k.keyword.trim() && k.status !== 'success');
-
-      for (let i = 0; i < batchCategoryState.keywords.length; i++) {
-        const item = batchCategoryState.keywords[i];
-        if (item.keyword.trim() && item.status !== 'success') {
-          await searchBatchCategory(i, item.keyword.trim());
-          // 각 검색 사이에 약간의 딜레이
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-      }
-
-      btn.disabled = false;
-      btnText.textContent = '🔍 전체 검색';
-    }
-
-    // 검색 결과 렌더링 (세부 선택 대기 + 검색 결과만 - 완료된 것은 별도 영역에 표시)
+    // 검색 결과 렌더링
     function renderBatchCategoryResults() {
       const resultsDiv = document.getElementById('batchCategoryResults');
-      let html = '';
 
-      // 완료된 카테고리는 별도 영역에 표시
-      renderCompletedSummary();
+      // 이미 완료된 카테고리 필터링
+      const availableResults = batchCategoryState.searchResults.filter(cat =>
+        !batchCategoryState.completedCategories.has(cat.id)
+      );
 
-      // 1. 세부 선택 대기 중인 카테고리 표시
-      if (batchCategoryState.detailPending.size > 0) {
-        html += `
-          <div class="batch-section-header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 12px 16px; border-radius: 8px; margin-bottom: 12px;">
-            <h4 style="margin: 0; font-size: 14px;">📝 세부 카테고리 선택 대기 (${batchCategoryState.detailPending.size}개)</h4>
-          </div>
-        `;
-
-        batchCategoryState.detailPending.forEach((data, categoryId) => {
-          html += `
-            <div class="batch-detail-selection" style="background: #fffbeb; border: 2px solid #f59e0b; border-radius: 10px; padding: 16px; margin-bottom: 12px;">
-              <div style="font-weight: 600; font-size: 15px; margin-bottom: 12px; color: #92400e;">
-                📄 ${data.category.name}
-              </div>
-          `;
-
-          // 각 엑셀 데이터에 대한 드롭다운
-          data.excelData.forEach((excel, excelIdx) => {
-            const categoryName = excel.category ? excel.category.name : '카테고리';
-            const dropdownOptions = excel.dropdownOptions || [];
-            const currentSelection = data.detailSelections[excelIdx];
-
-            html += `
-              <div style="margin-bottom: 10px;">
-                <label style="display: block; font-size: 13px; color: #666; margin-bottom: 4px;">${categoryName}</label>
-                <select
-                  style="width: 100%; padding: 10px; border: 1px solid #fbbf24; border-radius: 6px; font-size: 14px; background: white;"
-                  onchange="updateBatchDetailSelection('${categoryId}', ${excelIdx}, this.value)"
-                >
-                  <option value="">상세 카테고리 선택...</option>
-                  ${dropdownOptions.map((opt, optIdx) => `
-                    <option value="${optIdx}" ${currentSelection && currentSelection.optionIndex === optIdx ? 'selected' : ''}>${opt}</option>
-                  `).join('')}
-                </select>
-              </div>
-            `;
-          });
-
-          // 확인 버튼
-          const allSelected = data.excelData.every((_, idx) => data.detailSelections[idx]);
-          html += `
-              <button
-                id="confirmDetail_${categoryId}"
-                style="width: 100%; padding: 10px; background: ${allSelected ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#e5e7eb'}; color: ${allSelected ? 'white' : '#9ca3af'}; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: ${allSelected ? 'pointer' : 'not-allowed'}; margin-top: 8px;"
-                onclick="confirmBatchDetailSelection('${categoryId}')"
-                ${allSelected ? '' : 'disabled'}
-              >
-                ✓ 선택 완료
-              </button>
-            </div>
-          `;
-        });
-
-        html += `<div style="margin-bottom: 20px;"></div>`;
-      }
-
-      // 2. 검색 결과 표시
-      let hasResults = false;
-      batchCategoryState.keywords.forEach((item, keywordIndex) => {
-        if (item.results && item.results.length > 0) {
-          hasResults = true;
-
-          // 이미 처리된 카테고리는 필터링
-          const availableResults = item.results.filter(cat =>
-            !batchCategoryState.detailPending.has(cat.id) &&
-            !batchCategoryState.completedCategories.has(cat.id)
-          );
-
-          if (availableResults.length > 0) {
-            html += `
-              <div class="batch-keyword-group-header">
-                <h4>🔍 "${item.keyword}" 검색 결과 (${availableResults.length}개)</h4>
-              </div>
-              <div style="margin-bottom: 20px;">
-            `;
-
-            availableResults.forEach(cat => {
-              const isDownloading = batchCategoryState.downloadingIds.has(cat.id);
-              html += `
-                <div class="batch-category-item ${isDownloading ? 'downloading' : ''}">
-                  <div class="batch-category-content">
-                    <div class="batch-category-name">${cat.name}</div>
-                    <div class="batch-category-path">${cat.path || ''}</div>
-                  </div>
-                  <button
-                    class="batch-category-download-btn"
-                    onclick="downloadSingleCategory('${cat.id}', ${keywordIndex}, this)"
-                    ${isDownloading ? 'disabled' : ''}
-                  >
-                    ${isDownloading ? '⏳ 다운로드 중...' : '📥 다운로드'}
-                  </button>
-                </div>
-              `;
-            });
-
-            html += `</div>`;
-          }
-        }
-      });
-
-      // 빈 상태
-      if (!html || (!hasResults && batchCategoryState.completedCategories.size === 0 && batchCategoryState.detailPending.size === 0)) {
-        html = `
-          <div style="text-align: center; padding: 30px; color: #888;">
+      if (availableResults.length === 0 && batchCategoryState.searchResults.length === 0) {
+        resultsDiv.innerHTML = `
+          <div style="text-align: center; padding: 40px; color: #888;">
             <p style="font-size: 36px;">🔍</p>
-            <p>키워드를 입력하고 엔터를 누르세요</p>
+            <p>카테고리를 검색하세요</p>
           </div>
         `;
+        return;
       }
+
+      if (availableResults.length === 0) {
+        resultsDiv.innerHTML = `
+          <div style="text-align: center; padding: 40px; color: #10b981;">
+            <p style="font-size: 36px;">✅</p>
+            <p>모든 결과가 선택되었습니다.<br>다른 키워드를 검색하세요.</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = `<div style="margin-bottom: 8px; font-size: 13px; color: #666;">${availableResults.length}개 결과</div>`;
+
+      availableResults.forEach(cat => {
+        const isDownloading = batchCategoryState.downloadingIds.has(cat.id);
+        html += `
+          <div class="batch-category-item ${isDownloading ? 'downloading' : ''}">
+            <div class="batch-category-content">
+              <div class="batch-category-name">${cat.name}</div>
+              <div class="batch-category-path">${cat.path || ''}</div>
+            </div>
+            <button
+              class="batch-category-download-btn"
+              onclick="downloadAndSelectDetail('${cat.id}', this)"
+              ${isDownloading ? 'disabled' : ''}
+            >
+              ${isDownloading ? '⏳' : '선택'}
+            </button>
+          </div>
+        `;
+      });
 
       resultsDiv.innerHTML = html;
     }
 
-    // 완료된 카테고리 요약 렌더링 (별도 영역)
+    // 완료된 카테고리 요약 렌더링
     function renderCompletedSummary() {
       const summaryDiv = document.getElementById('batchCompletedSummary');
       const countSpan = document.getElementById('completedCount');
@@ -4667,10 +4507,12 @@
 
       let chipsHtml = '';
       batchCategoryState.completedCategories.forEach((data, categoryId) => {
+        const detailName = Object.values(data.detailSelections)[0]?.optionValue || '';
         chipsHtml += `
-          <span style="display: inline-flex; align-items: center; gap: 4px; background: white; border: 1px solid #10b981; color: #059669; padding: 4px 10px; border-radius: 16px; font-size: 12px;">
-            ${data.category.name}
-            <span style="cursor: pointer; margin-left: 2px; color: #dc2626; font-weight: bold;" onclick="removeCompletedCategory('${categoryId}')">×</span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; background: white; border: 1px solid #10b981; color: #059669; padding: 6px 12px; border-radius: 20px; font-size: 13px;">
+            <strong>${data.category.name}</strong>
+            ${detailName ? `<span style="color: #666; font-size: 11px;">· ${detailName}</span>` : ''}
+            <span style="cursor: pointer; margin-left: 4px; color: #dc2626; font-weight: bold;" onclick="removeCompletedCategory('${categoryId}')">×</span>
           </span>
         `;
       });
@@ -4678,23 +4520,16 @@
       chipsDiv.innerHTML = chipsHtml;
     }
 
-    // 개별 카테고리 다운로드
-    async function downloadSingleCategory(categoryId, keywordIndex, buttonElement) {
-      const category = batchCategoryState.keywords[keywordIndex].results.find(c => c.id === categoryId);
+    // 다운로드 후 세부 선택 모달 열기
+    async function downloadAndSelectDetail(categoryId, buttonElement) {
+      const category = batchCategoryState.searchResults.find(c => c.id === categoryId);
       if (!category) return;
 
-      // 다운로드 중 상태로 설정
       batchCategoryState.downloadingIds.add(categoryId);
-
       buttonElement.disabled = true;
-      buttonElement.textContent = '⏳ 다운로드 중...';
-
-      // 부모 요소에 downloading 클래스 추가
-      const itemElement = buttonElement.closest('.batch-category-item');
-      if (itemElement) itemElement.classList.add('downloading');
+      buttonElement.textContent = '⏳';
 
       try {
-        // Extension을 통해 쿠팡 API 호출 (단일 카테고리)
         const response = await sendMessageToExtension('downloadQuotation', {
           action: 'downloadQuotation',
           categoryIds: [categoryId],
@@ -4705,93 +4540,121 @@
           throw new Error(response.error || '다운로드 실패');
         }
 
-        console.log('✅ Single category download response:', response);
+        console.log('✅ Download response:', response);
 
-        // 엑셀 데이터가 있으면 세부 선택 대기 상태로 저장 (인라인 표시)
         if (response.excelData && response.excelData.length > 0) {
-          batchCategoryState.detailPending.set(categoryId, {
+          // 세부 선택 모달 열기
+          openBatchDetailModal(categoryId, category, response.excelData);
+        } else {
+          // 세부 선택 없이 바로 완료
+          batchCategoryState.completedCategories.set(categoryId, {
             category: category,
-            excelData: response.excelData,
-            keywordIndex: keywordIndex,
-            detailSelections: {} // 세부 선택 저장용
+            excelData: [],
+            detailSelections: {}
           });
+          renderBatchCategoryResults();
+          renderCompletedSummary();
+          updateBatchProceedButton();
         }
 
-        // 다시 렌더링하여 세부 선택 UI 표시
-        renderBatchCategoryResults();
-
       } catch (error) {
-        console.error('개별 다운로드 오류:', error);
-        alert('다운로드 중 오류가 발생했습니다: ' + error.message);
-        buttonElement.textContent = '❌ 실패';
-        if (itemElement) itemElement.classList.remove('downloading');
-
-        // 실패 시 다시 다운로드 가능하도록
-        setTimeout(() => {
-          buttonElement.disabled = false;
-          buttonElement.textContent = '📥 다운로드';
-        }, 2000);
+        console.error('다운로드 오류:', error);
+        alert('다운로드 중 오류: ' + error.message);
+        buttonElement.textContent = '선택';
+        buttonElement.disabled = false;
       } finally {
         batchCategoryState.downloadingIds.delete(categoryId);
       }
     }
 
-    // 세부 카테고리 선택 업데이트
-    function updateBatchDetailSelection(categoryId, excelIndex, selectedOptionIndex) {
-      const pending = batchCategoryState.detailPending.get(categoryId);
-      if (!pending) return;
+    // 세부 선택 모달 열기
+    function openBatchDetailModal(categoryId, category, excelData) {
+      batchCategoryState.currentDetailData = {
+        categoryId: categoryId,
+        category: category,
+        excelData: excelData,
+        detailSelections: {}
+      };
+
+      const contentDiv = document.getElementById('batchDetailContent');
+      let html = `<p style="margin-bottom: 16px; font-weight: 600; color: #374151;">📄 ${category.name}</p>`;
+
+      excelData.forEach((excel, idx) => {
+        const categoryName = excel.category ? excel.category.name : '세부 카테고리';
+        const dropdownOptions = excel.dropdownOptions || [];
+
+        html += `
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 13px; color: #666; margin-bottom: 6px;">${categoryName}</label>
+            <select
+              id="batchDetailSelect_${idx}"
+              style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;"
+              onchange="updateBatchDetailDropdown(${idx}, this.value)"
+            >
+              <option value="">선택하세요</option>
+              ${dropdownOptions.map((opt, optIdx) => `<option value="${optIdx}">${opt}</option>`).join('')}
+            </select>
+          </div>
+        `;
+      });
+
+      contentDiv.innerHTML = html;
+
+      // 확인 버튼 초기화
+      const confirmBtn = document.getElementById('batchDetailConfirmBtn');
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = '세부 카테고리를 선택하세요';
+
+      document.getElementById('batchDetailModal').style.display = 'flex';
+    }
+
+    // 세부 선택 모달 닫기
+    function closeBatchDetailModal() {
+      document.getElementById('batchDetailModal').style.display = 'none';
+      batchCategoryState.currentDetailData = null;
+      renderBatchCategoryResults();
+    }
+
+    // 세부 드롭다운 변경
+    function updateBatchDetailDropdown(excelIndex, selectedOptionIndex) {
+      if (!batchCategoryState.currentDetailData) return;
+
+      const data = batchCategoryState.currentDetailData;
 
       if (selectedOptionIndex === '') {
-        delete pending.detailSelections[excelIndex];
+        delete data.detailSelections[excelIndex];
       } else {
-        const selectedOption = pending.excelData[excelIndex].dropdownOptions[parseInt(selectedOptionIndex)];
-        pending.detailSelections[excelIndex] = {
+        const selectedOption = data.excelData[excelIndex].dropdownOptions[parseInt(selectedOptionIndex)];
+        data.detailSelections[excelIndex] = {
           optionIndex: parseInt(selectedOptionIndex),
           optionValue: selectedOption
         };
       }
 
-      console.log('✅ Detail selection updated for', categoryId, ':', pending.detailSelections);
-
       // 확인 버튼 상태 업데이트
-      updateConfirmButtonState(categoryId);
-    }
-
-    // 확인 버튼 상태 업데이트
-    function updateConfirmButtonState(categoryId) {
-      const pending = batchCategoryState.detailPending.get(categoryId);
-      if (!pending) return;
-
-      const confirmBtn = document.getElementById(`confirmDetail_${categoryId}`);
-      if (!confirmBtn) return;
-
-      // 모든 세부 카테고리가 선택되었는지 확인
-      const allSelected = pending.excelData.every((_, idx) => pending.detailSelections[idx]);
+      const allSelected = data.excelData.every((_, idx) => data.detailSelections[idx]);
+      const confirmBtn = document.getElementById('batchDetailConfirmBtn');
       confirmBtn.disabled = !allSelected;
-      confirmBtn.style.opacity = allSelected ? '1' : '0.5';
+      confirmBtn.textContent = allSelected ? '✓ 선택 완료' : '세부 카테고리를 선택하세요';
     }
 
     // 세부 선택 확정
-    function confirmBatchDetailSelection(categoryId) {
-      const pending = batchCategoryState.detailPending.get(categoryId);
-      if (!pending) return;
+    function confirmBatchDetail() {
+      const data = batchCategoryState.currentDetailData;
+      if (!data) return;
 
-      // 완료된 카테고리로 이동
-      batchCategoryState.completedCategories.set(categoryId, {
-        category: pending.category,
-        excelData: pending.excelData,
-        detailSelections: pending.detailSelections,
-        keywordIndex: pending.keywordIndex
+      // 완료된 카테고리로 저장
+      batchCategoryState.completedCategories.set(data.categoryId, {
+        category: data.category,
+        excelData: data.excelData,
+        detailSelections: data.detailSelections
       });
 
-      // 대기 목록에서 제거
-      batchCategoryState.detailPending.delete(categoryId);
+      console.log('✅ Category completed:', data.category.name);
 
-      console.log('✅ Category confirmed:', categoryId);
-      console.log('📦 Completed categories:', batchCategoryState.completedCategories.size);
-
-      // 다시 렌더링
-      renderBatchCategoryResults();
+      // 모달 닫기
+      closeBatchDetailModal();
+      renderCompletedSummary();
       updateBatchProceedButton();
     }
 
@@ -4799,6 +4662,7 @@
     function removeCompletedCategory(categoryId) {
       batchCategoryState.completedCategories.delete(categoryId);
       renderBatchCategoryResults();
+      renderCompletedSummary();
       updateBatchProceedButton();
     }
 
@@ -4836,7 +4700,6 @@
 
       console.log('📦 Proceeding with categories:', allExcelData);
 
-      // 일괄 수집 모달 닫고 상세 정보 입력 모달 열기
       closeBatchCategoryModal();
       showDetailCategoryModal(allExcelData);
     }
@@ -4852,42 +4715,51 @@
       </div>
 
       <div class="coupang-modal-body">
-        <p style="margin-bottom: 20px; color: #666;">
-          1. 키워드 검색 → 2. 카테고리 다운로드 → 3. 세부 카테고리 선택 → 4. 다음 단계로<br>
-          <span style="font-size: 12px;">여러 카테고리를 선택한 후 "다음 단계로" 버튼을 눌러 제품 수집을 시작하세요.</span>
-        </p>
-
-        <!-- 키워드 입력 영역 -->
-        <div id="batchKeywordList">
-          <div class="batch-keyword-input-row" data-index="0">
-            <input type="text" class="batch-keyword-input" placeholder="카테고리 검색 (예: 티셔츠)" onkeypress="handleBatchKeywordEnter(event, 0)">
-            <span class="batch-keyword-status">대기</span>
-            <button class="batch-remove-btn" onclick="removeBatchKeyword(0)" style="visibility: hidden;">×</button>
-          </div>
-        </div>
-
-        <button class="batch-add-btn" onclick="addBatchKeyword()">
-          + 키워드 추가
-        </button>
-
-        <!-- 선택 완료된 카테고리 (별도 영역) -->
-        <div id="batchCompletedSummary" style="display: none; margin-top: 16px; padding: 12px; background: #f0fdf4; border: 1px solid #10b981; border-radius: 8px;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <!-- 선택 완료된 카테고리 (상단에 태그로 표시) -->
+        <div id="batchCompletedSummary" style="display: none; margin-bottom: 16px; padding: 12px; background: #f0fdf4; border: 1px solid #10b981; border-radius: 8px;">
+          <div style="display: flex; align-items: center; margin-bottom: 8px;">
             <span style="font-weight: 600; color: #059669; font-size: 13px;">✅ 선택 완료 (<span id="completedCount">0</span>개)</span>
           </div>
           <div id="completedChipsList" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
         </div>
 
-        <!-- 카테고리 검색 결과 (세부 선택 대기 + 새 검색 결과만) -->
-        <div id="batchCategoryResults" style="margin-top: 20px; max-height: 350px; overflow-y: auto;"></div>
+        <!-- 검색어 입력 -->
+        <div style="margin-bottom: 16px;">
+          <input
+            type="text"
+            id="batchSearchInput"
+            class="coupang-search-input"
+            placeholder="카테고리 검색 (예: 티셔츠, 가방, 신발...)"
+            style="width: 100%; padding: 14px 18px; font-size: 15px; border: 2px solid #e0e0e0; border-radius: 10px;"
+            onkeypress="if(event.key === 'Enter') searchBatchKeyword()"
+          >
+        </div>
+
+        <!-- 카테고리 검색 결과 -->
+        <div id="batchCategoryResults" style="max-height: 350px; overflow-y: auto;"></div>
       </div>
 
-      <div class="coupang-modal-footer" style="display: flex; gap: 10px;">
-        <button id="batchSearchAllBtn" class="coupang-download-btn" onclick="batchSearchAll()" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); flex: 1;">
-          <span id="batchSearchBtnText">🔍 전체 검색</span>
-        </button>
-        <button id="batchProceedBtn" class="coupang-download-btn" onclick="proceedToCollection()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); flex: 1;" disabled>
+      <div class="coupang-modal-footer">
+        <button id="batchProceedBtn" class="coupang-download-btn" onclick="proceedToCollection()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); width: 100%;" disabled>
           <span>카테고리를 선택하세요</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 세부 카테고리 선택 모달 (간단 버전) -->
+  <div id="batchDetailModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10001; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 16px; max-width: 500px; width: 90%; max-height: 80vh; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+      <div style="padding: 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 18px;">📝 세부 카테고리 선택</h3>
+        <button onclick="closeBatchDetailModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999;">&times;</button>
+      </div>
+      <div id="batchDetailContent" style="padding: 20px; max-height: 400px; overflow-y: auto;">
+        <!-- 동적으로 생성 -->
+      </div>
+      <div style="padding: 16px 20px; border-top: 1px solid #e5e7eb;">
+        <button id="batchDetailConfirmBtn" onclick="confirmBatchDetail()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" disabled>
+          세부 카테고리를 선택하세요
         </button>
       </div>
     </div>
