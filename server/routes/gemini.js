@@ -788,6 +788,97 @@ ${detailCategory ? `상세 카테고리: ${detailCategory}` : ''}
   }
 });
 
+// 간단한 한-중 번역 사전 (의류/패션 키워드)
+const koreanToChineseDict = {
+  // 의류 종류
+  '티셔츠': 'T恤',
+  '라운드티셔츠': '圆领T恤',
+  '카라티셔츠': '有领T恤',
+  '반팔': '短袖',
+  '긴팔': '长袖',
+  '니트': '针织衫',
+  '스웨터': '毛衣',
+  '가디건': '开衫',
+  '후드': '卫衣',
+  '맨투맨': '卫衣',
+  '자켓': '夹克',
+  '코트': '外套',
+  '패딩': '羽绒服',
+  '점퍼': '夹克',
+  '블라우스': '衬衫',
+  '셔츠': '衬衫',
+  '원피스': '连衣裙',
+  '스커트': '裙子',
+  '치마': '裙子',
+  '바지': '裤子',
+  '청바지': '牛仔裤',
+  '슬랙스': '西裤',
+  '레깅스': '打底裤',
+  '조거팬츠': '运动裤',
+  '반바지': '短裤',
+  '숏팬츠': '短裤',
+  // 대상
+  '여성': '女',
+  '여자': '女',
+  '남성': '男',
+  '남자': '男',
+  '여아': '女童',
+  '남아': '男童',
+  '아동': '童装',
+  '키즈': '童装',
+  '유아': '幼儿',
+  // 악세서리
+  '목걸이': '项链',
+  '귀걸이': '耳环',
+  '반지': '戒指',
+  '팔찌': '手链',
+  '진주': '珍珠',
+  '가방': '包',
+  '백팩': '背包',
+  '숄더백': '单肩包',
+  '크로스백': '斜挎包',
+  '클러치': '手拿包',
+  '지갑': '钱包',
+  '벨트': '皮带',
+  '모자': '帽子',
+  '스카프': '围巾',
+  '머플러': '围巾',
+  '장갑': '手套',
+  '양말': '袜子',
+  // 신발
+  '신발': '鞋',
+  '운동화': '运动鞋',
+  '스니커즈': '运动鞋',
+  '구두': '皮鞋',
+  '하이힐': '高跟鞋',
+  '부츠': '靴子',
+  '샌들': '凉鞋',
+  '슬리퍼': '拖鞋',
+  // 소재/스타일
+  '캐주얼': '休闲',
+  '정장': '正装',
+  '빈티지': '复古',
+  '레트로': '复古',
+  '심플': '简约',
+  '베이직': '基础款',
+  '오버핏': '宽松',
+  '슬림핏': '修身'
+};
+
+/**
+ * 사전 기반 한-중 번역 (fallback)
+ */
+function translateWithDict(koreanText) {
+  let result = koreanText;
+
+  // 사전에 있는 키워드들을 중국어로 변환
+  for (const [korean, chinese] of Object.entries(koreanToChineseDict)) {
+    result = result.replace(new RegExp(korean, 'g'), chinese);
+  }
+
+  return result;
+}
+
 /**
  * POST /api/gemini/translate
  * 텍스트 번역 (한국어 → 중국어)
@@ -820,24 +911,77 @@ Korean text: ${text}
 
 Translated:`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const translated = response.text().trim();
+    // 재시도 로직 (최대 3번)
+    const maxRetries = 3;
+    const retryDelay = 1500;
+    let lastError = null;
 
-    console.log('[Gemini API] 번역 완료:', { original: text, translated });
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        console.log(`[Gemini API] 번역 시도 ${attempt + 1}/${maxRetries}...`);
 
-    res.json({
-      success: true,
-      translated: translated
-    });
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const translated = response.text().trim();
 
-  } catch (error) {
-    console.error('[Gemini API] 번역 오류:', error);
+        console.log('[Gemini API] 번역 완료:', { original: text, translated });
+
+        return res.json({
+          success: true,
+          translated: translated
+        });
+
+      } catch (error) {
+        lastError = error;
+        const errorMessage = error.message || String(error);
+        console.error(`[Gemini API] 번역 시도 ${attempt + 1} 실패:`, errorMessage);
+
+        // 500 에러 또는 일시적 오류인 경우 재시도
+        if ((errorMessage.includes('500') || errorMessage.includes('INTERNAL') ||
+             errorMessage.includes('503') || errorMessage.includes('UNAVAILABLE')) &&
+            attempt < maxRetries - 1) {
+          console.log(`[Gemini API] ${retryDelay / 1000}초 후 재시도...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          continue;
+        }
+        break;
+      }
+    }
+
+    // Gemini 실패 시 사전 기반 번역 사용
+    console.log('[Gemini API] Gemini 실패, 사전 기반 번역 사용');
+    const dictTranslated = translateWithDict(text);
+
+    // 사전 번역 결과에 중국어가 포함되어 있으면 성공으로 처리
+    const hasChineseChars = /[\u4e00-\u9fff]/.test(dictTranslated);
+
+    if (hasChineseChars) {
+      console.log('[Gemini API] 사전 번역 결과:', { original: text, translated: dictTranslated });
+      return res.json({
+        success: true,
+        translated: dictTranslated
+      });
+    }
+
+    // 사전에도 없으면 에러 반환
+    console.error('[Gemini API] 번역 완전 실패:', lastError);
 
     res.status(500).json({
       success: false,
       message: '번역 중 오류가 발생했습니다.',
-      translated: req.body.text // 실패 시 원본 반환
+      translated: dictTranslated // 부분 번역이라도 반환
+    });
+
+  } catch (error) {
+    console.error('[Gemini API] 번역 치명적 오류:', error);
+
+    // 최후의 수단: 사전 번역
+    const dictTranslated = translateWithDict(req.body.text || '');
+
+    res.status(500).json({
+      success: false,
+      message: '번역 중 오류가 발생했습니다.',
+      translated: dictTranslated
     });
   }
 });
