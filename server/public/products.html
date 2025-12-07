@@ -5491,54 +5491,63 @@
         const categoryId = categoryMatch[1];
         console.log('📂 카테고리 ID:', categoryId, '이름:', categoryName);
 
-        // 3. 견적서 다운로드
+        // 3. 이미 다운로드된 Excel 데이터 사용 (batchCategoryState에서)
         if (footer) {
           footer.innerHTML = `
-            <div style="color: #6d28d9; font-weight: 600;">📥 견적서 템플릿 다운로드 중...</div>
+            <div style="color: #6d28d9; font-weight: 600;">📋 견적서 데이터 확인 중...</div>
           `;
         }
 
-        const downloadResponse = await sendMessageToExtension('downloadQuotation', {
-          action: 'downloadQuotation',
-          categoryIds: [categoryId],
-          categories: [{ id: categoryId, name: categoryName }]
+        // batchCategoryState.completedCategories에서 Excel 데이터 찾기
+        let excelData = [];
+        let storedDetailSelections = {};
+        let foundCategory = null;
+
+        console.log('🔍 저장된 카테고리 데이터 검색:', batchCategoryState.completedCategories.size, '개');
+
+        batchCategoryState.completedCategories.forEach((data, storedCategoryId) => {
+          console.log(`   검사: ${storedCategoryId}`, data.category?.name);
+          if (storedCategoryId === categoryId || data.excelData?.length > 0) {
+            if (!foundCategory) {
+              foundCategory = data;
+              excelData = data.excelData || [];
+              storedDetailSelections = data.detailSelections || {};
+              console.log('   ✅ 매칭 발견! excelData:', excelData.length, '개');
+            }
+          }
         });
 
-        if (!downloadResponse.success) {
-          throw new Error(downloadResponse.error || '견적서 다운로드 실패');
+        // 저장된 데이터가 없으면 첫 번째 완료된 카테고리 사용
+        if (excelData.length === 0 && batchCategoryState.completedCategories.size > 0) {
+          const firstEntry = batchCategoryState.completedCategories.values().next().value;
+          if (firstEntry) {
+            excelData = firstEntry.excelData || [];
+            storedDetailSelections = firstEntry.detailSelections || {};
+            console.log('📋 첫 번째 카테고리 데이터 사용:', excelData.length, '개');
+          }
         }
-
-        console.log('✅ 견적서 다운로드 완료:', downloadResponse);
-        console.log('📋 excelData:', downloadResponse.excelData);
-        console.log('📋 excelCount:', downloadResponse.excelCount);
-
-        // 4. detailCategoryState 설정
-        const excelData = downloadResponse.excelData || [];
 
         if (excelData.length === 0) {
-          console.error('❌ excelData가 비어있음! downloadResponse:', JSON.stringify(downloadResponse, null, 2));
-          throw new Error('견적서 Excel 파일을 찾을 수 없습니다. 쿠팡에 로그인되어 있는지 확인해주세요.');
+          console.error('❌ 저장된 Excel 데이터 없음!');
+          console.error('   batchCategoryState:', batchCategoryState);
+          throw new Error('견적서 Excel 데이터가 없습니다. 카테고리 선택 단계에서 문제가 발생했습니다.');
         }
 
-        console.log('📋 excelData 상세:', excelData.map(e => ({
+        console.log('📋 사용할 excelData:', excelData.map(e => ({
           filename: e.filename,
           dataIndex: e.dataIndex,
           dropdownOptions: e.dropdownOptions?.length || 0
         })));
 
+        // 4. detailCategoryState 설정 (저장된 데이터 사용)
         detailCategoryState.excelData = excelData;
+        detailCategoryState.selections = storedDetailSelections;
 
-        // 첫 번째 옵션 자동 선택 (있는 경우)
+        // detailSelections에서 세부 카테고리 추출
         let detailCategory = '';
-        excelData.forEach((item, index) => {
-          if (item.dropdownOptions && item.dropdownOptions.length > 0) {
-            detailCategoryState.selections[index] = {
-              optionIndex: 0,
-              optionValue: item.dropdownOptions[0]
-            };
-            if (!detailCategory) {
-              detailCategory = item.dropdownOptions[0];
-            }
+        Object.values(storedDetailSelections).forEach(sel => {
+          if (!detailCategory && sel.optionValue) {
+            detailCategory = sel.optionValue;
           }
         });
 
