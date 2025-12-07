@@ -2068,7 +2068,8 @@ async function handleCoupangUpload(data) {
 
 /**
  * 옵션 이미지 파일명 가져오기 (대표이미지 파일명)
- * Python의 get_option_image_filename() 함수와 동일한 로직
+ * 이미지 다운로드 로직과 동일한 우선순위:
+ * option.thumbnail → option.imageLink → option.option1Img → product.mainImage → product.images[0]
  */
 function getOptionImageFilename(option, product, productIndex) {
   // URL에서 파일명과 확장자 추출하는 헬퍼 함수
@@ -2097,21 +2098,30 @@ function getOptionImageFilename(option, product, productIndex) {
   if (option && option.thumbnail) {
     const result = extractFilenameFromUrl(option.thumbnail);
     if (result) return result;
-    return option.thumbnail;
   }
 
   // 2. option의 imageLink 필드 사용 (fallback)
   if (option && option.imageLink) {
     const result = extractFilenameFromUrl(option.imageLink);
     if (result) return result;
-    return option.imageLink;
   }
 
-  // 3. product의 mainImage 사용 (fallback)
+  // 3. option의 option1Img 필드 사용 (fallback) - 다운로드 로직과 일치
+  if (option && option.option1Img) {
+    const result = extractFilenameFromUrl(option.option1Img);
+    if (result) return result;
+  }
+
+  // 4. product의 mainImage 사용 (fallback)
   if (product && product.mainImage) {
     const result = extractFilenameFromUrl(product.mainImage);
     if (result) return result;
-    return product.mainImage;
+  }
+
+  // 5. product의 첫 번째 추가 이미지 사용 (fallback) - 다운로드 로직과 일치
+  if (product && product.images && product.images.length > 0 && product.images[0]) {
+    const result = extractFilenameFromUrl(product.images[0]);
+    if (result) return result;
   }
 
   return '';
