@@ -5440,7 +5440,7 @@
       document.getElementById('batchProgressModal').style.display = 'none';
     }
 
-    // 일괄 수집 후 쿠팡 등록 시작 - 풀 자동화
+    // 일괄 수집 후 쿠팡 등록 시작 - 풀 자동화 (카테고리별 분리 처리)
     async function startBatchAIProcessing() {
       const productIds = window.batchCollectedProductIds || [];
 
@@ -5471,146 +5471,169 @@
         }
 
         console.log('📦 상품 데이터 로드 시작:', productIds);
-        const productsData = await loadFullProductData(productIds);
+        const allProductsData = await loadFullProductData(productIds);
 
-        if (productsData.length === 0) {
+        if (allProductsData.length === 0) {
           throw new Error('상품 데이터를 불러올 수 없습니다.');
         }
 
-        console.log('✅ 상품 데이터 로드 완료:', productsData.length, '개');
+        console.log('✅ 상품 데이터 로드 완료:', allProductsData.length, '개');
 
-        // 2. 카테고리 ID 추출 (첫 번째 상품의 categoryName에서)
-        const firstProduct = productsData[0];
-        const categoryName = firstProduct.categoryName || '';
-        const categoryMatch = categoryName.match(/\((\d+)\)$/);
+        // 2. 상품을 카테고리별로 그룹화
+        const productsByCategory = new Map();
 
-        if (!categoryMatch) {
-          throw new Error('상품에서 카테고리 ID를 찾을 수 없습니다: ' + categoryName);
+        for (const product of allProductsData) {
+          const categoryName = product.categoryName || '';
+          const categoryMatch = categoryName.match(/\((\d+)\)$/);
+          const categoryId = categoryMatch ? categoryMatch[1] : 'unknown';
+
+          if (!productsByCategory.has(categoryId)) {
+            productsByCategory.set(categoryId, {
+              categoryId,
+              categoryName,
+              products: []
+            });
+          }
+          productsByCategory.get(categoryId).products.push(product);
         }
 
-        const categoryId = categoryMatch[1];
-        console.log('📂 카테고리 ID:', categoryId, '이름:', categoryName);
+        console.log('📂 카테고리별 그룹화:', productsByCategory.size, '개 카테고리');
+        productsByCategory.forEach((data, catId) => {
+          console.log(`   - ${catId}: ${data.products.length}개 상품`);
+        });
 
-        // 3. 이미 다운로드된 Excel 데이터 사용 (batchCategoryState에서)
-        if (footer) {
-          footer.innerHTML = `
-            <div style="color: #6d28d9; font-weight: 600;">📋 견적서 데이터 확인 중...</div>
-          `;
-        }
+        // 3. 각 카테고리별로 순차 처리
+        let categoryIndex = 0;
+        const totalCategories = productsByCategory.size;
 
-        // batchCategoryState.completedCategories에서 Excel 데이터 찾기
-        let excelData = [];
-        let storedDetailSelections = {};
-        let foundCategory = null;
+        for (const [categoryId, categoryData] of productsByCategory) {
+          categoryIndex++;
+          console.log(`\n🚀 [${categoryIndex}/${totalCategories}] 카테고리 처리: ${categoryData.categoryName}`);
 
-        console.log('🔍 저장된 카테고리 데이터 검색:', batchCategoryState.completedCategories.size, '개');
+          if (footer) {
+            footer.innerHTML = `
+              <div style="color: #6d28d9; font-weight: 600;">
+                📦 [${categoryIndex}/${totalCategories}] ${categoryData.categoryName.split('>').pop().replace(/\(\d+\)$/, '').trim()} 처리 중...
+              </div>
+            `;
+          }
 
-        batchCategoryState.completedCategories.forEach((data, storedCategoryId) => {
-          console.log(`   검사: ${storedCategoryId}`, data.category?.name);
-          if (storedCategoryId === categoryId || data.excelData?.length > 0) {
-            if (!foundCategory) {
-              foundCategory = data;
+          // batchCategoryState.completedCategories에서 해당 카테고리의 Excel 데이터 찾기
+          let excelData = [];
+          let storedDetailSelections = {};
+
+          console.log('🔍 저장된 카테고리 데이터 검색:', batchCategoryState.completedCategories.size, '개');
+
+          // 정확히 매칭되는 카테고리 찾기
+          batchCategoryState.completedCategories.forEach((data, storedCategoryId) => {
+            console.log(`   검사: ${storedCategoryId} vs ${categoryId}`, data.category?.name);
+            if (storedCategoryId === categoryId) {
               excelData = data.excelData || [];
               storedDetailSelections = data.detailSelections || {};
-              console.log('   ✅ 매칭 발견! excelData:', excelData.length, '개');
+              console.log(`   ✅ 매칭! excelData: ${excelData.length}개`);
             }
-          }
-        });
-
-        // 저장된 데이터가 없으면 첫 번째 완료된 카테고리 사용
-        if (excelData.length === 0 && batchCategoryState.completedCategories.size > 0) {
-          const firstEntry = batchCategoryState.completedCategories.values().next().value;
-          if (firstEntry) {
-            excelData = firstEntry.excelData || [];
-            storedDetailSelections = firstEntry.detailSelections || {};
-            console.log('📋 첫 번째 카테고리 데이터 사용:', excelData.length, '개');
-          }
-        }
-
-        if (excelData.length === 0) {
-          console.error('❌ 저장된 Excel 데이터 없음!');
-          console.error('   batchCategoryState:', batchCategoryState);
-          throw new Error('견적서 Excel 데이터가 없습니다. 카테고리 선택 단계에서 문제가 발생했습니다.');
-        }
-
-        console.log('📋 사용할 excelData:', excelData.map(e => ({
-          filename: e.filename,
-          dataIndex: e.dataIndex,
-          dropdownOptions: e.dropdownOptions?.length || 0
-        })));
-
-        // 4. detailCategoryState 설정 (저장된 데이터 사용)
-        detailCategoryState.excelData = excelData;
-        detailCategoryState.selections = storedDetailSelections;
-
-        // detailSelections에서 세부 카테고리 추출
-        let detailCategory = '';
-        Object.values(storedDetailSelections).forEach(sel => {
-          if (!detailCategory && sel.optionValue) {
-            detailCategory = sel.optionValue;
-          }
-        });
-
-        // 5. AI로 태그, 사이즈, 무게 등 자동 생성
-        if (footer) {
-          footer.innerHTML = `
-            <div style="color: #6d28d9; font-weight: 600;">🤖 AI가 상품 정보 생성 중...</div>
-          `;
-        }
-
-        console.log('🤖 AI 상품 정보 생성 요청:', categoryName, detailCategory);
-
-        try {
-          const productInfoResponse = await authFetch('/api/gemini/generate-product-info', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              categoryName: categoryName,
-              detailCategory: detailCategory
-            })
           });
 
-          if (productInfoResponse.ok) {
-            const productInfo = await productInfoResponse.json();
-            console.log('✅ AI 상품 정보 생성 완료:', productInfo);
+          // 매칭 안 되면 이름으로 찾기
+          if (excelData.length === 0) {
+            batchCategoryState.completedCategories.forEach((data, storedCategoryId) => {
+              if (excelData.length === 0 && data.category?.name?.includes(categoryId)) {
+                excelData = data.excelData || [];
+                storedDetailSelections = data.detailSelections || {};
+                console.log(`   ✅ 이름 매칭! excelData: ${excelData.length}개`);
+              }
+            });
+          }
 
-            detailCategoryState.tags = productInfo.tags || [];
-            detailCategoryState.size = productInfo.size || { width: 300, height: 200, depth: 50 };
-            detailCategoryState.weight = String(productInfo.weight || 500);
-            detailCategoryState.handlingCare = productInfo.handlingCare || '해당사항없음';
-            detailCategoryState.season = productInfo.season || '사계절';
-          } else {
-            console.warn('⚠️ AI 상품 정보 생성 실패, 기본값 사용');
+          if (excelData.length === 0) {
+            console.error(`❌ 카테고리 ${categoryId}의 Excel 데이터 없음, 스킵`);
+            continue;
+          }
+
+          // 4. detailCategoryState 설정
+          detailCategoryState.excelData = excelData;
+          detailCategoryState.selections = storedDetailSelections;
+
+          // detailSelections에서 세부 카테고리 추출
+          let detailCategory = '';
+          Object.values(storedDetailSelections).forEach(sel => {
+            if (!detailCategory && sel.optionValue) {
+              detailCategory = sel.optionValue;
+            }
+          });
+
+          // 5. AI로 태그, 사이즈, 무게 등 자동 생성
+          if (footer) {
+            footer.innerHTML = `
+              <div style="color: #6d28d9; font-weight: 600;">
+                🤖 [${categoryIndex}/${totalCategories}] AI 상품 정보 생성 중...
+              </div>
+            `;
+          }
+
+          console.log('🤖 AI 상품 정보 생성 요청:', categoryData.categoryName, detailCategory);
+
+          try {
+            const productInfoResponse = await authFetch('/api/gemini/generate-product-info', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                categoryName: categoryData.categoryName,
+                detailCategory: detailCategory
+              })
+            });
+
+            if (productInfoResponse.ok) {
+              const productInfo = await productInfoResponse.json();
+              console.log('✅ AI 상품 정보 생성 완료:', productInfo);
+
+              detailCategoryState.tags = productInfo.tags || [];
+              detailCategoryState.size = productInfo.size || { width: 300, height: 200, depth: 50 };
+              detailCategoryState.weight = String(productInfo.weight || 500);
+              detailCategoryState.handlingCare = productInfo.handlingCare || '해당사항없음';
+              detailCategoryState.season = productInfo.season || '사계절';
+            } else {
+              console.warn('⚠️ AI 상품 정보 생성 실패, 기본값 사용');
+              detailCategoryState.tags = [];
+              detailCategoryState.size = { width: 300, height: 200, depth: 50 };
+              detailCategoryState.weight = '500';
+              detailCategoryState.handlingCare = '해당사항없음';
+              detailCategoryState.season = '사계절';
+            }
+          } catch (aiError) {
+            console.warn('⚠️ AI 상품 정보 생성 오류:', aiError.message, '기본값 사용');
             detailCategoryState.tags = [];
             detailCategoryState.size = { width: 300, height: 200, depth: 50 };
             detailCategoryState.weight = '500';
             detailCategoryState.handlingCare = '해당사항없음';
             detailCategoryState.season = '사계절';
           }
-        } catch (aiError) {
-          console.warn('⚠️ AI 상품 정보 생성 오류:', aiError.message, '기본값 사용');
-          detailCategoryState.tags = [];
-          detailCategoryState.size = { width: 300, height: 200, depth: 50 };
-          detailCategoryState.weight = '500';
-          detailCategoryState.handlingCare = '해당사항없음';
-          detailCategoryState.season = '사계절';
+
+          // 해당 카테고리의 상품만 저장
+          window.selectedFullProductsData = categoryData.products;
+
+          // 6. 견적서 작성 시작
+          if (footer) {
+            footer.innerHTML = `
+              <div style="color: #6d28d9; font-weight: 600;">
+                📝 [${categoryIndex}/${totalCategories}] 견적서 작성 및 업로드 중...
+              </div>
+            `;
+          }
+
+          // progressModal 열기 (fillQuotationExcels에서 사용)
+          showProgressModal();
+
+          // fillQuotationExcels 호출 - 자동으로 업로드까지 진행됨
+          await fillQuotationExcelsForBatch();
+
+          console.log(`✅ 카테고리 ${categoryIndex}/${totalCategories} 완료`);
+
+          // 카테고리 간 딜레이 (여러 카테고리 처리 시)
+          if (categoryIndex < totalCategories) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
         }
-
-        // 전체 상품 데이터 저장
-        window.selectedFullProductsData = productsData;
-
-        // 6. 견적서 작성 시작
-        if (footer) {
-          footer.innerHTML = `
-            <div style="color: #6d28d9; font-weight: 600;">📝 견적서 작성 중...</div>
-          `;
-        }
-
-        // progressModal 열기 (fillQuotationExcels에서 사용)
-        showProgressModal();
-
-        // 6. fillQuotationExcels 호출 - 자동으로 업로드까지 진행됨
-        await fillQuotationExcelsForBatch();
 
         // 완료 - batchProgressModal 닫기
         closeBatchProgressModal();
