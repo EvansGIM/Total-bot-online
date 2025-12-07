@@ -5370,12 +5370,8 @@
 
           if (response && response.success) {
             console.log('✅ 일괄 수집 완료:', response);
+            // updateBatchProgress('completed', response)에서 startBatchAIProcessing 호출하므로 여기서는 호출 안함
             updateBatchProgress('completed', response);
-            // 자동으로 쿠팡 등록 시작
-            if (response.collectedProductIds && response.collectedProductIds.length > 0) {
-              console.log('🚀 자동 쿠팡 등록 시작...');
-              setTimeout(() => startBatchAIProcessing(), 1000);
-            }
           } else {
             console.error('❌ 일괄 수집 실패:', response);
             updateBatchProgress('error', response);
@@ -5385,6 +5381,7 @@
           // 타임아웃이더라도 실시간 프로그레스로 수집된 상품이 있으면 자동 등록 진행
           if (window.batchCollectedProductIds && window.batchCollectedProductIds.length > 0) {
             console.log('⚠️ 타임아웃이지만 수집된 상품 있음, 자동 등록 진행:', window.batchCollectedProductIds.length, '개');
+            // updateBatchProgress('completed', ...)에서 startBatchAIProcessing 호출하므로 여기서는 호출 안함
             updateBatchProgress('completed', {
               success: true,
               completedProducts: window.batchCollectedProductIds.length,
@@ -5393,7 +5390,6 @@
               collectedProductIds: window.batchCollectedProductIds,
               errors: []
             });
-            setTimeout(() => startBatchAIProcessing(), 1000);
           } else {
             updateBatchProgress('error', { message: extErr.message });
           }
