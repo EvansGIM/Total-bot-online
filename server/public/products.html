@@ -5471,7 +5471,10 @@
             const response = await authFetch('/api/products/' + productId);
             if (response.ok) {
               const data = await response.json();
-              productData.push(data);
+              // 개별 상품 업로드와 동일하게 product 추출
+              const product = data.product || data;
+              productData.push(product);
+              console.log(`   ✅ 상품 로드 완료: ${productId}, 옵션 ${product.results?.length || 0}개`);
             }
           } catch (e) {
             console.log('⚠️ 상품 로드 실패:', productId, e.message);
