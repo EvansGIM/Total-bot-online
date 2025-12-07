@@ -3774,7 +3774,8 @@
     });
 
     // Extension으로 메시지 전송 (Promise 기반)
-    function sendMessageToExtension(action, payload) {
+    // timeoutMs: 타임아웃 (기본 4분, 0이면 무제한)
+    function sendMessageToExtension(action, payload, timeoutMs = 240000) {
       return new Promise((resolve, reject) => {
         if (!extensionId) {
           detectExtension();
@@ -3785,11 +3786,16 @@
           return;
         }
 
-        console.log('📮 Sending message to extension:', action);
+        console.log('📮 Sending message to extension:', action, timeoutMs > 0 ? `(타임아웃: ${timeoutMs/1000}초)` : '(타임아웃 없음)');
+
+        let resolved = false;
 
         try {
           // externally_connectable을 사용한 직접 통신
           chrome.runtime.sendMessage(extensionId, payload, (response) => {
+            if (resolved) return; // 이미 타임아웃으로 reject됨
+            resolved = true;
+
             if (chrome.runtime.lastError) {
               console.error('❌ Extension Error:', chrome.runtime.lastError);
               // Extension ID가 잘못되었을 수 있으므로 삭제
@@ -3803,10 +3809,15 @@
             resolve(response);
           });
 
-          // 타임아웃 (4분 = 240초) - 쿠팡 검증이 최대 3분 걸리므로 여유있게 설정
-          setTimeout(() => {
-            reject(new Error('Extension 응답 타임아웃 (4분)'));
-          }, 240000);
+          // 타임아웃 설정 (0이면 무제한)
+          if (timeoutMs > 0) {
+            setTimeout(() => {
+              if (!resolved) {
+                resolved = true;
+                reject(new Error(`Extension 응답 타임아웃 (${Math.floor(timeoutMs/60000)}분)`));
+              }
+            }, timeoutMs);
+          }
 
         } catch (error) {
           console.error('❌ Send message error:', error);
@@ -5350,12 +5361,12 @@
         // 프로그레스 모달 열기
         openBatchProgressModal(collectionData);
 
-        // 익스텐션에 일괄 수집 요청
+        // 익스텐션에 일괄 수집 요청 (타임아웃 없음 - 수집에 오래 걸릴 수 있음)
         try {
           const response = await sendMessageToExtension('batch1688Collect', {
             action: 'batch1688Collect',
             categories: collectionData
-          });
+          }, 0);  // 타임아웃 무제한
 
           if (response && response.success) {
             console.log('✅ 일괄 수집 완료:', response);
@@ -5515,7 +5526,7 @@
               address: settings.address
             }
           }
-        });
+        }, 600000);  // 10분 타임아웃 (쿠팡 업로드 시간 고려)
 
         console.log('✅ 쿠팡 업로드 응답:', response);
 
