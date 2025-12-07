@@ -5449,7 +5449,7 @@
         const productData = [];
         for (const productId of productIds) {
           try {
-            const response = await authenticatedFetch('/api/products/' + productId);
+            const response = await authFetch('/api/products/' + productId);
             if (response.ok) {
               const data = await response.json();
               productData.push(data);
