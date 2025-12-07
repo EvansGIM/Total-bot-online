@@ -3620,15 +3620,8 @@ async function handleFillQuotationExcels(data) {
         // 전체 완료
         await updateProgress('complete', 'completed');
 
-        // 3초 후 모달 닫기
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        const allTabs = await chrome.tabs.query({});
-        const localhostTab = allTabs.find(tab => tab.url && tab.url.includes('totalbot.cafe24.com'));
-        if (localhostTab) {
-          await chrome.tabs.sendMessage(localhostTab.id, {
-            action: 'closeProgressModal'
-          });
-        }
+        // 모달 닫기는 호출자(startBatchAIProcessing)에서 처리
+        // 배치 모드에서는 여러 카테고리를 처리하므로 여기서 닫으면 안됨
       } else if (uploadResponse && uploadResponse.rejected) {
         // 견적서 반려됨
         console.log('❌ 견적서 반려됨:', uploadResponse);

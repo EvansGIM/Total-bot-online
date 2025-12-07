@@ -5629,14 +5629,35 @@
 
           console.log(`✅ 카테고리 ${categoryIndex}/${totalCategories} 완료`);
 
-          // 카테고리 간 딜레이 (여러 카테고리 처리 시)
+          // progressModal 닫기 (각 카테고리 완료 후)
+          hideProgressModal();
+
+          // 카테고리 간 딜레이 (여러 카테고리 처리 시 - 쿠팡 페이지 리셋 대기)
           if (categoryIndex < totalCategories) {
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            if (footer) {
+              footer.innerHTML = `
+                <div style="color: #6d28d9; font-weight: 600;">
+                  ⏳ 다음 카테고리 준비 중... (5초)
+                </div>
+              `;
+            }
+            await new Promise(resolve => setTimeout(resolve, 5000));
           }
         }
 
-        // 완료 - batchProgressModal 닫기
+        // 모든 카테고리 완료
+        if (footer) {
+          footer.innerHTML = `
+            <div style="color: #10b981; font-weight: 600;">
+              🎉 모든 카테고리 업로드 완료! (${totalCategories}개)
+            </div>
+          `;
+        }
+
+        // 3초 후 batchProgressModal 닫기
+        await new Promise(resolve => setTimeout(resolve, 3000));
         closeBatchProgressModal();
+        hideProgressModal();
         loadProducts();
 
       } catch (error) {
