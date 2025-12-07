@@ -5622,6 +5622,33 @@
         const selectedProductsData = window.selectedFullProductsData || [];
         console.log(`🛍️  선택한 상품 ${selectedProductsData.length}개`);
 
+        // 64MB 제한 방지: 상품 데이터에서 큰 필드 제거
+        const lightenedProducts = selectedProductsData.map(product => {
+          const lite = { ...product };
+          // detailHtml 제거 (매우 큼 - base64 이미지 포함)
+          delete lite.detailHtml;
+          delete lite.detailPageHtml;
+          // base64 이미지 제거
+          if (lite.results) {
+            lite.results = lite.results.map(r => {
+              const rLite = { ...r };
+              if (rLite.imageLink && rLite.imageLink.startsWith('data:')) {
+                rLite.imageLink = '[base64-removed]';
+              }
+              if (rLite.titleImage) {
+                rLite.titleImage = rLite.titleImage.map(img =>
+                  img && img.startsWith('data:') ? '[base64-removed]' : img
+                );
+              }
+              return rLite;
+            });
+          }
+          return lite;
+        });
+
+        const dataSize = JSON.stringify(lightenedProducts).length;
+        console.log(`📦 경량화된 상품 데이터 크기: ${(dataSize / 1024 / 1024).toFixed(2)} MB`);
+
         // 파일 정보 매핑
         const filesData = detailCategoryState.excelData.map((item, index) => {
           const selection = detailCategoryState.selections[index];
@@ -5634,7 +5661,7 @@
 
         console.log('📋 확장 프로그램으로 전송할 데이터:', {
           filesData,
-          products: selectedProductsData.length,
+          products: lightenedProducts.length,
           tags: detailCategoryState.tags,
           size: detailCategoryState.size,
           weight: detailCategoryState.weight,
@@ -5646,7 +5673,7 @@
         const response = await sendMessageToExtension('fillQuotationExcels', {
           action: 'fillQuotationExcels',
           filesData: filesData,
-          products: selectedProductsData,
+          products: lightenedProducts,
           searchTags: detailCategoryState.tags || [],
           size: detailCategoryState.size || { width: '', height: '', depth: '' },
           weight: detailCategoryState.weight || '',

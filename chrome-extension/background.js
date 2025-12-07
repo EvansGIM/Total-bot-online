@@ -5737,16 +5737,15 @@ async function handleBatch1688Collect(categories, sender) {
   // 프로그레스 업데이트 함수 (웹페이지로 전송)
   async function updateProgress(progress) {
     try {
-      // localhost 탭 찾기
-      let tabs = await chrome.tabs.query({ url: '*://localhost:*/*' });
+      // localhost 탭과 cafe24 탭 모두 찾기
+      const localhostTabs = await chrome.tabs.query({ url: '*://localhost:*/*' });
+      const cafe24Tabs = await chrome.tabs.query({ url: '*://totalbot.cafe24.com/*' });
+      const allTabs = [...localhostTabs, ...cafe24Tabs];
 
-      // localhost가 없으면 cafe24 탭 찾기
-      if (tabs.length === 0) {
-        tabs = await chrome.tabs.query({ url: '*://totalbot.cafe24.com/*' });
-      }
+      console.log(`📊 프로그레스 전송: ${progress.type} → ${allTabs.length}개 탭`);
 
-      if (tabs.length > 0) {
-        for (const tab of tabs) {
+      if (allTabs.length > 0) {
+        for (const tab of allTabs) {
           try {
             await chrome.tabs.sendMessage(tab.id, {
               action: 'batchCollectProgress',
@@ -5756,6 +5755,8 @@ async function handleBatch1688Collect(categories, sender) {
             // 메시지 전송 실패 무시
           }
         }
+      } else {
+        console.log('⚠️ 프로그레스 수신 탭 없음');
       }
     } catch (e) {
       console.log('⚠️ 프로그레스 업데이트 실패:', e.message);
