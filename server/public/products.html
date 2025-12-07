@@ -5509,9 +5509,23 @@
         }
 
         console.log('✅ 견적서 다운로드 완료:', downloadResponse);
+        console.log('📋 excelData:', downloadResponse.excelData);
+        console.log('📋 excelCount:', downloadResponse.excelCount);
 
         // 4. detailCategoryState 설정
         const excelData = downloadResponse.excelData || [];
+
+        if (excelData.length === 0) {
+          console.error('❌ excelData가 비어있음! downloadResponse:', JSON.stringify(downloadResponse, null, 2));
+          throw new Error('견적서 Excel 파일을 찾을 수 없습니다. 쿠팡에 로그인되어 있는지 확인해주세요.');
+        }
+
+        console.log('📋 excelData 상세:', excelData.map(e => ({
+          filename: e.filename,
+          dataIndex: e.dataIndex,
+          dropdownOptions: e.dropdownOptions?.length || 0
+        })));
+
         detailCategoryState.excelData = excelData;
 
         // 첫 번째 옵션 자동 선택 (있는 경우)
