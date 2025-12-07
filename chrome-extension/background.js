@@ -1773,6 +1773,15 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
     return true;
   }
 
+  // 상품 ID 목록으로 쿠팡 업로드 (메시지 크기 제한 방지)
+  if (message.action === 'uploadToCoupangByIds') {
+    incrementCoupangOperation();
+    handleCoupangUploadByIds(message.data)
+      .then(result => sendResponse(result))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+
   if (message.action === 'getCoupangSettings') {
     chrome.storage.local.get(['totalbotSettings'], (result) => {
       const settings = result.totalbotSettings || {};
@@ -1889,6 +1898,58 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
     return true;
   }
 });
+
+/**
+ * 상품 ID 목록으로 쿠팡 업로드 (메시지 크기 제한 방지)
+ * fetchFromAuthTab으로 서버에서 상품 데이터를 직접 가져옴
+ */
+async function handleCoupangUploadByIds(data) {
+  try {
+    console.log('🔄 Coupang upload by IDs 시작...');
+    console.log('📦 상품 ID 목록:', data.productIds);
+
+    const productIds = data.productIds;
+    const settings = data.settings;
+
+    if (!productIds || productIds.length === 0) {
+      throw new Error('상품 ID 목록이 없습니다.');
+    }
+
+    // 서버에서 상품 데이터 가져오기
+    const products = [];
+    for (const productId of productIds) {
+      console.log(`📥 상품 로드 중: ${productId}`);
+      const productResponse = await fetchFromAuthTab(
+        `http://localhost:4000/api/products/${productId}`,
+        { method: 'GET' }
+      );
+
+      if (productResponse && (productResponse.product || productResponse.id)) {
+        const product = productResponse.product || productResponse;
+        products.push(product);
+        console.log(`   ✅ 로드 완료: ${product.title?.substring(0, 30) || productId}`);
+      } else {
+        console.log(`   ⚠️ 로드 실패: ${productId}`);
+      }
+    }
+
+    if (products.length === 0) {
+      throw new Error('상품 데이터를 로드할 수 없습니다.');
+    }
+
+    console.log(`✅ ${products.length}개 상품 로드 완료, 쿠팡 업로드 시작...`);
+
+    // 기존 handleCoupangUpload 로직으로 업로드
+    return await handleCoupangUpload({
+      products: products,
+      settings: settings
+    });
+
+  } catch (error) {
+    console.error('❌ Coupang upload by IDs 오류:', error);
+    return { success: false, error: error.message };
+  }
+}
 
 /**
  * 쿠팡 자동 업로드 처리
