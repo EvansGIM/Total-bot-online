@@ -5630,7 +5630,7 @@
           console.log(`✅ 카테고리 ${categoryIndex}/${totalCategories} 완료`);
 
           // progressModal 닫기 (각 카테고리 완료 후)
-          hideProgressModal();
+          closeProgressModal();
 
           // 카테고리 간 딜레이 (여러 카테고리 처리 시 - 쿠팡 페이지 리셋 대기)
           if (categoryIndex < totalCategories) {
@@ -5657,7 +5657,7 @@
         // 3초 후 batchProgressModal 닫기
         await new Promise(resolve => setTimeout(resolve, 3000));
         closeBatchProgressModal();
-        hideProgressModal();
+        closeProgressModal();
         loadProducts();
 
       } catch (error) {
