@@ -5835,32 +5835,38 @@ async function handleBatch1688Collect(categories, sender) {
         }
 
         const productLinks = listResponse.data.results;
-        const collectCount = Math.min(category.productCount || 10, productLinks.length);
+        const targetCount = category.productCount || 10;  // 원하는 수집 수량
+        const availableCount = productLinks.length;  // 검색 결과에서 찾은 상품 수
 
-        console.log(`✅ 상품 ${productLinks.length}개 발견, ${collectCount}개 수집 예정`);
+        console.log(`✅ 상품 ${availableCount}개 발견, ${targetCount}개 수집 목표`);
 
         await updateProgress({
           type: 'products_found',
           categoryIndex: catIdx,
           categoryName: category.categoryName,
-          foundCount: productLinks.length,
-          collectCount: collectCount
+          foundCount: availableCount,
+          collectCount: targetCount
         });
 
-        // 3. 각 상품 수집
-        for (let prodIdx = 0; prodIdx < collectCount; prodIdx++) {
-          const productInfo = productLinks[prodIdx];
+        // 3. 각 상품 수집 (목표 수량 달성 또는 모든 상품 시도할 때까지)
+        let successCount = 0;  // 성공한 수집 수
+        let attemptIndex = 0;  // 시도한 상품 인덱스
+
+        while (successCount < targetCount && attemptIndex < availableCount) {
+          const productInfo = productLinks[attemptIndex];
           const productUrl = productInfo.link;
 
-          console.log(`\n  🛍️ [${prodIdx + 1}/${collectCount}] 상품 수집:`, productUrl?.substring(0, 50) + '...');
+          console.log(`\n  🛍️ [${successCount + 1}/${targetCount}] 상품 수집 (시도 ${attemptIndex + 1}/${availableCount}):`, productUrl?.substring(0, 50) + '...');
 
           await updateProgress({
             type: 'product_start',
             categoryIndex: catIdx,
             categoryName: category.categoryName,
-            productIndex: prodIdx,
-            totalProducts: collectCount,
-            productUrl: productUrl
+            productIndex: successCount,
+            totalProducts: targetCount,
+            productUrl: productUrl,
+            attemptIndex: attemptIndex,
+            availableCount: availableCount
           });
 
           try {
@@ -5898,13 +5904,15 @@ async function handleBatch1688Collect(categories, sender) {
             }
 
             if (!productResponse || !productResponse.success || !productResponse.data) {
-              console.log('⚠️ 상품 추출 실패:', productResponse?.error);
+              console.log('⚠️ 상품 추출 실패:', productResponse?.error, '→ 다음 상품 시도');
               await updateProgress({
                 type: 'product_error',
                 categoryIndex: catIdx,
-                productIndex: prodIdx,
+                productIndex: successCount,
+                attemptIndex: attemptIndex,
                 error: productResponse?.error || '상품 데이터 추출 실패'
               });
+              attemptIndex++;
               continue;
             }
 
@@ -5927,13 +5935,15 @@ async function handleBatch1688Collect(categories, sender) {
             console.log('  📥 저장 응답:', JSON.stringify(saveResponse)?.substring(0, 200));
 
             if (!saveResponse || !saveResponse.success) {
-              console.log('⚠️ 상품 저장 실패:', saveResponse?.error, saveResponse);
+              console.log('⚠️ 상품 저장 실패:', saveResponse?.error, '→ 다음 상품 시도');
               await updateProgress({
                 type: 'product_error',
                 categoryIndex: catIdx,
-                productIndex: prodIdx,
+                productIndex: successCount,
+                attemptIndex: attemptIndex,
                 error: saveResponse?.error || '상품 저장 실패'
               });
+              attemptIndex++;
               continue;
             }
 
@@ -5948,7 +5958,7 @@ async function handleBatch1688Collect(categories, sender) {
             await updateProgress({
               type: 'ai_processing',
               categoryIndex: catIdx,
-              productIndex: prodIdx,
+              productIndex: successCount,
               productId: savedProductId
             });
 
@@ -5967,37 +5977,47 @@ async function handleBatch1688Collect(categories, sender) {
             }
 
             results.completedProducts++;
+            successCount++;
 
             await updateProgress({
               type: 'product_complete',
               categoryIndex: catIdx,
-              productIndex: prodIdx,
+              productIndex: successCount,
+              totalProducts: targetCount,
               productId: savedProductId,
               aiSuccess: aiResponse?.success || false
             });
 
           } catch (productError) {
-            console.error('  ❌ 상품 처리 오류:', productError.message);
+            console.error('  ❌ 상품 처리 오류:', productError.message, '→ 다음 상품 시도');
             await updateProgress({
               type: 'product_error',
               categoryIndex: catIdx,
-              productIndex: prodIdx,
+              productIndex: successCount,
+              attemptIndex: attemptIndex,
               error: productError.message
             });
           }
+
+          attemptIndex++;
 
           // 요청 간 딜레이 (서버 부하 방지)
           await new Promise(resolve => setTimeout(resolve, 500));
         }
 
-        results.totalProducts += collectCount;
+        // 수집 결과 로그
+        console.log(`📊 카테고리 수집 결과: ${successCount}/${targetCount} 성공 (${attemptIndex}개 시도)`);
+
+        results.totalProducts += successCount;
         results.completedCategories++;
 
         await updateProgress({
           type: 'category_complete',
           categoryIndex: catIdx,
           categoryName: category.categoryName,
-          productsCollected: collectCount
+          productsCollected: successCount,
+          targetCount: targetCount,
+          attemptCount: attemptIndex
         });
 
       } catch (categoryError) {
