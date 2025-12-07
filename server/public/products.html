@@ -5515,26 +5515,68 @@
         detailCategoryState.excelData = excelData;
 
         // 첫 번째 옵션 자동 선택 (있는 경우)
+        let detailCategory = '';
         excelData.forEach((item, index) => {
           if (item.dropdownOptions && item.dropdownOptions.length > 0) {
             detailCategoryState.selections[index] = {
               optionIndex: 0,
               optionValue: item.dropdownOptions[0]
             };
+            if (!detailCategory) {
+              detailCategory = item.dropdownOptions[0];
+            }
           }
         });
 
-        // 기본값 설정
-        detailCategoryState.tags = [];
-        detailCategoryState.size = { width: '', height: '', depth: '' };
-        detailCategoryState.weight = '';
-        detailCategoryState.handlingCare = '';
-        detailCategoryState.season = '';
+        // 5. AI로 태그, 사이즈, 무게 등 자동 생성
+        if (footer) {
+          footer.innerHTML = `
+            <div style="color: #6d28d9; font-weight: 600;">🤖 AI가 상품 정보 생성 중...</div>
+          `;
+        }
+
+        console.log('🤖 AI 상품 정보 생성 요청:', categoryName, detailCategory);
+
+        try {
+          const productInfoResponse = await authFetch('/api/gemini/generate-product-info', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              categoryName: categoryName,
+              detailCategory: detailCategory
+            })
+          });
+
+          if (productInfoResponse.ok) {
+            const productInfo = await productInfoResponse.json();
+            console.log('✅ AI 상품 정보 생성 완료:', productInfo);
+
+            detailCategoryState.tags = productInfo.tags || [];
+            detailCategoryState.size = productInfo.size || { width: 300, height: 200, depth: 50 };
+            detailCategoryState.weight = String(productInfo.weight || 500);
+            detailCategoryState.handlingCare = productInfo.handlingCare || '해당사항없음';
+            detailCategoryState.season = productInfo.season || '사계절';
+          } else {
+            console.warn('⚠️ AI 상품 정보 생성 실패, 기본값 사용');
+            detailCategoryState.tags = [];
+            detailCategoryState.size = { width: 300, height: 200, depth: 50 };
+            detailCategoryState.weight = '500';
+            detailCategoryState.handlingCare = '해당사항없음';
+            detailCategoryState.season = '사계절';
+          }
+        } catch (aiError) {
+          console.warn('⚠️ AI 상품 정보 생성 오류:', aiError.message, '기본값 사용');
+          detailCategoryState.tags = [];
+          detailCategoryState.size = { width: 300, height: 200, depth: 50 };
+          detailCategoryState.weight = '500';
+          detailCategoryState.handlingCare = '해당사항없음';
+          detailCategoryState.season = '사계절';
+        }
 
         // 전체 상품 데이터 저장
         window.selectedFullProductsData = productsData;
 
-        // 5. 견적서 작성 시작
+        // 6. 견적서 작성 시작
         if (footer) {
           footer.innerHTML = `
             <div style="color: #6d28d9; font-weight: 600;">📝 견적서 작성 중...</div>
@@ -5592,7 +5634,12 @@
 
         console.log('📋 확장 프로그램으로 전송할 데이터:', {
           filesData,
-          products: selectedProductsData.length
+          products: selectedProductsData.length,
+          tags: detailCategoryState.tags,
+          size: detailCategoryState.size,
+          weight: detailCategoryState.weight,
+          handlingCare: detailCategoryState.handlingCare,
+          season: detailCategoryState.season
         });
 
         // 확장 프로그램으로 메시지 전송 (타임아웃 10분)
