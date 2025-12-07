@@ -1318,41 +1318,79 @@
     .batch-collection-item {
       background: #fff;
       border: 1px solid #e5e7eb;
-      border-radius: 10px;
-      padding: 12px 16px;
-      margin-bottom: 10px;
+      border-radius: 12px;
+      padding: 18px 22px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      transition: all 0.2s;
     }
 
-    .collection-row {
+    .batch-collection-item:hover {
+      border-color: #d1d5db;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .collection-header {
       display: flex;
       align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
+      gap: 16px;
     }
 
     .collection-category-name {
       font-weight: 600;
-      font-size: 13px;
-      color: #374151;
-      min-width: 120px;
-      max-width: 150px;
+      font-size: 15px;
+      color: #1f2937;
+      min-width: 140px;
+      max-width: 180px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      padding: 4px 12px 4px 0;
+      border-right: 2px solid #e5e7eb;
     }
 
     .collection-search-input {
-      flex: 0 0 140px;
-      padding: 8px 12px;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-      font-size: 13px;
+      flex: 1;
+      min-width: 200px;
+      padding: 12px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 14px;
+      transition: all 0.2s;
+      background: #fafafa;
     }
 
     .collection-search-input:focus {
       outline: none;
       border-color: #3b82f6;
-      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    .collection-options-wrapper {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      align-items: center;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid #f3f4f6;
+    }
+
+    .collection-option-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: #f9fafb;
+      border-radius: 8px;
+    }
+
+    .option-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      min-width: 40px;
     }
 
     .collection-price-btns {
@@ -1387,43 +1425,59 @@
     .collection-count-group {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
 
     .collection-checkbox {
       display: flex;
       align-items: center;
-      gap: 4px;
-      font-size: 12px;
-      color: #4b5563;
+      gap: 5px;
+      font-size: 13px;
+      color: #374151;
       cursor: pointer;
       white-space: nowrap;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+
+    .collection-checkbox:hover {
+      background: #e5e7eb;
     }
 
     .collection-checkbox input[type="checkbox"],
     .collection-checkbox input[type="radio"] {
-      width: 14px;
-      height: 14px;
+      width: 16px;
+      height: 16px;
       cursor: pointer;
+      accent-color: #3b82f6;
     }
 
     .collection-price-group {
       display: flex;
-      gap: 4px;
+      gap: 6px;
     }
 
     .price-radio {
       display: flex;
       align-items: center;
-      gap: 2px;
-      font-size: 11px;
-      color: #4b5563;
+      gap: 4px;
+      font-size: 13px;
+      color: #374151;
       cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+
+    .price-radio:hover {
+      background: #e5e7eb;
     }
 
     .price-radio input[type="radio"] {
-      width: 12px;
-      height: 12px;
+      width: 15px;
+      height: 15px;
+      accent-color: #3b82f6;
     }
 
     .translate-btn {
@@ -1442,16 +1496,27 @@
 
     .random-pages-input,
     .product-count-input {
-      width: 60px;
-      padding: 4px 8px;
-      font-size: 11px;
-      border: 1px solid #d1d5db;
-      border-radius: 4px;
+      width: 55px;
+      padding: 8px 10px;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+      border: 2px solid #d1d5db;
+      border-radius: 8px;
       background: #fff;
+      transition: all 0.2s;
+    }
+
+    .random-pages-input:focus,
+    .product-count-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
     }
 
     .collection-label {
-      font-size: 11px;
+      font-size: 12px;
+      font-weight: 600;
       color: #6b7280;
       white-space: nowrap;
     }
@@ -5129,35 +5194,53 @@
 
           html += `
             <div class="batch-collection-item" data-item-id="${itemId}" data-category-id="${categoryId}" data-detail-idx="${detailIdx}" data-category-name="${categoryName}">
-              <div class="collection-row">
+              <!-- 상단: 카테고리명 + 검색어 -->
+              <div class="collection-header">
                 <div class="collection-category-name" title="${categoryName}">${categoryName}</div>
                 <input type="text" class="collection-search-input" id="search_${itemId}" placeholder="AI 추천 중..." data-field="searchKeyword" readonly>
+              </div>
 
-                <div class="collection-price-group">
-                  <label class="price-radio"><input type="radio" name="price_${itemId}" value="lowest"><span>최저가</span></label>
-                  <label class="price-radio"><input type="radio" name="price_${itemId}" value="middle"><span>중간가</span></label>
-                  <label class="price-radio"><input type="radio" name="price_${itemId}" value="average"><span>평균가</span></label>
-                  <label class="price-radio"><input type="radio" name="price_${itemId}" value="highest"><span>최고가</span></label>
+              <!-- 하단: 옵션들 -->
+              <div class="collection-options-wrapper">
+                <div class="collection-option-group">
+                  <span class="option-label">가격</span>
+                  <div class="collection-price-group">
+                    <label class="price-radio"><input type="radio" name="price_${itemId}" value="lowest"><span>최저가</span></label>
+                    <label class="price-radio"><input type="radio" name="price_${itemId}" value="middle"><span>중간가</span></label>
+                    <label class="price-radio"><input type="radio" name="price_${itemId}" value="average"><span>평균가</span></label>
+                    <label class="price-radio"><input type="radio" name="price_${itemId}" value="highest"><span>최고가</span></label>
+                  </div>
                 </div>
 
-                <div class="collection-checkboxes">
-                  <label class="collection-checkbox"><input type="checkbox" data-field="newProduct"><span>신제품</span></label>
-                  <label class="collection-checkbox"><input type="checkbox" data-field="fastDelivery"><span>48시간배송</span></label>
+                <div class="collection-option-group">
+                  <span class="option-label">필터</span>
+                  <div class="collection-checkboxes">
+                    <label class="collection-checkbox"><input type="checkbox" data-field="newProduct"><span>신제품</span></label>
+                    <label class="collection-checkbox"><input type="checkbox" data-field="fastDelivery"><span>48시간배송</span></label>
+                  </div>
                 </div>
 
-                <div class="collection-sort-group">
-                  <label class="collection-checkbox"><input type="radio" name="sort_${itemId}" data-field="sortPopular" value="popular" checked><span>인기순</span></label>
-                  <label class="collection-checkbox"><input type="radio" name="sort_${itemId}" data-field="sortSales" value="sales"><span>판매량순</span></label>
+                <div class="collection-option-group">
+                  <span class="option-label">정렬</span>
+                  <div class="collection-sort-group">
+                    <label class="collection-checkbox"><input type="radio" name="sort_${itemId}" data-field="sortPopular" value="popular" checked><span>인기순</span></label>
+                    <label class="collection-checkbox"><input type="radio" name="sort_${itemId}" data-field="sortSales" value="sales"><span>판매량순</span></label>
+                  </div>
                 </div>
 
-                <div class="collection-random-group">
-                  <label class="collection-checkbox"><input type="checkbox" data-field="random" onchange="toggleRandomPages(this, '${itemId}')"><span>랜덤</span></label>
-                  <input type="number" class="random-pages-input" id="randomPages_${itemId}" data-field="randomPages" min="1" max="100" value="5" placeholder="페이지" style="display: none;">
+                <div class="collection-option-group">
+                  <span class="option-label">랜덤</span>
+                  <div class="collection-random-group">
+                    <label class="collection-checkbox"><input type="checkbox" data-field="random" onchange="toggleRandomPages(this, '${itemId}')"><span>사용</span></label>
+                    <input type="number" class="random-pages-input" id="randomPages_${itemId}" data-field="randomPages" min="1" max="100" value="5" placeholder="페이지" style="display: none;">
+                  </div>
                 </div>
 
-                <div class="collection-count-group">
-                  <label class="collection-label">수집 수:</label>
-                  <input type="number" class="product-count-input" data-field="productCount" min="1" max="100" value="20">
+                <div class="collection-option-group">
+                  <span class="option-label">수집 수</span>
+                  <div class="collection-count-group">
+                    <input type="number" class="product-count-input" data-field="productCount" min="1" max="5" value="3">
+                  </div>
                 </div>
               </div>
             </div>
@@ -5928,29 +6011,38 @@
 
   <!-- 카테고리 일괄 수집 모달 -->
   <div id="batchCategoryModal">
-    <div class="coupang-modal-content" style="max-width: 700px;">
+    <div class="coupang-modal-content" style="max-width: 800px;">
       <div class="coupang-modal-header">
         <h2>📁 카테고리 일괄 수집</h2>
         <button class="coupang-modal-close" onclick="closeBatchCategoryModal()">×</button>
       </div>
 
-      <div class="coupang-modal-body">
-        <!-- 선택 완료된 카테고리 (상단에 태그로 표시) -->
-        <div id="batchCompletedSummary" style="display: none; margin-bottom: 16px; padding: 12px; background: #f0fdf4; border: 1px solid #10b981; border-radius: 8px;">
-          <div style="display: flex; align-items: center; margin-bottom: 8px;">
-            <span style="font-weight: 600; color: #059669; font-size: 13px;">✅ 선택 완료 (<span id="completedCount">0</span>개)</span>
+      <div class="coupang-modal-body" style="padding: 28px;">
+        <!-- 기능 설명 -->
+        <div style="margin-bottom: 20px; padding: 16px 20px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; border-left: 4px solid #f59e0b;">
+          <div style="font-size: 14px; color: #92400e; line-height: 1.6;">
+            <strong style="display: block; margin-bottom: 6px; font-size: 15px;">💡 카테고리 자동 수집 기능</strong>
+            쿠팡 카테고리를 검색하여 원하는 카테고리를 선택하면, 해당 카테고리의 상품을 1688에서 자동으로 수집하고 쿠팡에 등록합니다.
           </div>
-          <div id="completedChipsList" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+        </div>
+
+        <!-- 선택 완료된 카테고리 (상단에 태그로 표시) -->
+        <div id="batchCompletedSummary" style="display: none; margin-bottom: 20px; padding: 16px; background: #f0fdf4; border: 1px solid #10b981; border-radius: 12px;">
+          <div style="display: flex; align-items: center; margin-bottom: 10px;">
+            <span style="font-weight: 600; color: #059669; font-size: 14px;">✅ 선택 완료 (<span id="completedCount">0</span>개)</span>
+          </div>
+          <div id="completedChipsList" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
         </div>
 
         <!-- 검색어 입력 -->
-        <div style="margin-bottom: 16px;">
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 600; color: #374151;">카테고리 검색</label>
           <input
             type="text"
             id="batchSearchInput"
             class="coupang-search-input"
-            placeholder="카테고리 검색 (예: 티셔츠, 가방, 신발...)"
-            style="width: 100%; padding: 14px 18px; font-size: 15px; border: 2px solid #e0e0e0; border-radius: 10px;"
+            placeholder="카테고리명을 입력하세요 (예: 티셔츠, 가방, 신발...)"
+            style="width: 100%; padding: 16px 20px; font-size: 16px; border: 2px solid #e0e0e0; border-radius: 12px; box-sizing: border-box;"
             onkeypress="if(event.key === 'Enter') searchBatchKeyword()"
           >
         </div>
