@@ -2741,6 +2741,9 @@ async function handleFillQuotationExcels(data) {
       // 셀 업데이트 수집 (서버로 전송할 데이터)
       const cellUpdates = [];
 
+      // 제품명 중복 방지용 Map (제품명 -> 사용 횟수)
+      const usedProductNames = new Map();
+
       // ⚠️ 디버깅: 컨텍스트 데이터 확인
       console.log('🔍 컨텍스트 데이터 확인:');
       console.log(`   - searchTags: ${searchTags} (타입: ${typeof searchTags}, 배열: ${Array.isArray(searchTags)})`);
@@ -2781,7 +2784,8 @@ async function handleFillQuotationExcels(data) {
               handlingCare: handlingCare || '해당사항없음',
               season: season || '사계절',
               requiredFields,
-              priceSettings
+              priceSettings,
+              usedProductNames
             });
 
             // "필수"와 "조건부 필수"만 채우기, 나머지는 스킵
@@ -2871,7 +2875,8 @@ async function handleFillQuotationExcels(data) {
                 handlingCare: handlingCare || '해당사항없음',
                 season: season || '사계절',
                 requiredFields,
-                priceSettings
+                priceSettings,
+                usedProductNames
               });
 
               // 색상 매핑 디버그 (첫 옵션만)
@@ -3866,7 +3871,7 @@ function calculatePrices(priceCNY, priceSettings) {
  */
 function getValueForMapping(mapping, context) {
   const { type, value: fixedValue, header } = mapping;
-  const { category, productTitle, option1, option2, searchTags, weight, size, price, product, option, productIndex, brandName, handlingCare, season, requiredFields, priceSettings } = context;
+  const { category, productTitle, option1, option2, searchTags, weight, size, price, product, option, productIndex, brandName, handlingCare, season, requiredFields, priceSettings, usedProductNames } = context;
 
   switch (type) {
     case 'productName':
@@ -3884,7 +3889,29 @@ function getValueForMapping(mapping, context) {
         truncatedTitle = truncatedTitle.substring(0, maxTitleLength);
       }
 
-      let combinedName = truncatedTitle + opt1Str + opt2Str;
+      let baseName = truncatedTitle + opt1Str + opt2Str;
+
+      // 중복 검사 및 번호 추가
+      let combinedName = baseName;
+      if (usedProductNames) {
+        if (usedProductNames.has(baseName)) {
+          // 이미 사용된 이름 - 번호 붙이기
+          let count = usedProductNames.get(baseName) + 1;
+          usedProductNames.set(baseName, count);
+          // 번호 공간 확보 (최대 59자)
+          const suffix = ` ${count}`;
+          if (baseName.length + suffix.length > maxLength) {
+            combinedName = baseName.substring(0, maxLength - suffix.length) + suffix;
+          } else {
+            combinedName = baseName + suffix;
+          }
+          console.log(`🔧 productName 중복 발견! "${baseName}" → "${combinedName}"`);
+        } else {
+          // 처음 사용하는 이름
+          usedProductNames.set(baseName, 1);
+        }
+      }
+
       console.log(`🔧 productName 처리: 제목=${truncatedTitle.length}자, 옵션=${optionsLength}자, 결과=${combinedName.length}자`);
       return combinedName;
 
