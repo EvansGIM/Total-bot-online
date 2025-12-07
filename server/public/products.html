@@ -5440,7 +5440,7 @@
       document.getElementById('batchProgressModal').style.display = 'none';
     }
 
-    // 일괄 수집 후 쿠팡 등록 시작 - 상품 선택 후 기존 견적서 흐름 사용
+    // 일괄 수집 후 쿠팡 등록 시작 - 풀 자동화
     async function startBatchAIProcessing() {
       const productIds = window.batchCollectedProductIds || [];
 
@@ -5451,22 +5451,180 @@
         return;
       }
 
-      // 모달 업데이트 - 안내
+      // 설정 확인
+      if (!settings.coupangId || !settings.coupangPassword) {
+        alert('설정에서 쿠팡 아이디와 비밀번호를 먼저 입력해주세요.');
+        closeBatchProgressModal();
+        openSettingsModal();
+        return;
+      }
+
       const modal = document.getElementById('batchProgressModal');
       const footer = modal.querySelector('.progress-footer');
-      if (footer) {
-        footer.innerHTML = `
-          <div style="color: #10b981; font-weight: 600;">
-            ✅ 수집 완료! 이제 쿠팡에 등록하세요.
-          </div>
-          <div style="font-size: 14px; margin-top: 10px; text-align: left; padding: 0 10px;">
-            1. 아래 버튼을 누르면 수집된 ${productIds.length}개 상품이 자동 선택됩니다.<br>
-            2. <b>QVT 견적생성</b> 버튼을 눌러 등록을 진행하세요.
-          </div>
-          <button class="coupang-download-btn" onclick="selectBatchProducts(); closeBatchProgressModal();" style="margin-top: 15px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-            🛒 수집 상품 선택하고 닫기
-          </button>
-        `;
+
+      try {
+        // 1. 상품 데이터 로드
+        if (footer) {
+          footer.innerHTML = `
+            <div style="color: #6d28d9; font-weight: 600;">🔄 상품 데이터 로드 중...</div>
+          `;
+        }
+
+        console.log('📦 상품 데이터 로드 시작:', productIds);
+        const productsData = await loadFullProductData(productIds);
+
+        if (productsData.length === 0) {
+          throw new Error('상품 데이터를 불러올 수 없습니다.');
+        }
+
+        console.log('✅ 상품 데이터 로드 완료:', productsData.length, '개');
+
+        // 2. 카테고리 ID 추출 (첫 번째 상품의 categoryName에서)
+        const firstProduct = productsData[0];
+        const categoryName = firstProduct.categoryName || '';
+        const categoryMatch = categoryName.match(/\((\d+)\)$/);
+
+        if (!categoryMatch) {
+          throw new Error('상품에서 카테고리 ID를 찾을 수 없습니다: ' + categoryName);
+        }
+
+        const categoryId = categoryMatch[1];
+        console.log('📂 카테고리 ID:', categoryId, '이름:', categoryName);
+
+        // 3. 견적서 다운로드
+        if (footer) {
+          footer.innerHTML = `
+            <div style="color: #6d28d9; font-weight: 600;">📥 견적서 템플릿 다운로드 중...</div>
+          `;
+        }
+
+        const downloadResponse = await sendMessageToExtension('downloadQuotation', {
+          action: 'downloadQuotation',
+          categoryIds: [categoryId],
+          categories: [{ id: categoryId, name: categoryName }]
+        });
+
+        if (!downloadResponse.success) {
+          throw new Error(downloadResponse.error || '견적서 다운로드 실패');
+        }
+
+        console.log('✅ 견적서 다운로드 완료:', downloadResponse);
+
+        // 4. detailCategoryState 설정
+        const excelData = downloadResponse.excelData || [];
+        detailCategoryState.excelData = excelData;
+
+        // 첫 번째 옵션 자동 선택 (있는 경우)
+        excelData.forEach((item, index) => {
+          if (item.dropdownOptions && item.dropdownOptions.length > 0) {
+            detailCategoryState.selections[index] = {
+              optionIndex: 0,
+              optionValue: item.dropdownOptions[0]
+            };
+          }
+        });
+
+        // 기본값 설정
+        detailCategoryState.tags = [];
+        detailCategoryState.size = { width: '', height: '', depth: '' };
+        detailCategoryState.weight = '';
+        detailCategoryState.handlingCare = '';
+        detailCategoryState.season = '';
+
+        // 전체 상품 데이터 저장
+        window.selectedFullProductsData = productsData;
+
+        // 5. 견적서 작성 시작
+        if (footer) {
+          footer.innerHTML = `
+            <div style="color: #6d28d9; font-weight: 600;">📝 견적서 작성 중...</div>
+          `;
+        }
+
+        // progressModal 열기 (fillQuotationExcels에서 사용)
+        showProgressModal();
+
+        // 6. fillQuotationExcels 호출 - 자동으로 업로드까지 진행됨
+        await fillQuotationExcelsForBatch();
+
+        // 완료 - batchProgressModal 닫기
+        closeBatchProgressModal();
+        loadProducts();
+
+      } catch (error) {
+        console.error('❌ 쿠팡 자동 등록 오류:', error);
+        if (footer) {
+          footer.innerHTML = `
+            <div style="color: #ef4444; font-weight: 600;">❌ 오류: ${error.message}</div>
+            <div style="display: flex; gap: 10px; margin-top: 15px; justify-content: center;">
+              <button class="coupang-download-btn" onclick="startBatchAIProcessing()" style="background: #6d28d9;">
+                다시 시도
+              </button>
+              <button class="coupang-download-btn" onclick="selectBatchProducts(); closeBatchProgressModal();" style="background: #f59e0b;">
+                수동으로 진행
+              </button>
+              <button class="coupang-download-btn" onclick="closeBatchProgressModal(); loadProducts();" style="background: #6b7280;">
+                닫기
+              </button>
+            </div>
+          `;
+        }
+      }
+    }
+
+    // 일괄 수집용 fillQuotationExcels (detailCategoryModal 없이)
+    async function fillQuotationExcelsForBatch() {
+      try {
+        console.log('📝 일괄 수집용 견적서 자동 작성 시작...');
+
+        const selectedProductsData = window.selectedFullProductsData || [];
+        console.log(`🛍️  선택한 상품 ${selectedProductsData.length}개`);
+
+        // 파일 정보 매핑
+        const filesData = detailCategoryState.excelData.map((item, index) => {
+          const selection = detailCategoryState.selections[index];
+          return {
+            dataIndex: item.dataIndex,
+            filename: item.downloadedFilename || item.filename,
+            category: selection ? selection.optionValue : ''
+          };
+        });
+
+        console.log('📋 확장 프로그램으로 전송할 데이터:', {
+          filesData,
+          products: selectedProductsData.length
+        });
+
+        // 확장 프로그램으로 메시지 전송 (타임아웃 10분)
+        const response = await sendMessageToExtension('fillQuotationExcels', {
+          action: 'fillQuotationExcels',
+          filesData: filesData,
+          products: selectedProductsData,
+          searchTags: detailCategoryState.tags || [],
+          size: detailCategoryState.size || { width: '', height: '', depth: '' },
+          weight: detailCategoryState.weight || '',
+          handlingCare: detailCategoryState.handlingCare || '',
+          season: detailCategoryState.season || '',
+          brandName: settings.brandName || '',
+          quotationMappings: window.quotationMappings || settings.quotationMappings || [],
+          priceSettings: {
+            exchangeRate: settings.exchangeRate,
+            supplyMargins: settings.supplyMargins,
+            saleMargins: settings.saleMargins,
+            packagingCost: settings.packagingCost || 500,
+            minMargin: settings.minMargin || 1000
+          }
+        }, 600000); // 10분 타임아웃
+
+        if (response.success) {
+          console.log('✅ 일괄 견적서 자동 작성 완료:', response);
+        } else {
+          throw new Error(response.error || '견적서 작성 실패');
+        }
+
+      } catch (error) {
+        console.error('❌ 일괄 견적서 자동 작성 오류:', error);
+        throw error;
       }
     }
 
