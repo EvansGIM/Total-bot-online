@@ -2525,8 +2525,8 @@ async function handleFillQuotationExcels(data) {
         { header: '제품사용으로 인한 위험 및 유의사항(연료절감장치에 한함)', type: 'fixed', value: '해당사항 없음' },
         { header: '검사합격증 번호 (대기환경보전법에 따른 첨가제·촉매제에 한함)', type: 'fixed', value: '해당사항 없음' },
         { header: '종류', type: 'fixed', value: '상세페이지 설명 참조' },
-        { header: '품명 및 모델명', type: 'productName', value: '' },
-        { header: '품명', type: 'productName', value: '' },
+        { header: '품명 및 모델명', type: 'modelName', value: '' },
+        { header: '품명', type: 'modelName', value: '' },
         { header: '제품 소재', type: 'fixed', value: '상세페이지 설명 참조' },
         { header: '주요소재', type: 'fixed', value: '상세페이지 설명 참조' },
         { header: '주요 소재', type: 'fixed', value: '상세페이지 설명 참조' },
@@ -2765,6 +2765,9 @@ async function handleFillQuotationExcels(data) {
           const price = product.salePrice || product.basePrice || 0;
           let cellsWrittenThisRow = 0;
 
+          // 같은 행에서 productName 캐싱 (여러 열에서 같은 값 사용)
+          let currentRowProductName = null;
+
           // 각 매핑에 대해 값 작성
           for (const mapping of columnMappings) {
             const value = getValueForMapping(mapping, {
@@ -2785,7 +2788,9 @@ async function handleFillQuotationExcels(data) {
               season: season || '사계절',
               requiredFields,
               priceSettings,
-              usedProductNames
+              usedProductNames,
+              currentRowProductName,
+              setCurrentRowProductName: (name) => { currentRowProductName = name; }
             });
 
             // "필수"와 "조건부 필수"만 채우기, 나머지는 스킵
@@ -2850,6 +2855,9 @@ async function handleFillQuotationExcels(data) {
             const price = option.price || 0;
             let cellsWrittenThisRow = 0;
 
+            // 같은 행에서 productName 캐싱 (여러 열에서 같은 값 사용)
+            let currentRowProductName = null;
+
             // 첫 번째 옵션만 디버그 로그
             if (optIdx === 0) {
               console.log(`   🔍 옵션 디버그: opt1="${opt1}", opt2="${opt2}"`);
@@ -2876,7 +2884,9 @@ async function handleFillQuotationExcels(data) {
                 season: season || '사계절',
                 requiredFields,
                 priceSettings,
-                usedProductNames
+                usedProductNames,
+                currentRowProductName,
+                setCurrentRowProductName: (name) => { currentRowProductName = name; }
               });
 
               // 색상 매핑 디버그 (첫 옵션만)
@@ -3241,42 +3251,66 @@ async function handleFillQuotationExcels(data) {
     let successCount = 0;
     let failCount = 0;
     const batchSize = 5;
+    const failedImages = []; // 실패한 이미지 목록 (재시도용)
 
-    for (let i = 0; i < imagesToDownload2.length; i += batchSize) {
-      const batch = imagesToDownload2.slice(i, i + batchSize);
-      const batchPromises = batch.map(async (imgInfo) => {
+    // 이미지 다운로드 함수 (재시도 지원)
+    async function downloadImageWithRetry(imgInfo, maxRetries = 2) {
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
-          // 이미지 fetch
-          console.log(`   📥 다운로드 시도: ${imgInfo.filename} <- ${imgInfo.url.substring(0, 80)}...`);
+          if (attempt > 0) {
+            console.log(`   🔄 재시도 ${attempt}/${maxRetries}: ${imgInfo.filename}`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // 재시도 전 대기
+          }
+
           const response = await fetch(imgInfo.url);
           if (!response.ok) {
-            console.warn(`   ⚠️  Failed to fetch (${response.status}): ${imgInfo.filename}`);
-            console.warn(`      URL: ${imgInfo.url}`);
-            return { success: false, filename: imgInfo.filename, url: imgInfo.url, status: response.status };
+            if (attempt === maxRetries) {
+              console.warn(`   ⚠️  Failed to fetch (${response.status}): ${imgInfo.filename}`);
+              return { success: false, filename: imgInfo.filename, url: imgInfo.url, status: response.status };
+            }
+            continue; // 재시도
           }
 
           const blob = await response.blob();
-
-          // productImageBlobs 배열에 추가
           productImageBlobs.push({
             filename: imgInfo.filename,
             blob: blob
           });
 
-          console.log(`   ✅ 상품 이미지 추가: ${imgInfo.filename}`);
+          console.log(`   ✅ 상품 이미지 추가: ${imgInfo.filename}${attempt > 0 ? ` (재시도 ${attempt}회)` : ''}`);
           return { success: true, filename: imgInfo.filename };
         } catch (error) {
-          console.error(`   ❌ Download error for ${imgInfo.filename}:`, error.message);
-          return { success: false, filename: imgInfo.filename, error: error.message };
+          if (attempt === maxRetries) {
+            console.error(`   ❌ Download error for ${imgInfo.filename}:`, error.message);
+            return { success: false, filename: imgInfo.filename, error: error.message };
+          }
         }
-      });
+      }
+      return { success: false, filename: imgInfo.filename, error: 'Max retries exceeded' };
+    }
+
+    for (let i = 0; i < imagesToDownload2.length; i += batchSize) {
+      const batch = imagesToDownload2.slice(i, i + batchSize);
+      const batchPromises = batch.map(imgInfo => downloadImageWithRetry(imgInfo));
 
       const batchResults = await Promise.all(batchPromises);
-      successCount += batchResults.filter(r => r.success).length;
-      failCount += batchResults.filter(r => !r.success).length;
+      for (const result of batchResults) {
+        if (result.success) {
+          successCount++;
+        } else {
+          failCount++;
+          failedImages.push(result);
+        }
+      }
 
       // 진행 상황 표시
       console.log(`   📊 진행: ${Math.min(i + batchSize, imagesToDownload.length)}/${imagesToDownload.length}`);
+    }
+
+    // 실패한 이미지 로그
+    if (failedImages.length > 0) {
+      console.warn(`\n⚠️ 다운로드 실패한 이미지 ${failedImages.length}개:`);
+      failedImages.forEach(img => console.warn(`   - ${img.filename}: ${img.error || img.status}`));
     }
 
     console.log(`\n✅ 상품 이미지 수집 완료: 성공 ${successCount}개, 실패 ${failCount}개`);
@@ -3864,10 +3898,16 @@ function calculatePrices(priceCNY, priceSettings) {
  */
 function getValueForMapping(mapping, context) {
   const { type, value: fixedValue, header } = mapping;
-  const { category, productTitle, option1, option2, searchTags, weight, size, price, product, option, productIndex, brandName, handlingCare, season, requiredFields, priceSettings, usedProductNames } = context;
+  const { category, productTitle, option1, option2, searchTags, weight, size, price, product, option, productIndex, brandName, handlingCare, season, requiredFields, priceSettings, usedProductNames, currentRowProductName, setCurrentRowProductName } = context;
 
   switch (type) {
     case 'productName':
+      // 같은 행에서 이미 productName이 생성되었으면 재사용 (여러 열에 같은 값 필요)
+      if (currentRowProductName !== null && currentRowProductName !== undefined) {
+        console.log(`🔧 productName 재사용 (같은 행): "${currentRowProductName}"`);
+        return currentRowProductName;
+      }
+
       // 제품명 옵션1 옵션2 조합 (쿠팡 견적서는 상품명이 겹치면 안됨)
       // 최대 59글자로 제한 - 옵션 공간 확보 후 제목 자르기
       const maxLength = 59;
@@ -3885,24 +3925,45 @@ function getValueForMapping(mapping, context) {
       let baseName = truncatedTitle + opt1Str + opt2Str;
 
       // 중복 검사 및 번호 추가
+      // usedProductNames: { baseName -> { count: 숫자, lastName: 마지막으로 생성된 이름 } }
       let combinedName = baseName;
       if (usedProductNames) {
-        if (usedProductNames.has(baseName)) {
-          // 이미 사용된 이름 - 번호 붙이기
-          let count = usedProductNames.get(baseName) + 1;
-          usedProductNames.set(baseName, count);
-          // 번호 공간 확보 (최대 59자)
-          const suffix = ` ${count}`;
-          if (baseName.length + suffix.length > maxLength) {
-            combinedName = baseName.substring(0, maxLength - suffix.length) + suffix;
+        const existing = usedProductNames.get(baseName);
+        if (existing) {
+          // 이미 사용된 이름
+          if (existing.count === 1) {
+            // 두 번째 사용 - 첫 번째 것은 번호 없이 유지, 두 번째부터 번호 붙이기
+            existing.count = 2;
+            const suffix = ` 2`;
+            if (baseName.length + suffix.length > maxLength) {
+              combinedName = baseName.substring(0, maxLength - suffix.length) + suffix;
+            } else {
+              combinedName = baseName + suffix;
+            }
+            existing.lastName = combinedName;
+            console.log(`🔧 productName 중복 발견 (2번째)! "${baseName}" → "${combinedName}"`);
           } else {
-            combinedName = baseName + suffix;
+            // 세 번째 이상 사용 - 번호 증가
+            existing.count++;
+            const suffix = ` ${existing.count}`;
+            if (baseName.length + suffix.length > maxLength) {
+              combinedName = baseName.substring(0, maxLength - suffix.length) + suffix;
+            } else {
+              combinedName = baseName + suffix;
+            }
+            existing.lastName = combinedName;
+            console.log(`🔧 productName 중복 발견 (${existing.count}번째)! "${baseName}" → "${combinedName}"`);
           }
-          console.log(`🔧 productName 중복 발견! "${baseName}" → "${combinedName}"`);
         } else {
-          // 처음 사용하는 이름
-          usedProductNames.set(baseName, 1);
+          // 처음 사용하는 이름 - 번호 없이 저장
+          usedProductNames.set(baseName, { count: 1, lastName: baseName });
+          combinedName = baseName;
         }
+      }
+
+      // 같은 행에서 재사용할 수 있도록 캐싱
+      if (setCurrentRowProductName) {
+        setCurrentRowProductName(combinedName);
       }
 
       console.log(`🔧 productName 처리: 제목=${truncatedTitle.length}자, 옵션=${optionsLength}자, 결과=${combinedName.length}자`);
