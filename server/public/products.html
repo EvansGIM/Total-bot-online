@@ -5479,13 +5479,13 @@
 
         console.log('✅ 상품 데이터 로드 완료:', allProductsData.length, '개');
 
-        // 2. 상품을 카테고리별로 그룹화
+        // 2. 상품을 batchCategoryId(쿠팡 카테고리 ID)별로 그룹화
         const productsByCategory = new Map();
 
         for (const product of allProductsData) {
+          // batchCategoryId 사용 (수집 시 저장된 쿠팡 카테고리 ID)
+          const categoryId = product.batchCategoryId || 'unknown';
           const categoryName = product.categoryName || '';
-          const categoryMatch = categoryName.match(/\((\d+)\)$/);
-          const categoryId = categoryMatch ? categoryMatch[1] : 'unknown';
 
           if (!productsByCategory.has(categoryId)) {
             productsByCategory.set(categoryId, {
@@ -5497,7 +5497,7 @@
           productsByCategory.get(categoryId).products.push(product);
         }
 
-        console.log('📂 카테고리별 그룹화:', productsByCategory.size, '개 카테고리');
+        console.log('📂 카테고리별 그룹화 (batchCategoryId 기준):', productsByCategory.size, '개 카테고리');
         productsByCategory.forEach((data, catId) => {
           console.log(`   - ${catId}: ${data.products.length}개 상품`);
         });

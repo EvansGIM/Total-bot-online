@@ -5949,6 +5949,8 @@ async function handleBatch1688Collect(categories, sender) {
             productData.categoryPath = category.categoryPath;
             productData.categoryName = category.categoryName;
             productData.priceType = category.priceType;
+            // 쿠팡 카테고리 ID 저장 (batchCategoryState와 매칭용)
+            productData.batchCategoryId = category.categoryId;
 
             const saveResponse = await fetchFromAuthTab(
               'http://localhost:4000/api/products/save',
