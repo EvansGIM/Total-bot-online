@@ -7405,6 +7405,7 @@
           showPendingModal(message);
         } else if (message.action === 'batchCollectProgress') {
           // 일괄 수집 프로그레스 업데이트
+          console.log('📩 batchCollectProgress 메시지 수신:', message.progress?.type);
           handleBatchCollectProgressUpdate(message.progress);
         }
       }
@@ -7415,10 +7416,29 @@
       console.log('📊 일괄 수집 프로그레스:', progress);
 
       const listContainer = document.getElementById('batchProgressList');
-      if (!listContainer) return;
+      const modal = document.getElementById('batchProgressModal');
+      const footer = modal ? modal.querySelector('.progress-footer') : null;
 
-      // 프로그레스 아이템 찾기 또는 생성
+      if (!listContainer) {
+        console.log('⚠️ batchProgressList 없음');
+        return;
+      }
+
+      // 프로그레스 아이템 찾기
       let itemEl = document.querySelector(`.progress-item[data-cat-idx="${progress.categoryIndex}"]`);
+      console.log(`🔍 진행 아이템 검색 [data-cat-idx="${progress.categoryIndex}"]:`, itemEl ? '찾음' : '없음');
+
+      // footer 업데이트 헬퍼
+      function updateFooter(text, color = '#6d28d9') {
+        if (footer) {
+          footer.innerHTML = `
+            <div style="color: ${color}; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+              <span class="spinner"></span>
+              ${text}
+            </div>
+          `;
+        }
+      }
 
       switch (progress.type) {
         case 'category_start':
@@ -7430,14 +7450,19 @@
             badge.textContent = '검색 중';
             detail.textContent = '1688 검색 페이지 로딩...';
           }
+          updateFooter('🔍 1688 검색 중...');
           break;
 
         case 'products_found':
           // 상품 발견됨
           if (itemEl) {
+            const badge = itemEl.querySelector('.status-badge');
             const detail = itemEl.querySelector('.progress-detail');
+            badge.className = 'status-badge collecting';
+            badge.textContent = '수집 중';
             detail.textContent = `${progress.foundCount}개 발견, ${progress.collectCount}개 수집 예정`;
           }
+          updateFooter(`📦 ${progress.foundCount}개 발견, ${progress.collectCount}개 수집 예정`);
           break;
 
         case 'product_start':
@@ -7449,6 +7474,7 @@
             badge.textContent = '수집 중';
             detail.textContent = `상품 ${progress.productIndex + 1}/${progress.totalProducts} 수집 중...`;
           }
+          updateFooter(`🛍️ 상품 수집 중... (${progress.productIndex + 1}/${progress.totalProducts})`);
           break;
 
         case 'ai_processing':
@@ -7460,6 +7486,7 @@
             badge.textContent = 'AI 처리';
             detail.textContent = `상품 ${progress.productIndex + 1} AI 자동 편집 중...`;
           }
+          updateFooter(`🤖 AI 자동 편집 중... (${progress.productIndex + 1}/${progress.totalProducts})`, '#8b5cf6');
           break;
 
         case 'product_complete':
@@ -7468,6 +7495,7 @@
             const detail = itemEl.querySelector('.progress-detail');
             detail.textContent = `상품 ${progress.productIndex + 1} 완료 ${progress.aiSuccess ? '(AI ✓)' : ''}`;
           }
+          updateFooter(`✅ 상품 ${progress.productIndex + 1}/${progress.totalProducts} 완료`, '#10b981');
           break;
 
         case 'product_error':
@@ -7476,6 +7504,7 @@
             const detail = itemEl.querySelector('.progress-detail');
             detail.textContent = `상품 ${progress.productIndex + 1} 오류: ${progress.error}`;
           }
+          updateFooter(`⚠️ 상품 ${progress.productIndex + 1} 오류`, '#f59e0b');
           break;
 
         case 'category_complete':
@@ -7487,6 +7516,7 @@
             badge.textContent = '완료';
             detail.textContent = `${progress.productsCollected}개 상품 수집 완료`;
           }
+          updateFooter(`✅ 카테고리 완료 (${progress.productsCollected}개 수집)`, '#10b981');
           break;
 
         case 'complete':
